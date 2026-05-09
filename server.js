@@ -60,7 +60,7 @@ io.use((socket, next) => {
 app.get('/', (req, res) => {
     res.send(`<!DOCTYPE html>
 <html>
-<head><title>BirMillat � Qiziqishlaringiz bilan insonlarni toping</title>
+<head><title>BirMillat – Qiziqishlaringiz bilan insonlarni toping</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Segoe UI',sans-serif;background:#f5f7fa;color:#2c3e50}
@@ -90,16 +90,16 @@ footer{margin-top:80px;text-align:center;padding:20px;border-top:1px solid #e2e8
 </header>
 <div class=hero>
 <h1>Qiziqishlaringiz bilan insonlarni toping</h1>
-<p>BirMillat � bir fikr, bir maqsad, bir millat.</p>
-<a href=/register class=btn>Boshlash ?</a>
+<p>BirMillat – bir fikr, bir maqsad, bir millat.</p>
+<a href=/register class=btn>Boshlash →</a>
 <a href=/login class="btn btn-outline">Kirish</a>
 </div>
 <div class=features>
-<div class=feature-card>??<h3>Moslashtirish</h3><p>Qiziqishlaringiz bo'yicha odamlarni toping</p></div>
-<div class=feature-card>??<h3>Jonli suhbat</h3><p>Do'stlar so'rovi va bloklash</p></div>
-<div class=feature-card>???<h3>Maxfiylik</h3><p>Siz kimni bloklasangiz, u sizga yozolmaydi</p></div>
+<div class=feature-card>🎯<h3>Moslashtirish</h3><p>Qiziqishlaringiz bo'yicha odamlarni toping</p></div>
+<div class=feature-card>💬<h3>Jonli suhbat</h3><p>Do'stlar so'rovi va bloklash</p></div>
+<div class=feature-card>🛡️<h3>Maxfiylik</h3><p>Siz kimni bloklasangiz, u sizga yozolmaydi</p></div>
 </div>
-<footer>� 2026 BirMillat � Barcha huquqlar himoyalangan</footer>
+<footer>© 2026 BirMillat – Barcha huquqlar himoyalangan</footer>
 </div>
 </body>
 </html>`);
