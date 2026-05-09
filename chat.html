@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>BirMillat – Global suhbat</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'Segoe UI',sans-serif;background:#f4f6f9;display:flex;height:100vh}
+        .sidebar{width:260px;background:white;border-right:1px solid #e0e0e0;display:flex;flex-direction:column;position:fixed;height:100vh;overflow-y:auto}
+        .sidebar-header{padding:20px;font-size:20px;font-weight:bold;border-bottom:1px solid #e0e0e0;display:flex;align-items:center;gap:10px;color:#c0392b}
+        .sidebar-header img{height:32px}
+        .sidebar-menu{flex:1;padding:15px 0}
+        .menu-item{display:flex;align-items:center;gap:15px;padding:12px 20px;color:#333;text-decoration:none}
+        .menu-item:hover{background:#f0f2f5}
+        .menu-item.active{background:#fce4e1;color:#c0392b;border-left:4px solid #c0392b}
+        .future-space{margin-top:30px;padding:15px 20px;border-top:1px solid #e0e0e0;color:#888;font-size:12px}
+        .main-chat{margin-left:260px;flex:1;display:flex;flex-direction:column;height:100vh}
+        .chat-header{background:white;padding:15px 20px;border-bottom:1px solid #e0e0e0;display:flex;justify-content:space-between;align-items:center}
+        .messages{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:8px}
+        .message{max-width:70%;padding:8px 12px;border-radius:18px;background:white;align-self:flex-start}
+        .message.system{background:#e9ecef;color:#6c757d;align-self:center;font-style:italic}
+        .message strong{color:#c0392b}
+        .input-area{padding:15px;background:white;border-top:1px solid #ddd;display:flex;gap:10px}
+        .input-area input{flex:1;padding:10px;border-radius:25px;border:1px solid #ddd}
+        .input-area button{background:#c0392b;color:white;border:none;width:45px;border-radius:50%;cursor:pointer}
+        .social-panel{width:280px;background:white;border-left:1px solid #e0e0e0;padding:20px;overflow-y:auto}
+        .social-section{margin-bottom:20px}
+        .social-section h4{margin-bottom:10px;color:#c0392b}
+        .user-item{display:flex;justify-content:space-between;align-items:center;padding:5px 0}
+        button.small{background:none;border:none;cursor:pointer;color:#c0392b;margin-left:5px}
+        @media (max-width:768px){.sidebar{width:70px}.sidebar-header span,.menu-item span,.future-space{display:none}.main-chat{margin-left:70px}.social-panel{width:200px}}
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <img src="/logo.png" alt="BirMillat logosu">
+            <span>BirMillat</span>
+        </div>
+        <div class="sidebar-menu">
+            <a href="/home" class="menu-item"><i class="fas fa-home"></i> <span>Bosh sahifa</span></a>
+            <a href="/chat" class="menu-item active"><i class="fas fa-comments"></i> <span>Global suhbat</span></a>
+            <div class="future-space"><i class="fas fa-plus-circle"></i> Kelajakda: Guruhlar</div>
+        </div>
+    </div>
+    <div class="main-chat">
+        <div class="chat-header">
+            <span><i class="fas fa-globe"></i> Global suhbat</span>
+            <a href="/logout" style="color:#c0392b;"><i class="fas fa-sign-out-alt"></i> Chiqish</a>
+        </div>
+        <div id="messages" class="messages"></div>
+        <div class="input-area">
+            <input type="text" id="input" placeholder="Xabar yozing..." autocomplete="off">
+            <button id="sendBtn"><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
+    <div class="social-panel">
+        <div class="social-section">
+            <h4><i class="fas fa-user-friends"></i> Do'stlik so'rovlari</h4>
+            <div id="requestsList">Yuklanmoqda...</div>
+        </div>
+        <div class="social-section">
+            <h4><i class="fas fa-user-plus"></i> Do'st qo'shish</h4>
+            <input type="text" id="friendUsername" placeholder="Foydalanuvchi nomi" style="width:100%;padding:5px;margin-bottom:5px;">
+            <button id="sendRequestBtn" style="width:100%;background:#c0392b;color:white;border:none;padding:5px;border-radius:20px;">So'rov yuborish</button>
+        </div>
+        <div class="social-section">
+            <h4><i class="fas fa-ban"></i> Bloklash</h4>
+            <input type="text" id="blockUsername" placeholder="Foydalanuvchi nomi" style="width:100%;padding:5px;margin-bottom:5px;">
+            <button id="blockBtn" style="width:100%;background:#c0392b;color:white;border:none;padding:5px;border-radius:20px;">Bloklash</button>
+        </div>
+        <div class="social-section">
+            <h4><i class="fas fa-search"></i> Foydalanuvchi qidirish</h4>
+            <input type="text" id="searchUser" placeholder="Aniq ism">
+            <button id="searchBtn" style="width:100%;margin-top:5px;">Qidirish</button>
+            <div id="searchResult"></div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const messagesDiv = document.getElementById('messages');
+        const input = document.getElementById('input');
+        const sendBtn = document.getElementById('sendBtn');
+
+        function addMessage(user, text, isSystem = false) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = isSystem ? 'message system' : 'message';
+            msgDiv.innerHTML = isSystem ? `<i class="fas fa-info-circle"></i> ${text}` : `<strong>${user}</strong>: ${text}`;
+            messagesDiv.appendChild(msgDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        socket.on('chat message', (data) => {
+            addMessage(data.user, data.text, data.user === 'System');
+        });
+
+        function sendMessage() {
+            const text = input.value.trim();
+            if (text) {
+                socket.emit('chat message', text);
+                input.value = '';
+            }
+        }
+        sendBtn.onclick = sendMessage;
+        input.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+
+        async function loadSocial() {
+            const res = await fetch('/api/social');
+            const data = await res.json();
+            const requestsDiv = document.getElementById('requestsList');
+            if (data.friendRequests.length === 0) requestsDiv.innerHTML = 'So\'rovlar yo\'q';
+            else {
+                requestsDiv.innerHTML = data.friendRequests.map(req => `
+                    <div class="user-item">
+                        ${req}
+                        <button class="small" onclick="acceptRequest('${req}')"><i class="fas fa-check"></i></button>
+                    </div>
+                `).join('');
+            }
+        }
+
+        window.acceptRequest = async (from) => {
+            await fetch('/api/accept-request', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ from }) });
+            loadSocial();
+        };
+
+        document.getElementById('sendRequestBtn').onclick = async () => {
+            const to = document.getElementById('friendUsername').value;
+            if (!to) return;
+            const res = await fetch('/api/friend-request', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ to }) });
+            const result = await res.json();
+            alert(result.error || 'So\'rov yuborildi!');
+            document.getElementById('friendUsername').value = '';
+        };
+
+        document.getElementById('blockBtn').onclick = async () => {
+            const blockUser = document.getElementById('blockUsername').value;
+            if (!blockUser) return;
+            const res = await fetch('/api/block', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ blockUser }) });
+            const result = await res.json();
+            alert(result.error || 'Foydalanuvchi bloklandi');
+            document.getElementById('blockUsername').value = '';
+        };
+
+        document.getElementById('searchBtn').onclick = async () => {
+            const query = document.getElementById('searchUser').value.trim();
+            if (!query) return;
+            const res = await fetch('/api/users');
+            const users = await res.json();
+            const found = users.find(u => u.toLowerCase() === query.toLowerCase());
+            const resultDiv = document.getElementById('searchResult');
+            if (found) resultDiv.innerHTML = `<i class="fas fa-check-circle" style="color:green;"></i> "${found}" topildi. <button onclick="alert('Do\'st so\'rovini yuqoridan yuboring')">Xabar yozish</button>`;
+            else resultDiv.innerHTML = `<i class="fas fa-times-circle" style="color:red;"></i> Topilmadi`;
+        };
+
+        loadSocial();
+        setInterval(loadSocial, 5000);
+    </script>
+</body>
+</html>
