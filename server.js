@@ -61,7 +61,7 @@ io.use((socket, next) => {
     });
 });
 
-// ========== PUBLIC HOME PAGE ==========
+// ========== PUBLIC HOME PAGE (unchanged) ==========
 app.get('/', (req, res) => {
     res.send(`<!DOCTYPE html>
 <html>
@@ -253,7 +253,7 @@ app.get('/chat', (req, res) => {
     res.sendFile(path.join(__dirname, 'chat.html'));
 });
 
-// ========== API for Profile & Search ==========
+// ========== PROFILE & SEARCH APIs ==========
 app.get('/api/me', (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
     res.json({ username: req.session.userId });
@@ -289,15 +289,82 @@ app.get('/api/search', (req, res) => {
     res.json(usersList.filter(u => u.username !== req.session.userId));
 });
 
-// ========== Existing Social APIs (unchanged) ==========
-app.get('/api/social', (req, res) => { /* same as before */ });
-app.post('/api/friend-request', (req, res) => { /* same */ });
-app.post('/api/accept-request', (req, res) => { /* same */ });
-app.post('/api/block', (req, res) => { /* same */ });
-app.get('/api/users', (req, res) => { /* same */ });
-app.get('/logout', (req, res) => { req.session.destroy(); res.redirect('/'); });
+// ========== SOCIAL APIS (friend requests, block, users list) ==========
+app.get('/api/social', (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    const user = getUser(req.session.userId);
+    res.json({
+        friends: JSON.parse(user.friends || '[]'),
+        friendRequests: JSON.parse(user.friendRequests || '[]'),
+        blocked: JSON.parse(user.blocked || '[]')
+    });
+});
 
-// ---------- Socket.IO (Global Chat) ----------
+app.post('/api/friend-request', express.json(), (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    const { to } = req.body;
+    const from = req.session.userId;
+    const target = getUser(to);
+    if (!target) return res.json({ error: 'Foydalanuvchi topilmadi' });
+    let requests = JSON.parse(target.friendRequests || '[]');
+    if (requests.includes(from)) return res.json({ error: 'So‘rov allaqachon yuborilgan' });
+    requests.push(from);
+    updateUserSocial(to, 'friendRequests', requests);
+    res.json({ success: true });
+});
+
+app.post('/api/accept-request', express.json(), (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    const { from } = req.body;
+    const to = req.session.userId;
+    const user = getUser(to);
+    let requests = JSON.parse(user.friendRequests || '[]');
+    if (!requests.includes(from)) return res.json({ error: 'So‘rov mavjud emas' });
+    requests = requests.filter(f => f !== from);
+    let friends = JSON.parse(user.friends || '[]');
+    if (!friends.includes(from)) friends.push(from);
+    updateUserSocial(to, 'friendRequests', requests);
+    updateUserSocial(to, 'friends', friends);
+    const friendUser = getUser(from);
+    let friendFriends = JSON.parse(friendUser.friends || '[]');
+    if (!friendFriends.includes(to)) friendFriends.push(to);
+    updateUserSocial(from, 'friends', friendFriends);
+    res.json({ success: true });
+});
+
+app.post('/api/block', express.json(), (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    const { blockUser } = req.body;
+    const current = req.session.userId;
+    if (current === blockUser) return res.json({ error: 'O‘z-o‘zini bloklab bo‘lmaydi' });
+    const target = getUser(blockUser);
+    if (!target) return res.json({ error: 'Foydalanuvchi topilmadi' });
+    let blocked = JSON.parse(getUser(current).blocked || '[]');
+    if (!blocked.includes(blockUser)) blocked.push(blockUser);
+    let friends = JSON.parse(getUser(current).friends || '[]');
+    friends = friends.filter(f => f !== blockUser);
+    updateUserSocial(current, 'blocked', blocked);
+    updateUserSocial(current, 'friends', friends);
+    const blockedUserData = getUser(blockUser);
+    let targetFriends = JSON.parse(blockedUserData.friends || '[]');
+    targetFriends = targetFriends.filter(f => f !== current);
+    updateUserSocial(blockUser, 'friends', targetFriends);
+    res.json({ success: true });
+});
+
+app.get('/api/users', (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    const rows = db.prepare('SELECT username FROM users').all();
+    const all = rows.map(r => r.username).filter(u => u !== req.session.userId);
+    res.json(all);
+});
+
+app.get('/logout', (req, res) => {
+    req.session.destroy();
+    res.redirect('/');
+});
+
+// ---------- SOCKET.IO (global chat with colored messages) ----------
 io.on('connection', (socket) => {
     const userId = socket.request.session.userId;
     if (!userId) {
@@ -316,4 +383,5 @@ io.on('connection', (socket) => {
     });
 });
 
+// ---------- START SERVER ----------
 server.listen(3000, () => console.log('Server ishga tushdi: http://localhost:3000'));
