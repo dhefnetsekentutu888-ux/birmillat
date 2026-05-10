@@ -29,9 +29,11 @@
         .main-chat{margin-left:260px;flex:1;display:flex;flex-direction:column;height:100vh}
         .chat-header{background:white;padding:15px 20px;border-bottom:1px solid #e0e0e0;display:flex;justify-content:space-between;align-items:center}
         .messages{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:8px}
-        .message{max-width:70%;padding:8px 12px;border-radius:18px;background:white;align-self:flex-start}
+        .message{max-width:70%;padding:8px 12px;border-radius:18px;word-wrap:break-word}
+        .message.own{background:#dcf8c5;align-self:flex-end;border-bottom-right-radius:4px}
+        .message.other{background:#e4e6eb;align-self:flex-start;border-bottom-left-radius:4px}
+        .message .sender{font-size:0.7rem;font-weight:bold;margin-bottom:4px}
         .message.system{background:#e9ecef;color:#6c757d;align-self:center;font-style:italic}
-        .message strong{color:#c0392b}
         .input-area{padding:15px;background:white;border-top:1px solid #ddd;display:flex;gap:10px}
         .input-area input{flex:1;padding:10px;border-radius:25px;border:1px solid #ddd}
         .input-area button{background:#c0392b;color:white;border:none;width:45px;border-radius:50%;cursor:pointer}
@@ -40,7 +42,46 @@
         .social-section h4{margin-bottom:10px;color:#c0392b}
         .user-item{display:flex;justify-content:space-between;align-items:center;padding:5px 0}
         button.small{background:none;border:none;cursor:pointer;color:#c0392b;margin-left:5px}
-        @media (max-width:768px){.sidebar{width:70px}.sidebar-header span,.menu-item span,.future-space{display:none}.main-chat{margin-left:70px}.social-panel{width:200px}}
+        .profile-link{cursor:pointer;color:#2c7da0;text-decoration:underline}
+        .edit-profile-btn{background:#c0392b;color:white;border:none;padding:6px 12px;border-radius:20px;cursor:pointer;margin-top:10px;width:100%}
+        .modal{
+            display:none;
+            position:fixed;
+            top:0;left:0;
+            width:100%;height:100%;
+            background:rgba(0,0,0,0.5);
+            align-items:center;
+            justify-content:center;
+            z-index:1000;
+        }
+        .modal-content{
+            background:white;
+            padding:24px;
+            border-radius:24px;
+            width:90%;
+            max-width:500px;
+        }
+        .modal-content input,.modal-content textarea{
+            width:100%;
+            padding:10px;
+            margin:8px 0;
+            border-radius:12px;
+            border:1px solid #ccc;
+        }
+        .btn{
+            background:#c0392b;
+            color:white;
+            border:none;
+            padding:8px 16px;
+            border-radius:24px;
+            cursor:pointer;
+        }
+        @media (max-width:768px){
+            .sidebar{width:70px}
+            .sidebar-header span,.menu-item span,.future-space{display:none}
+            .main-chat{margin-left:70px}
+            .social-panel{width:200px}
+        }
     </style>
 </head>
 <body>
@@ -70,6 +111,10 @@
     </div>
     <div class="social-panel">
         <div class="social-section">
+            <h4><i class="fas fa-user-edit"></i> Mening profilim</h4>
+            <button id="editProfileBtn" class="edit-profile-btn"><i class="fas fa-pen"></i> Profilni tahrirlash</button>
+        </div>
+        <div class="social-section">
             <h4><i class="fas fa-user-friends"></i> Do'stlik so'rovlari</h4>
             <div id="requestsList">Yuklanmoqda...</div>
         </div>
@@ -85,41 +130,93 @@
         </div>
         <div class="social-section">
             <h4><i class="fas fa-search"></i> Foydalanuvchi qidirish</h4>
-            <input type="text" id="searchUser" placeholder="Aniq ism">
+            <input type="text" id="searchUser" placeholder="Ism yoki username">
             <button id="searchBtn" style="width:100%;margin-top:5px;">Qidirish</button>
-            <div id="searchResult"></div>
+            <div id="searchResult" style="margin-top:8px;"></div>
+        </div>
+    </div>
+
+    <!-- Profile Edit Modal -->
+    <div id="profileModal" class="modal">
+        <div class="modal-content">
+            <h3>Profilni tahrirlash</h3>
+            <label>Ism / Familiya</label>
+            <input type="text" id="editName" placeholder="To‘liq ismingiz">
+            <label>Bio</label>
+            <textarea id="editBio" rows="3" placeholder="O‘zingiz haqingizda"></textarea>
+            <label>Qiziqishlar (vergul bilan ajrating)</label>
+            <input type="text" id="editInterests" placeholder="masalan: Python, AI, O‘yinlar">
+            <div style="display: flex; gap: 10px; margin-top: 16px;">
+                <button id="saveProfileBtn" class="btn">Saqlash</button>
+                <button id="closeModalBtn" class="btn" style="background:#aaa;">Bekor qilish</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Profile Modal (when clicking on a user) -->
+    <div id="viewProfileModal" class="modal">
+        <div class="modal-content">
+            <h3 id="viewUsername"></h3>
+            <p><strong>Ism:</strong> <span id="viewName"></span></p>
+            <p><strong>Bio:</strong> <span id="viewBio"></span></p>
+            <p><strong>Qiziqishlar:</strong> <span id="viewInterests"></span></p>
+            <button id="closeViewModal" class="btn">Yopish</button>
         </div>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        const socket = io();
+        // ---------- Helper to get current user from session ----------
+        async function getCurrentUser() {
+            const res = await fetch('/api/me');
+            if (res.ok) {
+                const data = await res.json();
+                return data.username;
+            }
+            return null;
+        }
+
+        let currentUsername = null;
+        let socket = null;
+
+        // ---------- Chat functionality with colored bubbles ----------
         const messagesDiv = document.getElementById('messages');
         const input = document.getElementById('input');
         const sendBtn = document.getElementById('sendBtn');
 
-        function addMessage(user, text, isSystem = false) {
+        function addMessage(user, text, isOwn, isSystem = false) {
             const msgDiv = document.createElement('div');
-            msgDiv.className = isSystem ? 'message system' : 'message';
-            msgDiv.innerHTML = isSystem ? `<i class="fas fa-info-circle"></i> ${text}` : `<strong>${user}</strong>: ${text}`;
+            if (isSystem) {
+                msgDiv.className = 'message system';
+                msgDiv.innerHTML = `<i class="fas fa-info-circle"></i> ${text}`;
+            } else {
+                msgDiv.className = `message ${isOwn ? 'own' : 'other'}`;
+                msgDiv.innerHTML = `<div class="sender">${user}</div><div>${text}</div>`;
+            }
             messagesDiv.appendChild(msgDiv);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
 
-        socket.on('chat message', (data) => {
-            addMessage(data.user, data.text, data.user === 'System');
+        socket = io();
+        socket.on('global message', (msg) => {
+            if (msg.user === currentUsername) {
+                addMessage(msg.user, msg.text, true);
+            } else {
+                addMessage(msg.user, msg.text, false);
+            }
         });
 
         function sendMessage() {
             const text = input.value.trim();
             if (text) {
-                socket.emit('chat message', text);
+                socket.emit('global message', text);
                 input.value = '';
             }
         }
         sendBtn.onclick = sendMessage;
         input.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
 
+        // ---------- Social functions (friend requests, block) unchanged ----------
         async function loadSocial() {
             const res = await fetch('/api/social');
             const data = await res.json();
@@ -158,19 +255,97 @@
             document.getElementById('blockUsername').value = '';
         };
 
+        // ---------- Enhanced search with profile click ----------
         document.getElementById('searchBtn').onclick = async () => {
             const query = document.getElementById('searchUser').value.trim();
             if (!query) return;
-            const res = await fetch('/api/users');
+            const res = await fetch('/api/search?q=' + encodeURIComponent(query));
             const users = await res.json();
-            const found = users.find(u => u.toLowerCase() === query.toLowerCase());
             const resultDiv = document.getElementById('searchResult');
-            if (found) resultDiv.innerHTML = `<i class="fas fa-check-circle" style="color:green;"></i> "${found}" topildi. <button onclick="alert('Do\'st so\'rovini yuqoridan yuboring')">Xabar yozish</button>`;
-            else resultDiv.innerHTML = `<i class="fas fa-times-circle" style="color:red;"></i> Topilmadi`;
+            if (users.length === 0) {
+                resultDiv.innerHTML = `<i class="fas fa-times-circle" style="color:red;"></i> Topilmadi`;
+            } else {
+                resultDiv.innerHTML = users.map(u => `
+                    <div class="user-item" style="cursor:pointer;" data-username="${u.username}">
+                        <i class="fas fa-user-circle"></i> ${u.name || u.username} (@${u.username})
+                    </div>
+                `).join('');
+                document.querySelectorAll('[data-username]').forEach(el => {
+                    el.addEventListener('click', () => showUserProfile(el.dataset.username));
+                });
+            }
         };
 
-        loadSocial();
-        setInterval(loadSocial, 5000);
+        // ---------- Profile viewing (click on any user) ----------
+        async function showUserProfile(username) {
+            const res = await fetch(`/api/profile/${username}`);
+            if (res.ok) {
+                const data = await res.json();
+                document.getElementById('viewUsername').innerText = username;
+                document.getElementById('viewName').innerText = data.name || username;
+                document.getElementById('viewBio').innerText = data.bio || 'Maʼlumot yo‘q';
+                document.getElementById('viewInterests').innerText = (data.interests || []).join(', ') || 'Belgilanmagan';
+                document.getElementById('viewProfileModal').style.display = 'flex';
+            }
+        }
+
+        // ---------- Profile editing ----------
+        async function loadMyProfile() {
+            const res = await fetch(`/api/profile/${currentUsername}`);
+            if (res.ok) {
+                const data = await res.json();
+                document.getElementById('editName').value = data.name || currentUsername;
+                document.getElementById('editBio').value = data.bio || '';
+                document.getElementById('editInterests').value = (data.interests || []).join(', ');
+            }
+        }
+
+        async function saveProfile() {
+            const name = document.getElementById('editName').value;
+            const bio = document.getElementById('editBio').value;
+            const interestsStr = document.getElementById('editInterests').value;
+            const interests = interestsStr.split(',').map(s => s.trim()).filter(s => s);
+            const res = await fetch('/api/profile/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, bio, interests })
+            });
+            if (res.ok) {
+                alert('Profil saqlandi!');
+                document.getElementById('profileModal').style.display = 'none';
+            } else {
+                alert('Xatolik yuz berdi');
+            }
+        }
+
+        // ---------- Modal controls ----------
+        const profileModal = document.getElementById('profileModal');
+        const editProfileBtn = document.getElementById('editProfileBtn');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const saveProfileBtn = document.getElementById('saveProfileBtn');
+        editProfileBtn.onclick = () => { loadMyProfile(); profileModal.style.display = 'flex'; };
+        closeModalBtn.onclick = () => profileModal.style.display = 'none';
+        saveProfileBtn.onclick = saveProfile;
+
+        const viewModal = document.getElementById('viewProfileModal');
+        const closeViewBtn = document.getElementById('closeViewModal');
+        closeViewBtn.onclick = () => viewModal.style.display = 'none';
+        window.onclick = (e) => {
+            if (e.target === profileModal) profileModal.style.display = 'none';
+            if (e.target === viewModal) viewModal.style.display = 'none';
+        };
+
+        // ---------- Initialisation ----------
+        async function init() {
+            currentUsername = await getCurrentUser();
+            if (!currentUsername) {
+                window.location.href = '/login';
+                return;
+            }
+            loadSocial();
+            setInterval(loadSocial, 5000);
+        }
+        init();
     </script>
 </body>
 </html>
