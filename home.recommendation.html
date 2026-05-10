@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>BirMillat – Do'stlaringizni qiziqishlar asosida toping</title>
+    <!-- Google Fonts + Font Awesome -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f4f7fc;
+            color: #1e2a3e;
+        }
+        /* navbar */
+        .navbar {
+            background: #ffffff;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #2c7da0, #1f5e7a);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: -0.5px;
+        }
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            font-weight: 500;
+        }
+        .nav-links a {
+            text-decoration: none;
+            color: #2c3e50;
+            transition: 0.2s;
+            font-size: 1rem;
+        }
+        .nav-links a:hover, .nav-links a.active {
+            color: #2c7da0;
+        }
+        .user-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            background: #eef2f5;
+            padding: 0.4rem 1rem;
+            border-radius: 40px;
+        }
+        .user-badge i {
+            font-size: 1.2rem;
+            color: #2c7da0;
+        }
+        .user-badge span {
+            font-weight: 600;
+        }
+        /* main container */
+        .container {
+            max-width: 1300px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+        /* welcome card */
+        .welcome-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border-radius: 2rem;
+            padding: 2rem 2rem 1.8rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(44, 125, 160, 0.15);
+            margin-bottom: 2.5rem;
+        }
+        .welcome-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #0f2b36;
+        }
+        .welcome-title span {
+            color: #2c7da0;
+        }
+        .welcome-desc {
+            font-size: 1.1rem;
+            color: #2c3e50;
+            margin: 0.8rem 0 1.2rem;
+            line-height: 1.4;
+            max-width: 80%;
+        }
+        .btn-primary {
+            background: #2c7da0;
+            border: none;
+            padding: 0.7rem 1.5rem;
+            border-radius: 2rem;
+            font-weight: 600;
+            color: white;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+        }
+        .btn-primary:hover {
+            background: #1f5e7a;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px -6px rgba(44,125,160,0.4);
+        }
+        /* interests tags (user's own interests) */
+        .interests-section {
+            margin-bottom: 2rem;
+        }
+        .section-label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #5f7f9c;
+            margin-bottom: 0.75rem;
+        }
+        .tag-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+        }
+        .tag {
+            background: #e6f0f5;
+            color: #2c7da0;
+            padding: 0.3rem 1rem;
+            border-radius: 30px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        /* recommendations grid */
+        .rec-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+        .rec-header h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #0f2b36;
+        }
+        .rec-header p {
+            color: #4a627a;
+            font-size: 0.9rem;
+        }
+        .users-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.8rem;
+        }
+        .user-card {
+            background: white;
+            border-radius: 1.5rem;
+            padding: 1.2rem;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+            border: 1px solid #e2edf2;
+        }
+        .user-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 15px 25px -12px rgba(0,0,0,0.1);
+            border-color: #cbdde6;
+        }
+        .card-top {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .avatar {
+            width: 56px;
+            height: 56px;
+            background: #d9e6f2;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: #2c7da0;
+        }
+        .user-info h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+        .user-info .username {
+            font-size: 0.8rem;
+            color: #6a7f9b;
+        }
+        .common-interests {
+            margin: 0.8rem 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+        }
+        .interest-badge {
+            background: #eff5f9;
+            padding: 0.2rem 0.6rem;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            color: #2c7da0;
+        }
+        .follow-btn {
+            width: 100%;
+            background: transparent;
+            border: 1px solid #2c7da0;
+            padding: 0.5rem;
+            border-radius: 2rem;
+            font-weight: 600;
+            color: #2c7da0;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+        }
+        .follow-btn:hover {
+            background: #2c7da0;
+            color: white;
+        }
+        footer {
+            text-align: center;
+            padding: 2rem;
+            font-size: 0.8rem;
+            color: #7c93ab;
+            border-top: 1px solid #e2edf2;
+            margin-top: 3rem;
+        }
+        @media (max-width: 700px) {
+            .container { padding: 0 1rem; }
+            .welcome-desc { max-width: 100%; }
+            .navbar { flex-direction: column; align-items: stretch; text-align: center; }
+            .nav-links { justify-content: center; }
+            .user-badge { justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="logo">BirMillat</div>
+    <div class="nav-links">
+        <a href="#" class="active">Bosh sahifa</a>
+        <a href="#">Global suhbat</a>
+        <a href="#">Profil</a>
+    </div>
+    <div class="user-badge">
+        <i class="fas fa-user-circle"></i>
+        <span>Khusanov2010</span>
+        <i class="fas fa-chevron-down" style="font-size: 0.8rem;"></i>
+    </div>
+</nav>
+
+<div class="container">
+    <!-- welcome section with improved description -->
+    <div class="welcome-card">
+        <div class="welcome-title">Xush kelibsiz, <span>Khusanov2010!</span></div>
+        <div class="welcome-desc">
+            BirMillat – bu shunchaki tanishuv emas, balki <strong>qiziqishlaringiz asosida</strong> haqiqiy hamjamiyatni qurish joyi.  
+            Kod yozish, dizayn, AI, kitoblar yoki sayohat – kim bilan boʻlishishni xohlasangiz, shu yerda topasiz.  
+            Yangi doʻstlar bilan suhbatlashing, gʻoyalar almashing va birgalikda rivojlaning.
+        </div>
+        <a href="#" class="btn-primary">Suhbatga o‘tish <i class="fas fa-arrow-right"></i></a>
+    </div>
+
+    <!-- user's own interests (example) — will be used to match recommendations -->
+    <div class="interests-section">
+        <div class="section-label"><i class="fas fa-lightbulb"></i> SIZNING QIZIQISHLARINGIZ</div>
+        <div class="tag-list">
+            <span class="tag">🐍 Python</span>
+            <span class="tag">🤖 Sun’iy intellekt</span>
+            <span class="tag">🎮 O‘yinlar</span>
+            <span class="tag">☁️ Cloud computing</span>
+            <span class="tag">📱 Mobil dasturlash</span>
+        </div>
+    </div>
+
+    <!-- Recommendations (people with similar interests) -->
+    <div class="rec-header">
+        <div>
+            <h2><i class="fas fa-users"></i> Sizga tavsiya etiladi</h2>
+            <p>Qiziqishlaringiz mos keladigan foydalanuvchilar</p>
+        </div>
+        <div class="tag-list">
+            <span class="tag"><i class="fas fa-sliders-h"></i> Filtrlar (tez orada)</span>
+        </div>
+    </div>
+
+    <div class="users-grid" id="recommendationsGrid">
+        <!-- recommendation cards will be populated via JS (static for demo, but dynamic logic) -->
+    </div>
+</div>
+
+<footer>
+    BirMillat – do‘stlaringizni qiziqishlar asosida toping. Profil sozlamalari va filtrlar tez kunda.
+</footer>
+
+<script>
+    // Simulated user interests for Khusanov2010
+    const myInterests = ["python", "sun’iy intellekt", "o‘yinlar", "cloud computing", "mobil dasturlash"];
+    
+    // Dummy user database (would come from backend later)
+    const recommendedUsers = [
+        {
+            name: "Sabina Rustamova",
+            username: "@sabina_ai",
+            avatarIcon: "fas fa-robot",
+            interests: ["sun’iy intellekt", "python", "data science"],
+            mutual: 3
+        },
+        {
+            name: "Jasur Abdullayev",
+            username: "@jasur_dev",
+            avatarIcon: "fas fa-code",
+            interests: ["python", "mobil dasturlash", "flutter"],
+            mutual: 2
+        },
+        {
+            name: "Dilnoza Qodirova",
+            username: "@dilnoza_cloud",
+            avatarIcon: "fas fa-cloud",
+            interests: ["cloud computing", "devops", "python"],
+            mutual: 3
+        },
+        {
+            name: "Behzod Rahimov",
+            username: "@behzod_gamer",
+            avatarIcon: "fas fa-gamepad",
+            interests: ["o‘yinlar", "unity", "python"],
+            mutual: 2
+        },
+        {
+            name: "Madina Karimova",
+            username: "@madina_ml",
+            avatarIcon: "fas fa-brain",
+            interests: ["sun’iy intellekt", "machine learning", "o‘yinlar"],
+            mutual: 2
+        },
+        {
+            name: "Sherzod Alimov",
+            username: "@sher_devops",
+            avatarIcon: "fas fa-server",
+            interests: ["cloud computing", "kubernetes", "python"],
+            mutual: 3
+        }
+    ];
+    
+    // Function to compute similarity score based on matching interests
+    function computeMatchScore(userInterests) {
+        let matches = userInterests.filter(interest => myInterests.some(myInt => 
+            myInt.toLowerCase().includes(interest.toLowerCase()) || 
+            interest.toLowerCase().includes(myInt.toLowerCase())
+        ));
+        return matches.length;
+    }
+    
+    // Sort recommendations by highest match score
+    const scored = recommendedUsers.map(user => {
+        const score = computeMatchScore(user.interests);
+        return { ...user, score };
+    });
+    scored.sort((a,b) => b.score - a.score);
+    
+    // Render cards
+    const grid = document.getElementById('recommendationsGrid');
+    function renderCards(users) {
+        grid.innerHTML = '';
+        users.forEach(user => {
+            const card = document.createElement('div');
+            card.className = 'user-card';
+            card.innerHTML = `
+                <div class="card-top">
+                    <div class="avatar"><i class="${user.avatarIcon}"></i></div>
+                    <div class="user-info">
+                        <h3>${user.name}</h3>
+                        <div class="username">${user.username}</div>
+                    </div>
+                </div>
+                <div class="common-interests">
+                    ${user.interests.slice(0,3).map(tag => `<span class="interest-badge">#${tag}</span>`).join('')}
+                    ${user.interests.length > 3 ? `<span class="interest-badge">+${user.interests.length-3}</span>` : ''}
+                </div>
+                <button class="follow-btn" data-username="${user.username}"><i class="fas fa-user-plus"></i> Kuzatish</button>
+            `;
+            grid.appendChild(card);
+        });
+    }
+    
+    renderCards(scored);
+    
+    // Follow button alert simulation
+    document.addEventListener('click', (e) => {
+        if(e.target.classList.contains('follow-btn') || e.target.parentElement?.classList?.contains('follow-btn')) {
+            let btn = e.target.classList.contains('follow-btn') ? e.target : e.target.parentElement;
+            let username = btn.getAttribute('data-username') || "foydalanuvchi";
+            alert(`Siz ${username} ga kuzatuv so‘rov yubordingiz. Tasdiqlangach suhbatlasha olasiz.`);
+            btn.innerHTML = '<i class="fas fa-check"></i> So‘rov yuborildi';
+            btn.disabled = true;
+            btn.style.opacity = '0.7';
+        }
+    });
+</script>
+</body>
+</html>
