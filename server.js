@@ -56,11 +56,12 @@ io.use((socket, next) => {
     });
 });
 
-// ========== PUBLIC HOME PAGE (Uzbek, light background) ==========
+// ========== PUBLIC HOME PAGE (Uzbek, light background, new description, categories, social media) ==========
 app.get('/', (req, res) => {
     res.send(`<!DOCTYPE html>
 <html>
-<head><title>BirMillat – Qiziqishlaringiz bilan insonlarni toping</title>
+<head><title>BirMillat – Yoshlarni birlashtiruvchi aqlli platforma</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Segoe UI',sans-serif;background:#f5f7fa;color:#2c3e50}
@@ -70,16 +71,30 @@ header{display:flex;justify-content:space-between;align-items:center;padding:20p
 .logo img{height:40px}
 .nav-buttons a{color:#2c3e50;text-decoration:none;background:#e2e8f0;padding:10px 20px;border-radius:30px;margin-left:10px;transition:0.3s}
 .nav-buttons a:hover{background:#cbd5e1}
-.hero{text-align:center;padding:80px 20px}
+.hero{text-align:center;padding:60px 20px}
 .hero h1{font-size:48px;margin-bottom:20px;color:#c0392b}
+.hero p{font-size:20px;margin-bottom:30px;max-width:800px;margin-left:auto;margin-right:auto}
 .btn{background:#c0392b;color:white;padding:12px 30px;border-radius:40px;text-decoration:none;display:inline-block;margin:10px;transition:0.3s}
 .btn:hover{background:#a93226}
 .btn-outline{background:transparent;border:2px solid #c0392b;color:#c0392b}
 .btn-outline:hover{background:#c0392b;color:white}
-.features{display:flex;justify-content:center;gap:30px;margin-top:60px;flex-wrap:wrap}
-.feature-card{background:white;padding:30px;border-radius:20px;width:280px;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.05)}
-.feature-card h3{margin:15px 0 10px}
-footer{margin-top:80px;text-align:center;padding:20px;border-top:1px solid #e2e8f0;color:#64748b}
+.categories{text-align:center;margin:60px 0}
+.categories h2{font-size:32px;margin-bottom:30px;color:#2c3e50}
+.cat-grid{display:flex;justify-content:center;gap:25px;flex-wrap:wrap}
+.cat-card{background:white;padding:25px;border-radius:20px;width:220px;box-shadow:0 4px 12px rgba(0,0,0,0.05);transition:transform 0.2s}
+.cat-card:hover{transform:translateY(-5px)}
+.cat-card i{font-size:40px;color:#c0392b;margin-bottom:15px}
+.cat-card h3{margin-bottom:10px}
+.mission{background:white;padding:40px;border-radius:20px;text-align:center;margin:40px 0;box-shadow:0 4px 12px rgba(0,0,0,0.05)}
+.mission h2{color:#c0392b;margin-bottom:20px}
+.mission p{font-size:18px;max-width:800px;margin:0 auto}
+.social{text-align:center;margin:40px 0}
+.social h3{margin-bottom:20px}
+.social-icons{display:flex;justify-content:center;gap:30px}
+.social-icons a{color:#2c3e50;font-size:36px;transition:0.3s}
+.social-icons a:hover{color:#c0392b}
+footer{margin-top:60px;text-align:center;padding:20px;border-top:1px solid #e2e8f0;color:#64748b}
+@media (max-width:768px){.hero h1{font-size:32px}}
 </style>
 </head>
 <body>
@@ -89,16 +104,37 @@ footer{margin-top:80px;text-align:center;padding:20px;border-top:1px solid #e2e8
 <div class=nav-buttons><a href=/login>Kirish</a><a href=/register>Ro'yxatdan o'tish</a></div>
 </header>
 <div class=hero>
-<h1>Qiziqishlaringiz bilan insonlarni toping</h1>
-<p>BirMillat – bir fikr, bir maqsad, bir millat.</p>
+<h1>Yoshlarni birlashtiruvchi aqlli platforma</h1>
+<p>BirMillat — bu maqsadli, rivojlanishga intiluvchi yoshlarni bir joyga jamlaydigan zamonaviy platforma. Sun’iy intellekt yordamida foydalanuvchilarga o‘ziga o‘xshash fikrlaydigan, bir xil maqsad va qiziqishlarga ega insonlarni topishga yordam beradi.</p>
 <a href=/register class=btn>Boshlash →</a>
 <a href=/login class="btn btn-outline">Kirish</a>
 </div>
-<div class=features>
-<div class=feature-card>🎯<h3>Moslashtirish</h3><p>Qiziqishlaringiz bo'yicha odamlarni toping</p></div>
-<div class=feature-card>💬<h3>Jonli suhbat</h3><p>Do'stlar so'rovi va bloklash</p></div>
-<div class=feature-card>🛡️<h3>Maxfiylik</h3><p>Siz kimni bloklasangiz, u sizga yozolmaydi</p></div>
+
+<div class=categories>
+<h2>📚 Kategoriyalar</h2>
+<div class=cat-grid>
+<div class=cat-card><i class="fas fa-graduation-cap"></i><h3>Ta’lim</h3><p>IELTS, CEFR, SAT, matematika, dasturlash</p></div>
+<div class=cat-card><i class="fas fa-rocket"></i><h3>Startup va Loyihalar</h3><p>Yangi g‘oyalar, jamoa yig‘ish</p></div>
+<div class=cat-card><i class="fas fa-hands-helping"></i><h3>Volontyorlik</h3><p>Ijtimoiy foydali tadbirlar</p></div>
+<div class=cat-card><i class="fas fa-laptop-code"></i><h3>Texnologiya</h3><p>IT, AI, dizayn</p></div>
+<div class=cat-card><i class="fas fa-trophy"></i><h3>Motivatsiya va Rivojlanish</h3><p>Maqsadli hamjamiyat</p></div>
 </div>
+</div>
+
+<div class=mission>
+<h2>🌟 BirMillat maqsadi</h2>
+<p>Bugungi kunda ko‘plab yoshlar o‘ziga mos muhit va motivatsion insonlarni topishda qiynaladi. BirMillat esa yoshlarni birlashtirib, ularga rivojlanish, hamkorlik va katta maqsadlar sari birga harakat qilish imkonini beradi.</p>
+<p style="margin-top:20px; font-style:italic">“Biz odamlarni emas, maqsadlarni birlashtiramiz.”</p>
+</div>
+
+<div class=social>
+<h3>Bizni ijtimoiy tarmoqlarda kuzating</h3>
+<div class=social-icons>
+<a href="https://t.me/birmillatUZB" target="_blank"><i class="fab fa-telegram"></i></a>
+<a href="https://www.instagram.com/birmillat.uz?igsh=OG05MXpkOWs4N2Zj&utm_source=qr" target="_blank"><i class="fab fa-instagram"></i></a>
+</div>
+</div>
+
 <footer>© 2026 BirMillat – Barcha huquqlar himoyalangan</footer>
 </div>
 </body>
@@ -132,16 +168,23 @@ app.post('/register', async (req, res) => {
     res.send('Muvaffaqiyatli ro\'yxatdan o\'tdingiz! <a href=/login>Kirish</a>');
 });
 
-// ========== LOGIN ==========
+// ========== LOGIN (with error handling) ==========
 app.get('/login', (req, res) => {
+    const error = req.query.error;
+    let errorText = '';
+    if (error === 'notfound') errorText = '❌ Login noto‘g‘ri kiritilgan';
+    if (error === 'wrongpassword') errorText = '❌ Parol mos kelmadi';
+    
     res.send(`<!DOCTYPE html><html><head><title>Kirish - BirMillat</title><style>
 body{font-family:sans-serif;background:#f5f7fa;display:flex;justify-content:center;align-items:center;height:100vh}
 .card{background:white;border-radius:20px;padding:40px;width:350px;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.1)}
 input{width:100%;padding:12px;margin:10px 0;border-radius:8px;border:1px solid #ddd}
 button{background:#c0392b;color:white;border:none;padding:12px;width:100%;border-radius:8px;cursor:pointer}
+.error{background:#ffe6e6;color:#c0392b;padding:8px;border-radius:6px;margin-bottom:15px;font-size:14px}
 a{color:#c0392b}
 </style></head>
 <body><div class=card><h2>Xush kelibsiz</h2>
+${errorText ? `<div class="error">${errorText}</div>` : ''}
 <form method=post action=/login><input name=username placeholder="Foydalanuvchi nomi" required><input type=password name=password placeholder="Parol" required><button type=submit>Kirish</button></form>
 <p>Hisobingiz yo'q? <a href=/register>Ro'yxatdan o'tish</a></p></div></body></html>`);
 });
@@ -149,9 +192,13 @@ a{color:#c0392b}
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
     const user = getUser(username);
-    if (!user) return res.send('Foydalanuvchi topilmadi. <a href=/login>Qaytaring</a>');
+    if (!user) {
+        return res.redirect('/login?error=notfound');
+    }
     const match = await bcrypt.compare(password, user.password);
-    if (!match) return res.send('Parol xato. <a href=/login>Qaytaring</a>');
+    if (!match) {
+        return res.redirect('/login?error=wrongpassword');
+    }
     req.session.userId = username;
     res.redirect('/home');
 });
