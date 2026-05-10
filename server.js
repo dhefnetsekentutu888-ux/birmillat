@@ -2,6 +2,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const session = require('express-session');
+const SQLiteStore = require('connect-sqlite3')(session);
 const cookieParser = require('cookie-parser');
 const bcrypt = require('bcryptjs');
 const Database = require('better-sqlite3');
@@ -33,11 +34,12 @@ function updateUserSocial(username, field, value) {
     return db.prepare(`UPDATE users SET ${field} = ? WHERE username = ?`).run(JSON.stringify(value), username);
 }
 
-// ---------- Session Middleware ----------
+// ---------- Session Middleware (now stored in SQLite) ----------
 const sessionMiddleware = session({
     secret: 'birMillat-secret-key-change-in-production',
     resave: false,
     saveUninitialized: false,
+    store: new SQLiteStore({ db: 'sessions.sqlite', dir: './' }),
     cookie: { maxAge: 24 * 60 * 60 * 1000 }
 });
 
@@ -141,7 +143,7 @@ footer{margin-top:60px;text-align:center;padding:20px;border-top:1px solid #e2e8
 </html>`);
 });
 
-// ========== REGISTRATION (with logo and inline messages) ==========
+// ========== REGISTRATION (inline messages, logo) ==========
 function renderRegisterPage(message, isError = true) {
     const messageHtml = message ? `<div class="${isError ? 'error' : 'success'}">${message}</div>` : '';
     return `<!DOCTYPE html><html><head><title>Ro'yxatdan o'tish - BirMillat</title><style>
@@ -196,11 +198,10 @@ app.post('/register', async (req, res) => {
     }
     const hashed = await bcrypt.hash(password, 10);
     createUser(username, hashed);
-    // Success: show green message and link to login
     res.send(renderRegisterPage('Muvaffaqiyatli ro‘yxatdan o‘tdingiz! Endi <a href="/login">kirishingiz</a> mumkin.', false));
 });
 
-// ========== LOGIN (with inline errors) ==========
+// ========== LOGIN (inline errors, logo) ==========
 app.get('/login', (req, res) => {
     const error = req.query.error;
     let errorText = '';
@@ -257,12 +258,12 @@ app.get('/chat', (req, res) => {
 
 // ========== API ==========
 app.get('/api/me', (req, res) => {
-    if (!req.session.userId) return res.status(401).json({ error: 'Ruxsat yo\'q' });
+    if (!req.session.userId) return res.status(401).json({ error: 'Ruxsat yo‘q' });
     res.json({ username: req.session.userId });
 });
 
 app.get('/api/social', (req, res) => {
-    if (!req.session.userId) return res.status(401).json({ error: 'Ruxsat yo\'q' });
+    if (!req.session.userId) return res.status(401).json({ error: 'Ruxsat yo‘q' });
     const user = getUser(req.session.userId);
     res.json({
         friends: JSON.parse(user.friends || '[]'),
@@ -272,25 +273,25 @@ app.get('/api/social', (req, res) => {
 });
 
 app.post('/api/friend-request', (req, res) => {
-    if (!req.session.userId) return res.status(401).json({ error: 'Ruxsat yo\'q' });
+    if (!req.session.userId) return res.status(401).json({ error: 'Ruxsat yo‘q' });
     const { to } = req.body;
     const from = req.session.userId;
     const target = getUser(to);
     if (!target) return res.json({ error: 'Foydalanuvchi topilmadi' });
     let requests = JSON.parse(target.friendRequests || '[]');
-    if (requests.includes(from)) return res.json({ error: 'So\'rov allaqachon yuborilgan' });
+    if (requests.includes(from)) return res.json({ error: 'So‘rov allaqachon yuborilgan' });
     requests.push(from);
     updateUserSocial(to, 'friendRequests', requests);
     res.json({ success: true });
 });
 
 app.post('/api/accept-request', (req, res) => {
-    if (!req.session.userId) return res.status(401).json({ error: 'Ruxsat yo\'q' });
+    if (!req.session.userId) return res.status(401).json({ error: 'Ruxsat yo‘q' });
     const { from } = req.body;
     const to = req.session.userId;
     const user = getUser(to);
     let requests = JSON.parse(user.friendRequests || '[]');
-    if (!requests.includes(from)) return res.json({ error: 'So\'rov mavjud emas' });
+    if (!requests.includes(from)) return res.json({ error: 'So‘rov mavjud emas' });
     requests = requests.filter(f => f !== from);
     let friends = JSON.parse(user.friends || '[]');
     if (!friends.includes(from)) friends.push(from);
@@ -304,10 +305,10 @@ app.post('/api/accept-request', (req, res) => {
 });
 
 app.post('/api/block', (req, res) => {
-    if (!req.session.userId) return res.status(401).json({ error: 'Ruxsat yo\'q' });
+    if (!req.session.userId) return res.status(401).json({ error: 'Ruxsat yo‘q' });
     const { blockUser } = req.body;
     const current = req.session.userId;
-    if (current === blockUser) return res.json({ error: 'O\'z-o\'zini bloklab bo\'lmaydi' });
+    if (current === blockUser) return res.json({ error: 'O‘z-o‘zini bloklab bo‘lmaydi' });
     const target = getUser(blockUser);
     if (!target) return res.json({ error: 'Foydalanuvchi topilmadi' });
     let blocked = JSON.parse(getUser(current).blocked || '[]');
@@ -324,7 +325,7 @@ app.post('/api/block', (req, res) => {
 });
 
 app.get('/api/users', (req, res) => {
-    if (!req.session.userId) return res.status(401).json({ error: 'Ruxsat yo\'q' });
+    if (!req.session.userId) return res.status(401).json({ error: 'Ruxsat yo‘q' });
     const rows = db.prepare('SELECT username FROM users').all();
     const all = rows.map(r => r.username).filter(u => u !== req.session.userId);
     res.json(all);
