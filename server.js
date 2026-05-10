@@ -56,7 +56,7 @@ io.use((socket, next) => {
     });
 });
 
-// ========== PUBLIC HOME PAGE (Uzbek, light background, new description, categories, social media) ==========
+// ========== PUBLIC HOME PAGE ==========
 app.get('/', (req, res) => {
     res.send(`<!DOCTYPE html>
 <html>
@@ -141,34 +141,66 @@ footer{margin-top:60px;text-align:center;padding:20px;border-top:1px solid #e2e8
 </html>`);
 });
 
-// ========== REGISTRATION ==========
-app.get('/register', (req, res) => {
-    res.send(`<!DOCTYPE html><html><head><title>Ro'yxatdan o'tish - BirMillat</title><style>
+// ========== REGISTRATION (with logo and inline messages) ==========
+function renderRegisterPage(message, isError = true) {
+    const messageHtml = message ? `<div class="${isError ? 'error' : 'success'}">${message}</div>` : '';
+    return `<!DOCTYPE html><html><head><title>Ro'yxatdan o'tish - BirMillat</title><style>
 body{font-family:sans-serif;background:#f5f7fa;display:flex;justify-content:center;align-items:center;height:100vh}
 .card{background:white;border-radius:20px;padding:40px;width:350px;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.1)}
+.logo-img{height:50px;margin-bottom:10px}
 input{width:100%;padding:12px;margin:10px 0;border-radius:8px;border:1px solid #ddd}
 button{background:#c0392b;color:white;border:none;padding:12px;width:100%;border-radius:8px;cursor:pointer}
-.error{color:red}
+.error{background:#ffe6e6;color:#c0392b;padding:8px;border-radius:6px;margin-bottom:15px;font-size:14px}
+.success{background:#e6ffe6;color:#2e7d32;padding:8px;border-radius:6px;margin-bottom:15px;font-size:14px}
 a{color:#c0392b}
 </style></head>
-<body><div class=card><h2>Hisob yaratish</h2>
-<form method=post action=/register id=regForm><input name=username placeholder="Foydalanuvchi nomi" required><input type=password name=password id=password placeholder="Parol (kamida 8 belgi)" required><div id=pwdError class=error></div><button type=submit>Ro'yxatdan o'tish</button></form>
-<p>Hisobingiz bormi? <a href=/login>Kirish</a></p></div>
-<script>document.getElementById('regForm').addEventListener('submit',function(e){if(document.getElementById('password').value.length<8){e.preventDefault();document.getElementById('pwdError').innerText='Parol kamida 8 belgi bo\'lishi kerak'}});</script>
-</body></html>`);
+<body>
+<div class=card>
+<img src="/logo.png" alt="BirMillat logosu" class="logo-img" onerror="this.style.display='none'">
+<h2>Hisob yaratish</h2>
+${messageHtml}
+<form method=post action=/register id=regForm>
+<input name=username placeholder="Foydalanuvchi nomi" required>
+<input type=password name=password id=password placeholder="Parol (kamida 8 belgi)" required>
+<div id=pwdError class="error" style="display:none"></div>
+<button type=submit>Ro'yxatdan o'tish</button>
+</form>
+<p>Hisobingiz bormi? <a href=/login>Kirish</a></p>
+</div>
+<script>
+document.getElementById('regForm').addEventListener('submit',function(e){
+    const pwd = document.getElementById('password').value;
+    if(pwd.length<8){
+        e.preventDefault();
+        const errDiv = document.getElementById('pwdError');
+        errDiv.innerText = 'Parol kamida 8 belgi bo\'lishi kerak';
+        errDiv.style.display = 'block';
+    }
+});
+</script>
+</body></html>`;
+}
+
+app.get('/register', (req, res) => {
+    res.send(renderRegisterPage('', false));
 });
 
 app.post('/register', async (req, res) => {
     const { username, password } = req.body;
-    if (password.length < 8) return res.send('Parol juda qisqa. <a href=/register>Orqaga</a>');
+    if (password.length < 8) {
+        return res.send(renderRegisterPage('Parol kamida 8 belgi bo‘lishi kerak', true));
+    }
     const existing = getUser(username);
-    if (existing) return res.send('Bunday foydalanuvchi mavjud. <a href=/register>Orqaga</a>');
+    if (existing) {
+        return res.send(renderRegisterPage('Bunday foydalanuvchi mavjud', true));
+    }
     const hashed = await bcrypt.hash(password, 10);
     createUser(username, hashed);
-    res.send('Muvaffaqiyatli ro\'yxatdan o\'tdingiz! <a href=/login>Kirish</a>');
+    // Success: show green message and link to login
+    res.send(renderRegisterPage('Muvaffaqiyatli ro‘yxatdan o‘tdingiz! Endi <a href="/login">kirishingiz</a> mumkin.', false));
 });
 
-// ========== LOGIN (with error handling) ==========
+// ========== LOGIN (with inline errors) ==========
 app.get('/login', (req, res) => {
     const error = req.query.error;
     let errorText = '';
@@ -178,15 +210,24 @@ app.get('/login', (req, res) => {
     res.send(`<!DOCTYPE html><html><head><title>Kirish - BirMillat</title><style>
 body{font-family:sans-serif;background:#f5f7fa;display:flex;justify-content:center;align-items:center;height:100vh}
 .card{background:white;border-radius:20px;padding:40px;width:350px;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.1)}
+.logo-img{height:50px;margin-bottom:10px}
 input{width:100%;padding:12px;margin:10px 0;border-radius:8px;border:1px solid #ddd}
 button{background:#c0392b;color:white;border:none;padding:12px;width:100%;border-radius:8px;cursor:pointer}
 .error{background:#ffe6e6;color:#c0392b;padding:8px;border-radius:6px;margin-bottom:15px;font-size:14px}
 a{color:#c0392b}
 </style></head>
-<body><div class=card><h2>Xush kelibsiz</h2>
+<body>
+<div class=card>
+<img src="/logo.png" alt="BirMillat logosu" class="logo-img" onerror="this.style.display='none'">
+<h2>Xush kelibsiz</h2>
 ${errorText ? `<div class="error">${errorText}</div>` : ''}
-<form method=post action=/login><input name=username placeholder="Foydalanuvchi nomi" required><input type=password name=password placeholder="Parol" required><button type=submit>Kirish</button></form>
-<p>Hisobingiz yo'q? <a href=/register>Ro'yxatdan o'tish</a></p></div></body></html>`);
+<form method=post action=/login>
+<input name=username placeholder="Foydalanuvchi nomi" required>
+<input type=password name=password placeholder="Parol" required>
+<button type=submit>Kirish</button>
+</form>
+<p>Hisobingiz yo'q? <a href=/register>Ro'yxatdan o'tish</a></p>
+</div></body></html>`);
 });
 
 app.post('/login', async (req, res) => {
