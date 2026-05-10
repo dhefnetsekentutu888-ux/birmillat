@@ -1,7 +1,7 @@
 {
   "name": "birmillat",
   "version": "1.0.0",
-  "description": "BirMillat social platform – find people with shared interests",
+  "description": "BirMillat social platform - find people with shared interests",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
