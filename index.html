@@ -2,83 +2,141 @@
 <html lang="uz">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BirMillat – Do'stlaringizni qiziqishlar asosida toping</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>BirMillat | Do‘stlaringizni qiziqishlar asosida toping</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background: #f5f7fb;
-            color: #1e2a3e;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(145deg, #f0f4f8 0%, #e6edf4 100%);
+            color: #1a2c3e;
             line-height: 1.5;
         }
+        /* modern navbar */
         .navbar {
-            background: white;
-            border-bottom: 1px solid #e2e8f0;
-            padding: 1rem 2rem;
+            background: rgba(255,255,255,0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            padding: 0.8rem 2rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
             gap: 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
-        .logo { font-size: 1.6rem; font-weight: 700; color: #2c7da0; }
-        .nav-links { display: flex; gap: 2rem; }
-        .nav-links a { text-decoration: none; color: #2c3e50; font-weight: 500; }
-        .nav-links a:hover, .nav-links .active { color: #2c7da0; }
-        .user-badge {
-            background: #edf2f7;
-            padding: 0.4rem 1rem;
-            border-radius: 30px;
-            font-size: 0.9rem;
+        .logo {
+            font-size: 1.7rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #1e6f5c, #289672);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+        }
+        .nav-links a {
+            text-decoration: none;
+            color: #2c4a6e;
             font-weight: 500;
+            transition: 0.2s;
+        }
+        .nav-links a:hover, .nav-links a.active {
+            color: #289672;
+        }
+        .user-badge {
+            background: #e9f0f5;
+            padding: 0.4rem 1.2rem;
+            border-radius: 40px;
+            font-size: 0.9rem;
+            font-weight: 600;
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
         }
-        .container { max-width: 1100px; margin: 2rem auto; padding: 0 1.5rem; }
-        .welcome-card {
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+        }
+        /* cards with modern look */
+        .card {
             background: white;
-            border-radius: 1rem;
-            padding: 2rem;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            border: 1px solid #e2e8f0;
+            border-radius: 1.5rem;
+            padding: 1.8rem;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.03), 0 2px 4px rgba(0,0,0,0.05);
+            border: 1px solid rgba(0,0,0,0.05);
             margin-bottom: 2rem;
+            transition: transform 0.2s, box-shadow 0.2s;
         }
-        .welcome-card h1 { font-size: 1.8rem; font-weight: 600; margin-bottom: 0.5rem; }
-        .welcome-card h1 span { color: #2c7da0; }
+        .card:hover {
+            box-shadow: 0 12px 28px rgba(0,0,0,0.08);
+        }
+        .welcome-card {
+            background: linear-gradient(125deg, #ffffff, #f9fefc);
+            border-left: 5px solid #289672;
+        }
+        .welcome-card h1 {
+            font-size: 1.9rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        .welcome-card h1 span {
+            color: #289672;
+        }
         .welcome-card p {
             font-size: 1rem;
-            color: #2d3e50;
+            color: #2d4a6e;
             margin-bottom: 1.2rem;
-            max-width: 85%;
+            max-width: 80%;
         }
         .btn-primary {
-            background: #2c7da0;
+            background: #289672;
             color: white;
             border: none;
-            padding: 0.6rem 1.2rem;
-            border-radius: 2rem;
+            padding: 0.6rem 1.4rem;
+            border-radius: 40px;
             font-weight: 600;
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
+            cursor: pointer;
+            transition: 0.2s;
             text-decoration: none;
         }
-        .btn-primary:hover { background: #1f5e7a; }
-        .interests-section, .categories-section { margin-bottom: 2rem; }
-        .section-label {
-            font-size: 0.8rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            color: #5f7f9c;
-            margin-bottom: 0.6rem;
-            letter-spacing: 0.5px;
+        .btn-primary:hover {
+            background: #1e6f5c;
+            transform: translateY(-1px);
         }
-        .tag-list { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+        .section-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #5b7f9e;
+            margin-bottom: 0.8rem;
+        }
+        .tag-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+            margin-top: 0.3rem;
+        }
         .tag {
-            background: #ecf5f9;
-            color: #2c7da0;
-            padding: 0.3rem 0.9rem;
-            border-radius: 30px;
+            background: #edf4fa;
+            color: #1e6f5c;
+            padding: 0.3rem 1rem;
+            border-radius: 40px;
             font-size: 0.8rem;
             font-weight: 500;
         }
@@ -86,11 +144,11 @@
             background: #eef2ff;
             color: #4f46e5;
             padding: 0.3rem 1rem;
-            border-radius: 30px;
+            border-radius: 40px;
             font-size: 0.8rem;
             font-weight: 500;
             cursor: pointer;
-            transition: 0.2s;
+            transition: all 0.2s;
         }
         .category-chip:hover, .category-chip.active {
             background: #4f46e5;
@@ -99,126 +157,160 @@
         .rec-header {
             display: flex;
             justify-content: space-between;
-            align-items: baseline;
-            margin-bottom: 1.2rem;
+            align-items: center;
+            margin-bottom: 1.5rem;
             flex-wrap: wrap;
+            gap: 1rem;
         }
-        .rec-header h2 { font-size: 1.3rem; font-weight: 600; color: #0f2b36; }
+        .rec-header h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2c3e;
+        }
         .users-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-            gap: 1.5rem;
-            margin-top: 0.5rem;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.8rem;
         }
         .user-card {
             background: white;
-            border-radius: 1rem;
-            padding: 1rem;
-            border: 1px solid #e2e8f0;
-            transition: 0.2s;
+            border-radius: 1.2rem;
+            padding: 1.2rem;
+            transition: all 0.2s;
+            border: 1px solid #eef2f8;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
         }
         .user-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+            transform: translateY(-5px);
+            box-shadow: 0 20px 30px -12px rgba(0,0,0,0.1);
+            border-color: #cbdde6;
         }
-        .card-top { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 0.8rem; }
+        .card-top {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            margin-bottom: 1rem;
+        }
         .avatar {
-            width: 48px;
-            height: 48px;
-            background: #e2e8f0;
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(145deg, #d9e6f2, #c2d6e8);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.3rem;
-            color: #2c7da0;
+            font-size: 1.5rem;
+            color: #1e6f5c;
         }
-        .user-info h3 { font-size: 1rem; font-weight: 600; }
-        .user-info .username { font-size: 0.75rem; color: #6a7f9b; }
-        .common-interests { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.6rem 0; }
+        .user-info h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+        .user-info .username {
+            font-size: 0.75rem;
+            color: #6a7f9b;
+        }
+        .common-interests {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            margin: 0.8rem 0;
+        }
         .interest-badge {
-            background: #f0f4f8;
+            background: #f0f4f9;
             font-size: 0.7rem;
-            padding: 0.2rem 0.6rem;
+            padding: 0.2rem 0.7rem;
             border-radius: 20px;
-            color: #2c7da0;
+            color: #289672;
             font-weight: 500;
         }
         .follow-btn {
             width: 100%;
             background: transparent;
-            border: 1px solid #2c7da0;
-            padding: 0.4rem;
+            border: 1.5px solid #289672;
+            padding: 0.5rem;
             border-radius: 2rem;
             font-weight: 600;
-            font-size: 0.8rem;
-            color: #2c7da0;
+            font-size: 0.85rem;
+            color: #289672;
             cursor: pointer;
+            transition: 0.2s;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 0.4rem;
-            margin-top: 0.4rem;
+            gap: 0.5rem;
+            margin-top: 0.6rem;
         }
-        .follow-btn:hover { background: #2c7da0; color: white; }
+        .follow-btn:hover {
+            background: #289672;
+            color: white;
+        }
+        .follow-btn.followed {
+            background: #e0f0ea;
+            color: #1e6f5c;
+            border-color: #b8d9ce;
+            cursor: default;
+        }
+        /* toast notification */
+        .toast {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            background: #1e2a3e;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: slideIn 0.3s ease;
+            backdrop-filter: blur(8px);
+            background: rgba(30,42,62,0.9);
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
         footer {
             text-align: center;
             padding: 2rem;
             font-size: 0.75rem;
-            color: #7c93ab;
-            border-top: 1px solid #e2e8f0;
+            color: #6a7f9b;
+            border-top: 1px solid rgba(0,0,0,0.05);
             margin-top: 2rem;
         }
         .social-links {
             display: flex;
             justify-content: center;
             gap: 1.5rem;
-            margin-top: 1rem;
+            margin-bottom: 1rem;
         }
         .social-links a {
-            color: #5f7f9c;
-            font-size: 1.2rem;
+            color: #6a7f9b;
+            font-size: 1.3rem;
             transition: 0.2s;
         }
-        .social-links a:hover { color: #2c7da0; }
-        .login-card {
-            background: white;
-            border-radius: 1rem;
-            padding: 2rem;
-            max-width: 450px;
-            margin: 2rem auto;
-            text-align: center;
-            border: 1px solid #e2e8f0;
-        }
-        .login-card input {
-            width: 100%;
-            padding: 10px;
-            margin: 8px 0;
-            border: 1px solid #cbd5e0;
-            border-radius: 30px;
-        }
-        .login-card button {
-            background: #2c7da0;
-            color: white;
-            border: none;
-            padding: 8px 20px;
-            border-radius: 30px;
-            margin: 8px 4px;
-            cursor: pointer;
+        .social-links a:hover {
+            color: #289672;
         }
         @media (max-width: 680px) {
             .navbar { flex-direction: column; align-items: stretch; text-align: center; }
-            .nav-links { justify-content: center; }
             .welcome-card p { max-width: 100%; }
+            .container { padding: 0 1rem; }
         }
     </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
 <div id="root"></div>
 
 <script>
-    // ---------- localStorage user system with auto-login ----------
+    // ---------- localStorage user system ----------
     let users = JSON.parse(localStorage.getItem('birMillat_users')) || {};
     if (Object.keys(users).length === 0) {
         users = {
@@ -233,7 +325,10 @@
     }
 
     let currentUser = localStorage.getItem('birMillat_user');
-    if (!currentUser) currentUser = "Behruzbek2010", localStorage.setItem('birMillat_user', currentUser);
+    if (!currentUser) {
+        currentUser = "Behruzbek2010";
+        localStorage.setItem('birMillat_user', currentUser);
+    }
 
     function saveUsers() { localStorage.setItem('birMillat_users', JSON.stringify(users)); }
     function setCurrentUser(username) { currentUser = username; localStorage.setItem('birMillat_user', username); render(); }
@@ -243,7 +338,17 @@
         return userInterests.filter(i => myInterests.includes(i)).length;
     }
 
-    // Predefined categories and mapping to interests
+    // Toast helper (instead of alert)
+    function showToast(message, icon = "✅") {
+        const existing = document.querySelector('.toast');
+        if (existing) existing.remove();
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.innerHTML = `<span>${icon}</span> ${message}`;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2500);
+    }
+
     const categories = [
         { name: "Barchasi", filter: null },
         { name: "💻 Dasturlash", filter: ["Python", "JavaScript", "Mobil dasturlash", "Flutter", "DevOps"] },
@@ -252,24 +357,27 @@
         { name: "☁️ Cloud", filter: ["Cloud computing", "DevOps"] }
     ];
     let activeCategory = "Barchasi";
+    let followedMap = JSON.parse(localStorage.getItem('birMillat_followed')) || {};
+
+    function saveFollowed() { localStorage.setItem('birMillat_followed', JSON.stringify(followedMap)); }
 
     function render() {
         const root = document.getElementById('root');
         if (!currentUser) {
-            // Login screen
+            // Login screen (modern too)
             root.innerHTML = `
                 <div class="container">
                     <div class="navbar">
                         <div class="logo">BirMillat</div>
                         <div class="nav-links"><a href="#">Bosh sahifa</a><a href="#">Global suhbat</a><a href="#">Profil</a></div>
-                        <div class="user-badge">🚪 Chiqmagan</div>
+                        <div class="user-badge"><i class="fas fa-user"></i> Chiqmagan</div>
                     </div>
-                    <div class="login-card">
-                        <h2>🔐 Kirish yoki Ro‘yxatdan o‘tish</h2>
-                        <input type="text" id="loginName" placeholder="Foydalanuvchi nomi" />
-                        <input type="password" id="loginPass" placeholder="Parol" />
-                        <div><button id="loginBtn">Kirish</button><button id="registerBtn">Ro‘yxatdan o‘tish</button></div>
-                        <p style="margin-top:12px; font-size:12px;">Demo: Behruzbek2010 / 123</p>
+                    <div class="card" style="max-width:450px; margin:2rem auto; text-align:center;">
+                        <h2 style="margin-bottom:1rem;">🔐 Kirish yoki Ro‘yxatdan o‘tish</h2>
+                        <input type="text" id="loginName" placeholder="Foydalanuvchi nomi" style="width:100%; padding:12px; margin:8px 0; border-radius:40px; border:1px solid #ccc;" />
+                        <input type="password" id="loginPass" placeholder="Parol" style="width:100%; padding:12px; margin:8px 0; border-radius:40px; border:1px solid #ccc;" />
+                        <div style="margin-top:1rem;"><button id="loginBtn" class="btn-primary" style="margin-right:8px;">Kirish</button><button id="registerBtn" class="btn-primary" style="background:#4f46e5;">Ro‘yxatdan o‘tish</button></div>
+                        <p style="margin-top:1rem; font-size:12px;">Demo: Behruzbek2010 / 123</p>
                     </div>
                 </div>
             `;
@@ -277,7 +385,7 @@
                 let name = document.getElementById('loginName').value.trim();
                 let pass = document.getElementById('loginPass').value;
                 if (name && users[name] && users[name].password === pass) setCurrentUser(name);
-                else alert("Noto‘g‘ri");
+                else showToast("Foydalanuvchi nomi yoki parol noto‘g‘ri", "❌");
             };
             document.getElementById('registerBtn').onclick = () => {
                 let name = document.getElementById('loginName').value.trim();
@@ -286,7 +394,7 @@
                     users[name] = { password: pass, name: name, interests: [], friends: [] };
                     saveUsers();
                     setCurrentUser(name);
-                } else alert("Band yoki bo‘sh");
+                } else showToast("Bu nom band yoki bo‘sh", "⚠️");
             };
             return;
         }
@@ -294,75 +402,115 @@
         const me = users[currentUser];
         if (!me) { logout(); return; }
         const myInterests = me.interests || [];
-        let allOtherUsers = Object.keys(users).filter(u => u !== currentUser).map(u => ({ name: u, interests: users[u].interests || [] }));
+        let allUsers = Object.keys(users).filter(u => u !== currentUser).map(u => ({ name: u, interests: users[u].interests || [] }));
 
-        // Apply category filter
         const category = categories.find(c => c.name === activeCategory);
         if (category && category.filter) {
-            allOtherUsers = allOtherUsers.filter(u => u.interests.some(i => category.filter.some(f => i.includes(f))));
+            allUsers = allUsers.filter(u => u.interests.some(i => category.filter.some(f => i.includes(f))));
         }
+        const scored = allUsers.map(u => ({ ...u, matchCount: getMatchScore(u.interests, myInterests) })).sort((a,b) => b.matchCount - a.matchCount);
 
-        const scored = allOtherUsers.map(u => ({ ...u, matchCount: getMatchScore(u.interests, myInterests) })).sort((a,b) => b.matchCount - a.matchCount);
-
-        let recommendationsHtml = scored.length ? `<div class="users-grid">${scored.map(u => `
-            <div class="user-card">
-                <div class="card-top"><div class="avatar"><i class="fas fa-user-circle"></i></div><div class="user-info"><h3>${u.name}</h3><div class="username">@${u.name.toLowerCase()}</div></div></div>
-                <div class="common-interests">${u.interests.slice(0,3).map(i => `<span class="interest-badge">#${i}</span>`).join('')}${u.interests.length > 3 ? `<span class="interest-badge">+${u.interests.length-3}</span>` : ''}</div>
-                <button class="follow-btn" data-name="${u.name}"><i class="fas fa-user-plus"></i> Kuzatish</button>
-            </div>
-        `).join('')}</div>` : '<p>Bu kategoriyada foydalanuvchilar yo‘q.</p>';
+        let recommendationsHtml = scored.length ? `<div class="users-grid">${scored.map(u => {
+            const isFollowed = followedMap[currentUser] && followedMap[currentUser].includes(u.name);
+            return `
+                <div class="user-card">
+                    <div class="card-top">
+                        <div class="avatar"><i class="fas fa-user-friends"></i></div>
+                        <div class="user-info">
+                            <h3>${u.name}</h3>
+                            <div class="username">@${u.name.toLowerCase()}</div>
+                        </div>
+                    </div>
+                    <div class="common-interests">
+                        ${u.interests.slice(0,3).map(i => `<span class="interest-badge">#${i}</span>`).join('')}
+                        ${u.interests.length > 3 ? `<span class="interest-badge">+${u.interests.length-3}</span>` : ''}
+                    </div>
+                    <button class="follow-btn ${isFollowed ? 'followed' : ''}" data-name="${u.name}" ${isFollowed ? 'disabled' : ''}>
+                        <i class="fas ${isFollowed ? 'fa-check-circle' : 'fa-user-plus'}"></i> ${isFollowed ? 'Kuzatyapsiz' : 'Kuzatish'}
+                    </button>
+                </div>
+            `;
+        }).join('')}</div>` : '<div class="card" style="text-align:center;">Bu kategoriyada foydalanuvchilar yo‘q.</div>';
 
         root.innerHTML = `
+            <div class="navbar">
+                <div class="logo">BirMillat</div>
+                <div class="nav-links"><a href="#" class="active">Bosh sahifa</a><a href="#">Global suhbat</a><a href="#">Profil</a></div>
+                <div class="user-badge" id="userBadge"><i class="fas fa-user-circle"></i> ${currentUser} <i class="fas fa-chevron-down" style="font-size:0.7rem;"></i></div>
+            </div>
             <div class="container">
-                <div class="navbar">
-                    <div class="logo">BirMillat</div>
-                    <div class="nav-links"><a href="#" class="active">Bosh sahifa</a><a href="#">Global suhbat</a><a href="#">Profil</a></div>
-                    <div class="user-badge" id="userBadge">👤 ${currentUser}</div>
-                </div>
-                <div class="welcome-card">
+                <div class="card welcome-card">
                     <h1>Xush kelibsiz, <span>${currentUser}</span>!</h1>
-                    <p>BirMillat – bu shunchaki tanishuv emas. Bu yerda siz <strong>qiziqishlaringiz asosida</strong> haqiqiy do‘stlar, jamoa va yangi imkoniyatlarni topasiz.<br>Dasturlash, AI, sport, kitoblar – kim bilan bo‘lishishni xohlasangiz, ular sizni kutmoqda.</p>
+                    <p>BirMillat – qiziqishlaringiz asosida haqiqiy do‘stlarni toping. Dasturlash, AI, dizayn, sport – kim bilan bo‘lishishni xohlasangiz, ular sizni kutmoqda. Suhbatlashing, g‘oyalar almashing va birgalikda o‘sishni boshlang.</p>
                     <a href="#" class="btn-primary">Suhbatga o‘tish →</a>
                 </div>
-                <div class="interests-section">
-                    <div class="section-label">⚡ SIZNING QIZIQISHLARINGIZ</div>
-                    <div class="tag-list" id="interestsList">${myInterests.map(i => `<span class="tag">${i}</span>`).join('')}${myInterests.length === 0 ? '<span style="color:#888;">Hali qo‘shilmagan</span>' : ''}</div>
-                    <div style="margin-top:10px;"><input type="text" id="newInterestInput" placeholder="Yangi qiziqish" style="padding:6px 12px; border-radius:30px; border:1px solid #cbd5e0; width:200px;" /><button id="addInterestBtn" style="background:#2c7da0; color:white; border:none; padding:6px 14px; border-radius:30px; margin-left:8px;">➕ Qo‘shish</button></div>
-                </div>
-                <div class="categories-section">
-                    <div class="section-label">📂 KATEGORIYALAR</div>
-                    <div class="tag-list" id="categoriesList">${categories.map(c => `<span class="category-chip ${c.name === activeCategory ? 'active' : ''}" data-cat="${c.name}">${c.name}</span>`).join('')}</div>
-                </div>
-                <div class="rec-header"><div><h2>👥 Sizga tavsiya etiladi</h2><p>Qiziqishlaringiz mos keladigan foydalanuvchilar</p></div><button id="logoutBtn" style="background:#e2e8f0; border:none; padding:4px 12px; border-radius:20px; cursor:pointer;">🚪 Chiqish</button></div>
-                <div id="recommendationsContainer">${recommendationsHtml}</div>
-                <footer>
-                    <div class="social-links">
-                        <a href="https://t.me/birmillat" target="_blank"><i class="fab fa-telegram"></i></a>
-                        <a href="https://instagram.com/birmillat" target="_blank"><i class="fab fa-instagram"></i></a>
-                        <a href="https://github.com/birmillat" target="_blank"><i class="fab fa-github"></i></a>
-                        <a href="https://twitter.com/birmillat" target="_blank"><i class="fab fa-twitter"></i></a>
+
+                <div class="card">
+                    <div class="section-label"><i class="fas fa-lightbulb"></i> SIZNING QIZIQISHLARINGIZ</div>
+                    <div class="tag-list" id="interestsList">
+                        ${myInterests.map(i => `<span class="tag">${i}</span>`).join('')}
+                        ${myInterests.length === 0 ? '<span class="tag" style="background:#f0f0f0; color:#888;">Hali qo‘shilmagan</span>' : ''}
                     </div>
-                    <p style="margin-top:1rem;">BirMillat – qiziqishlar asosida do‘stlar toping. Profil va filtrlar tez kunda.</p>
-                </footer>
+                    <div style="margin-top:1rem; display:flex; gap:0.5rem; flex-wrap:wrap;">
+                        <input type="text" id="newInterestInput" placeholder="Yangi qiziqish (masalan: AI)" style="flex:1; padding:8px 16px; border-radius:40px; border:1px solid #cbd5e0;" />
+                        <button id="addInterestBtn" class="btn-primary" style="padding:6px 18px;">➕ Qo‘shish</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="section-label"><i class="fas fa-filter"></i> KATEGORIYALAR</div>
+                    <div class="tag-list" id="categoriesList">
+                        ${categories.map(c => `<span class="category-chip ${c.name === activeCategory ? 'active' : ''}" data-cat="${c.name}">${c.name}</span>`).join('')}
+                    </div>
+                </div>
+
+                <div class="rec-header">
+                    <h2><i class="fas fa-users"></i> Sizga tavsiya etiladi</h2>
+                    <button id="logoutBtn" class="btn-primary" style="background:#e2e8f0; color:#2c4a6e;">🚪 Chiqish</button>
+                </div>
+                ${recommendationsHtml}
             </div>
+            <footer>
+                <div class="social-links">
+                    <a href="https://t.me/birmillat" target="_blank"><i class="fab fa-telegram"></i></a>
+                    <a href="https://instagram.com/birmillat" target="_blank"><i class="fab fa-instagram"></i></a>
+                    <a href="https://github.com/birmillat" target="_blank"><i class="fab fa-github"></i></a>
+                    <a href="https://twitter.com/birmillat" target="_blank"><i class="fab fa-twitter"></i></a>
+                </div>
+                <p>BirMillat – qiziqishlar asosida do‘stlar toping. Profil va filtrlar tez kunda.</p>
+            </footer>
         `;
 
         // Add interest
-        document.getElementById('addInterestBtn').onclick = () => {
+        const addBtn = document.getElementById('addInterestBtn');
+        if (addBtn) addBtn.onclick = () => {
             let val = document.getElementById('newInterestInput').value.trim();
-            if (val && !me.interests.includes(val)) { me.interests.push(val); saveUsers(); render(); }
-            else if (val) alert("Bu qiziqish allaqachon mavjud");
+            if (val && !me.interests.includes(val)) { me.interests.push(val); saveUsers(); render(); showToast(`"${val}" qo‘shildi`, "✨"); }
+            else if (val && me.interests.includes(val)) showToast("Bu qiziqish allaqachon mavjud", "⚠️");
         };
-        // Category clicks
+
+        // Category click
         document.querySelectorAll('.category-chip').forEach(chip => {
             chip.onclick = () => { activeCategory = chip.getAttribute('data-cat'); render(); };
         });
-        // Follow buttons
+
+        // Follow buttons - no alert, toast notification
         document.querySelectorAll('.follow-btn').forEach(btn => {
-            btn.onclick = (e) => { alert(`✅ So‘rov yuborildi: ${btn.getAttribute('data-name')}`); btn.innerHTML = '<i class="fas fa-check"></i> Yuborilgan'; btn.disabled = true; };
+            if (btn.disabled) return;
+            btn.onclick = (e) => {
+                const targetName = btn.getAttribute('data-name');
+                if (!followedMap[currentUser]) followedMap[currentUser] = [];
+                if (!followedMap[currentUser].includes(targetName)) {
+                    followedMap[currentUser].push(targetName);
+                    saveFollowed();
+                    showToast(`${targetName} ga kuzatuv so‘rovi yuborildi`, "✅");
+                    render(); // re-render to update button state
+                }
+            };
         });
-        document.getElementById('logoutBtn').onclick = logout;
-        document.getElementById('userBadge').onclick = logout;
+
+        document.getElementById('logoutBtn').onclick = () => { logout(); showToast("Chiqildi", "👋"); };
+        document.getElementById('userBadge').onclick = () => logout();
     }
     render();
 </script>
