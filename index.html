@@ -5,11 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BirMillat – Do'stlaringizni qiziqishlar asosida toping</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             background: #f5f7fb;
@@ -26,35 +22,19 @@
             flex-wrap: wrap;
             gap: 1rem;
         }
-        .logo {
-            font-size: 1.6rem;
-            font-weight: 700;
-            color: #2c7da0;
-        }
-        .nav-links {
-            display: flex;
-            gap: 2rem;
-        }
-        .nav-links a {
-            text-decoration: none;
-            color: #2c3e50;
-            font-weight: 500;
-        }
-        .nav-links a:hover, .nav-links .active {
-            color: #2c7da0;
-        }
+        .logo { font-size: 1.6rem; font-weight: 700; color: #2c7da0; }
+        .nav-links { display: flex; gap: 2rem; }
+        .nav-links a { text-decoration: none; color: #2c3e50; font-weight: 500; }
+        .nav-links a:hover, .nav-links .active { color: #2c7da0; }
         .user-badge {
             background: #edf2f7;
             padding: 0.4rem 1rem;
             border-radius: 30px;
             font-size: 0.9rem;
             font-weight: 500;
+            cursor: pointer;
         }
-        .container {
-            max-width: 1100px;
-            margin: 2rem auto;
-            padding: 0 1.5rem;
-        }
+        .container { max-width: 1100px; margin: 2rem auto; padding: 0 1.5rem; }
         .welcome-card {
             background: white;
             border-radius: 1rem;
@@ -63,20 +43,13 @@
             border: 1px solid #e2e8f0;
             margin-bottom: 2rem;
         }
-        .welcome-card h1 {
-            font-size: 1.8rem;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-        }
-        .welcome-card h1 span {
-            color: #2c7da0;
-        }
+        .welcome-card h1 { font-size: 1.8rem; font-weight: 600; margin-bottom: 0.5rem; }
+        .welcome-card h1 span { color: #2c7da0; }
         .welcome-card p {
             font-size: 1rem;
             color: #2d3e50;
             margin-bottom: 1.2rem;
             max-width: 85%;
-            line-height: 1.5;
         }
         .btn-primary {
             background: #2c7da0;
@@ -85,19 +58,13 @@
             padding: 0.6rem 1.2rem;
             border-radius: 2rem;
             font-weight: 600;
-            font-size: 0.9rem;
-            cursor: pointer;
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
             text-decoration: none;
         }
-        .btn-primary:hover {
-            background: #1f5e7a;
-        }
-        .interests-section {
-            margin-bottom: 2rem;
-        }
+        .btn-primary:hover { background: #1f5e7a; }
+        .interests-section, .categories-section { margin-bottom: 2rem; }
         .section-label {
             font-size: 0.8rem;
             font-weight: 600;
@@ -106,11 +73,7 @@
             margin-bottom: 0.6rem;
             letter-spacing: 0.5px;
         }
-        .tag-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.6rem;
-        }
+        .tag-list { display: flex; flex-wrap: wrap; gap: 0.6rem; }
         .tag {
             background: #ecf5f9;
             color: #2c7da0;
@@ -119,6 +82,20 @@
             font-size: 0.8rem;
             font-weight: 500;
         }
+        .category-chip {
+            background: #eef2ff;
+            color: #4f46e5;
+            padding: 0.3rem 1rem;
+            border-radius: 30px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .category-chip:hover, .category-chip.active {
+            background: #4f46e5;
+            color: white;
+        }
         .rec-header {
             display: flex;
             justify-content: space-between;
@@ -126,15 +103,7 @@
             margin-bottom: 1.2rem;
             flex-wrap: wrap;
         }
-        .rec-header h2 {
-            font-size: 1.3rem;
-            font-weight: 600;
-            color: #0f2b36;
-        }
-        .rec-header p {
-            color: #5f7f9c;
-            font-size: 0.85rem;
-        }
+        .rec-header h2 { font-size: 1.3rem; font-weight: 600; color: #0f2b36; }
         .users-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -146,19 +115,13 @@
             border-radius: 1rem;
             padding: 1rem;
             border: 1px solid #e2e8f0;
-            transition: all 0.2s ease;
+            transition: 0.2s;
         }
         .user-card:hover {
             transform: translateY(-3px);
             box-shadow: 0 8px 20px rgba(0,0,0,0.05);
-            border-color: #cbd5e0;
         }
-        .card-top {
-            display: flex;
-            align-items: center;
-            gap: 0.8rem;
-            margin-bottom: 0.8rem;
-        }
+        .card-top { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 0.8rem; }
         .avatar {
             width: 48px;
             height: 48px;
@@ -170,20 +133,9 @@
             font-size: 1.3rem;
             color: #2c7da0;
         }
-        .user-info h3 {
-            font-size: 1rem;
-            font-weight: 600;
-        }
-        .user-info .username {
-            font-size: 0.75rem;
-            color: #6a7f9b;
-        }
-        .common-interests {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.4rem;
-            margin: 0.6rem 0;
-        }
+        .user-info h3 { font-size: 1rem; font-weight: 600; }
+        .user-info .username { font-size: 0.75rem; color: #6a7f9b; }
+        .common-interests { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.6rem 0; }
         .interest-badge {
             background: #f0f4f8;
             font-size: 0.7rem;
@@ -202,17 +154,13 @@
             font-size: 0.8rem;
             color: #2c7da0;
             cursor: pointer;
-            transition: 0.2s;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 0.4rem;
             margin-top: 0.4rem;
         }
-        .follow-btn:hover {
-            background: #2c7da0;
-            color: white;
-        }
+        .follow-btn:hover { background: #2c7da0; color: white; }
         footer {
             text-align: center;
             padding: 2rem;
@@ -221,6 +169,18 @@
             border-top: 1px solid #e2e8f0;
             margin-top: 2rem;
         }
+        .social-links {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+        .social-links a {
+            color: #5f7f9c;
+            font-size: 1.2rem;
+            transition: 0.2s;
+        }
+        .social-links a:hover { color: #2c7da0; }
         .login-card {
             background: white;
             border-radius: 1rem;
@@ -252,16 +212,14 @@
             .welcome-card p { max-width: 100%; }
         }
     </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
 <div id="root"></div>
 
 <script>
-    // ---------- localStorage user system ----------
-    let currentUser = localStorage.getItem('birMillat_user');
+    // ---------- localStorage user system with auto-login ----------
     let users = JSON.parse(localStorage.getItem('birMillat_users')) || {};
-
-    // Pre-populate demo users if empty
     if (Object.keys(users).length === 0) {
         users = {
             "Behruzbek2010": { password: "123", name: "Behruzbek2010", interests: ["🐍 Python", "🤖 Sun’iy intellekt", "🎮 O‘yinlar", "☁️ Cloud computing", "📱 Mobil dasturlash"], friends: [] },
@@ -274,59 +232,52 @@
         localStorage.setItem('birMillat_users', JSON.stringify(users));
     }
 
-    function saveUsers() {
-        localStorage.setItem('birMillat_users', JSON.stringify(users));
-    }
+    let currentUser = localStorage.getItem('birMillat_user');
+    if (!currentUser) currentUser = "Behruzbek2010", localStorage.setItem('birMillat_user', currentUser);
 
-    function setCurrentUser(username) {
-        currentUser = username;
-        localStorage.setItem('birMillat_user', username);
-        render();
-    }
-
-    function updateUserBadge() {
-        const badge = document.getElementById('userBadge');
-        if (badge) badge.innerText = currentUser ? `👤 ${currentUser}` : `🚪 Chiqmagan`;
-    }
+    function saveUsers() { localStorage.setItem('birMillat_users', JSON.stringify(users)); }
+    function setCurrentUser(username) { currentUser = username; localStorage.setItem('birMillat_user', username); render(); }
+    function logout() { currentUser = null; localStorage.removeItem('birMillat_user'); render(); }
 
     function getMatchScore(userInterests, myInterests) {
         return userInterests.filter(i => myInterests.includes(i)).length;
     }
 
+    // Predefined categories and mapping to interests
+    const categories = [
+        { name: "Barchasi", filter: null },
+        { name: "💻 Dasturlash", filter: ["Python", "JavaScript", "Mobil dasturlash", "Flutter", "DevOps"] },
+        { name: "🤖 AI / ML", filter: ["Sun’iy intellekt", "Machine Learning", "Data Science"] },
+        { name: "🎮 O‘yinlar", filter: ["O‘yinlar", "Unity"] },
+        { name: "☁️ Cloud", filter: ["Cloud computing", "DevOps"] }
+    ];
+    let activeCategory = "Barchasi";
+
     function render() {
         const root = document.getElementById('root');
         if (!currentUser) {
-            // Login / Register screen (clean, matching design)
+            // Login screen
             root.innerHTML = `
                 <div class="container">
                     <div class="navbar">
                         <div class="logo">BirMillat</div>
-                        <div class="nav-links">
-                            <a href="#">Bosh sahifa</a>
-                            <a href="#">Global suhbat</a>
-                            <a href="#">Profil</a>
-                        </div>
-                        <div class="user-badge" id="userBadge">🚪 Chiqmagan</div>
+                        <div class="nav-links"><a href="#">Bosh sahifa</a><a href="#">Global suhbat</a><a href="#">Profil</a></div>
+                        <div class="user-badge">🚪 Chiqmagan</div>
                     </div>
                     <div class="login-card">
                         <h2>🔐 Kirish yoki Ro‘yxatdan o‘tish</h2>
                         <input type="text" id="loginName" placeholder="Foydalanuvchi nomi" />
                         <input type="password" id="loginPass" placeholder="Parol" />
-                        <div>
-                            <button id="loginBtn">Kirish</button>
-                            <button id="registerBtn">Ro‘yxatdan o‘tish</button>
-                        </div>
+                        <div><button id="loginBtn">Kirish</button><button id="registerBtn">Ro‘yxatdan o‘tish</button></div>
+                        <p style="margin-top:12px; font-size:12px;">Demo: Behruzbek2010 / 123</p>
                     </div>
                 </div>
             `;
             document.getElementById('loginBtn').onclick = () => {
                 let name = document.getElementById('loginName').value.trim();
                 let pass = document.getElementById('loginPass').value;
-                if (name && users[name] && users[name].password === pass) {
-                    setCurrentUser(name);
-                } else {
-                    alert("Foydalanuvchi nomi yoki parol noto‘g‘ri");
-                }
+                if (name && users[name] && users[name].password === pass) setCurrentUser(name);
+                else alert("Noto‘g‘ri");
             };
             document.getElementById('registerBtn').onclick = () => {
                 let name = document.getElementById('loginName').value.trim();
@@ -335,134 +286,84 @@
                     users[name] = { password: pass, name: name, interests: [], friends: [] };
                     saveUsers();
                     setCurrentUser(name);
-                } else {
-                    alert("Bu nom band yoki bo‘sh");
-                }
+                } else alert("Band yoki bo‘sh");
             };
             return;
         }
 
-        // Logged in user data
         const me = users[currentUser];
-        if (!me) {
-            currentUser = null;
-            localStorage.removeItem('birMillat_user');
-            render();
-            return;
-        }
-
+        if (!me) { logout(); return; }
         const myInterests = me.interests || [];
-        const otherUsers = Object.keys(users).filter(u => u !== currentUser);
-        const scored = otherUsers.map(u => {
-            const uInterests = users[u].interests || [];
-            return { name: u, interests: uInterests, matchCount: getMatchScore(uInterests, myInterests) };
-        }).sort((a,b) => b.matchCount - a.matchCount);
+        let allOtherUsers = Object.keys(users).filter(u => u !== currentUser).map(u => ({ name: u, interests: users[u].interests || [] }));
 
-        let recommendationsHtml = '';
-        if (scored.length === 0) {
-            recommendationsHtml = '<p>Hozircha boshqa foydalanuvchilar yo‘q.</p>';
-        } else {
-            recommendationsHtml = `<div class="users-grid">${scored.map(u => `
-                <div class="user-card">
-                    <div class="card-top">
-                        <div class="avatar"><i class="fas fa-user-circle"></i></div>
-                        <div class="user-info">
-                            <h3>${u.name}</h3>
-                            <div class="username">@${u.name.toLowerCase()}</div>
-                        </div>
-                    </div>
-                    <div class="common-interests">
-                        ${u.interests.slice(0, 3).map(i => `<span class="interest-badge">#${i}</span>`).join('')}
-                        ${u.interests.length > 3 ? `<span class="interest-badge">+${u.interests.length-3}</span>` : ''}
-                    </div>
-                    <button class="follow-btn" data-name="${u.name}"><i class="fas fa-user-plus"></i> Kuzatish</button>
-                </div>
-            `).join('')}</div>`;
+        // Apply category filter
+        const category = categories.find(c => c.name === activeCategory);
+        if (category && category.filter) {
+            allOtherUsers = allOtherUsers.filter(u => u.interests.some(i => category.filter.some(f => i.includes(f))));
         }
+
+        const scored = allOtherUsers.map(u => ({ ...u, matchCount: getMatchScore(u.interests, myInterests) })).sort((a,b) => b.matchCount - a.matchCount);
+
+        let recommendationsHtml = scored.length ? `<div class="users-grid">${scored.map(u => `
+            <div class="user-card">
+                <div class="card-top"><div class="avatar"><i class="fas fa-user-circle"></i></div><div class="user-info"><h3>${u.name}</h3><div class="username">@${u.name.toLowerCase()}</div></div></div>
+                <div class="common-interests">${u.interests.slice(0,3).map(i => `<span class="interest-badge">#${i}</span>`).join('')}${u.interests.length > 3 ? `<span class="interest-badge">+${u.interests.length-3}</span>` : ''}</div>
+                <button class="follow-btn" data-name="${u.name}"><i class="fas fa-user-plus"></i> Kuzatish</button>
+            </div>
+        `).join('')}</div>` : '<p>Bu kategoriyada foydalanuvchilar yo‘q.</p>';
 
         root.innerHTML = `
             <div class="container">
                 <div class="navbar">
                     <div class="logo">BirMillat</div>
-                    <div class="nav-links">
-                        <a href="#" class="active">Bosh sahifa</a>
-                        <a href="#">Global suhbat</a>
-                        <a href="#">Profil</a>
-                    </div>
+                    <div class="nav-links"><a href="#" class="active">Bosh sahifa</a><a href="#">Global suhbat</a><a href="#">Profil</a></div>
                     <div class="user-badge" id="userBadge">👤 ${currentUser}</div>
                 </div>
-
-                <!-- Welcome card (original description, improved) -->
                 <div class="welcome-card">
                     <h1>Xush kelibsiz, <span>${currentUser}</span>!</h1>
-                    <p>
-                        BirMillat – bu shunchaki tanishuv emas. Bu yerda siz <strong>qiziqishlaringiz asosida</strong> haqiqiy do‘stlar, jamoa va yangi imkoniyatlarni topasiz.<br>
-                        Dasturlash, dizayn, AI, kitoblar, sport yoki sayohat – kim bilan bo‘lishishni xohlasangiz, ular sizni kutmoqda. Suhbatlashing, g‘oyalar almashing va birgalikda o‘sishni boshlang.
-                    </p>
+                    <p>BirMillat – bu shunchaki tanishuv emas. Bu yerda siz <strong>qiziqishlaringiz asosida</strong> haqiqiy do‘stlar, jamoa va yangi imkoniyatlarni topasiz.<br>Dasturlash, AI, sport, kitoblar – kim bilan bo‘lishishni xohlasangiz, ular sizni kutmoqda.</p>
                     <a href="#" class="btn-primary">Suhbatga o‘tish →</a>
                 </div>
-
-                <!-- Your interests -->
                 <div class="interests-section">
                     <div class="section-label">⚡ SIZNING QIZIQISHLARINGIZ</div>
-                    <div class="tag-list" id="interestsList">
-                        ${myInterests.map(i => `<span class="tag">${i}</span>`).join('')}
-                        ${myInterests.length === 0 ? '<span class="tag" style="background:#f0f0f0; color:#888;">Hali qo‘shilmagan</span>' : ''}
-                    </div>
-                    <div style="margin-top: 10px;">
-                        <input type="text" id="newInterestInput" placeholder="Yangi qiziqish qo‘shish" style="padding:6px 12px; border-radius:30px; border:1px solid #cbd5e0;" />
-                        <button id="addInterestBtn" style="background:#2c7da0; color:white; border:none; padding:6px 14px; border-radius:30px; margin-left:8px;">➕ Qo‘shish</button>
-                    </div>
+                    <div class="tag-list" id="interestsList">${myInterests.map(i => `<span class="tag">${i}</span>`).join('')}${myInterests.length === 0 ? '<span style="color:#888;">Hali qo‘shilmagan</span>' : ''}</div>
+                    <div style="margin-top:10px;"><input type="text" id="newInterestInput" placeholder="Yangi qiziqish" style="padding:6px 12px; border-radius:30px; border:1px solid #cbd5e0; width:200px;" /><button id="addInterestBtn" style="background:#2c7da0; color:white; border:none; padding:6px 14px; border-radius:30px; margin-left:8px;">➕ Qo‘shish</button></div>
                 </div>
-
-                <!-- Recommendations (replaces old three boxes) -->
-                <div class="rec-header">
-                    <div>
-                        <h2>👥 Sizga tavsiya etiladi</h2>
-                        <p>Qiziqishlari siznikiga mos keladigan foydalanuvchilar</p>
-                    </div>
+                <div class="categories-section">
+                    <div class="section-label">📂 KATEGORIYALAR</div>
+                    <div class="tag-list" id="categoriesList">${categories.map(c => `<span class="category-chip ${c.name === activeCategory ? 'active' : ''}" data-cat="${c.name}">${c.name}</span>`).join('')}</div>
                 </div>
-                <div id="recommendationsContainer">
-                    ${recommendationsHtml}
-                </div>
-
+                <div class="rec-header"><div><h2>👥 Sizga tavsiya etiladi</h2><p>Qiziqishlaringiz mos keladigan foydalanuvchilar</p></div><button id="logoutBtn" style="background:#e2e8f0; border:none; padding:4px 12px; border-radius:20px; cursor:pointer;">🚪 Chiqish</button></div>
+                <div id="recommendationsContainer">${recommendationsHtml}</div>
                 <footer>
-                    BirMillat – qiziqishlar asosida do‘stlar toping. Profil va filtrlar tez kunda.
+                    <div class="social-links">
+                        <a href="https://t.me/birmillat" target="_blank"><i class="fab fa-telegram"></i></a>
+                        <a href="https://instagram.com/birmillat" target="_blank"><i class="fab fa-instagram"></i></a>
+                        <a href="https://github.com/birmillat" target="_blank"><i class="fab fa-github"></i></a>
+                        <a href="https://twitter.com/birmillat" target="_blank"><i class="fab fa-twitter"></i></a>
+                    </div>
+                    <p style="margin-top:1rem;">BirMillat – qiziqishlar asosida do‘stlar toping. Profil va filtrlar tez kunda.</p>
                 </footer>
             </div>
         `;
 
-        // Attach event listeners
+        // Add interest
         document.getElementById('addInterestBtn').onclick = () => {
-            const newInt = document.getElementById('newInterestInput').value.trim();
-            if (newInt && !me.interests.includes(newInt)) {
-                me.interests.push(newInt);
-                saveUsers();
-                render();
-            } else if (newInt && me.interests.includes(newInt)) {
-                alert("Bu qiziqish allaqachon mavjud");
-            }
+            let val = document.getElementById('newInterestInput').value.trim();
+            if (val && !me.interests.includes(val)) { me.interests.push(val); saveUsers(); render(); }
+            else if (val) alert("Bu qiziqish allaqachon mavjud");
         };
-
+        // Category clicks
+        document.querySelectorAll('.category-chip').forEach(chip => {
+            chip.onclick = () => { activeCategory = chip.getAttribute('data-cat'); render(); };
+        });
         // Follow buttons
         document.querySelectorAll('.follow-btn').forEach(btn => {
-            btn.onclick = (e) => {
-                const targetName = btn.getAttribute('data-name');
-                alert(`✅ So‘rov yuborildi: ${targetName}`);
-                btn.innerHTML = '<i class="fas fa-check"></i> So‘rov yuborilgan';
-                btn.disabled = true;
-            };
+            btn.onclick = (e) => { alert(`✅ So‘rov yuborildi: ${btn.getAttribute('data-name')}`); btn.innerHTML = '<i class="fas fa-check"></i> Yuborilgan'; btn.disabled = true; };
         });
-
-        updateUserBadge();
+        document.getElementById('logoutBtn').onclick = logout;
+        document.getElementById('userBadge').onclick = logout;
     }
-
-    // Load Font Awesome for icons
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css';
-    document.head.appendChild(link);
-
     render();
 </script>
 </body>
