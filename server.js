@@ -274,7 +274,7 @@ app.post('/api/block', express.json(), (req, res) => {
     updateUserSocial(current, 'friends', friends);
     const blockedUserData = getUser(blockUser);
     let targetFriends = JSON.parse(blockedUserData.friends || '[]');
-    targetFriends = targetGroups.filter(f => f !== current);
+    targetFriends = targetFriends.filter(f => f !== current);
     updateUserSocial(blockUser, 'friends', targetFriends);
     res.json({ success: true });
 });
