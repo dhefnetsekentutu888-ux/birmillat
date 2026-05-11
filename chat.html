@@ -14,7 +14,6 @@
             flex-direction:column;
             position:fixed;
             height:100vh;
-            resize:horizontal;
             overflow:auto;
             min-width:180px;
             max-width:400px;
@@ -42,7 +41,6 @@
         .social-section h4{margin-bottom:10px;color:#c0392b}
         .user-item{display:flex;justify-content:space-between;align-items:center;padding:5px 0}
         button.small{background:none;border:none;cursor:pointer;color:#c0392b;margin-left:5px}
-        .profile-link{cursor:pointer;color:#2c7da0;text-decoration:underline}
         .edit-profile-btn{background:#c0392b;color:white;border:none;padding:6px 12px;border-radius:20px;cursor:pointer;margin-top:10px;width:100%}
         .modal{
             display:none;
@@ -153,7 +151,7 @@
         </div>
     </div>
 
-    <!-- View Profile Modal (when clicking on a user) -->
+    <!-- View Profile Modal -->
     <div id="viewProfileModal" class="modal">
         <div class="modal-content">
             <h3 id="viewUsername"></h3>
@@ -166,7 +164,6 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        // ---------- Helper to get current user from session ----------
         async function getCurrentUser() {
             const res = await fetch('/api/me');
             if (res.ok) {
@@ -179,7 +176,6 @@
         let currentUsername = null;
         let socket = null;
 
-        // ---------- Chat functionality with colored bubbles ----------
         const messagesDiv = document.getElementById('messages');
         const input = document.getElementById('input');
         const sendBtn = document.getElementById('sendBtn');
@@ -216,7 +212,6 @@
         sendBtn.onclick = sendMessage;
         input.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
 
-        // ---------- Social functions (friend requests, block) unchanged ----------
         async function loadSocial() {
             const res = await fetch('/api/social');
             const data = await res.json();
@@ -255,7 +250,6 @@
             document.getElementById('blockUsername').value = '';
         };
 
-        // ---------- Enhanced search with profile click ----------
         document.getElementById('searchBtn').onclick = async () => {
             const query = document.getElementById('searchUser').value.trim();
             if (!query) return;
@@ -276,7 +270,6 @@
             }
         };
 
-        // ---------- Profile viewing (click on any user) ----------
         async function showUserProfile(username) {
             const res = await fetch(`/api/profile/${username}`);
             if (res.ok) {
@@ -289,7 +282,6 @@
             }
         }
 
-        // ---------- Profile editing ----------
         async function loadMyProfile() {
             const res = await fetch(`/api/profile/${currentUsername}`);
             if (res.ok) {
@@ -318,7 +310,6 @@
             }
         }
 
-        // ---------- Modal controls ----------
         const profileModal = document.getElementById('profileModal');
         const editProfileBtn = document.getElementById('editProfileBtn');
         const closeModalBtn = document.getElementById('closeModalBtn');
@@ -335,7 +326,6 @@
             if (e.target === viewModal) viewModal.style.display = 'none';
         };
 
-        // ---------- Initialisation ----------
         async function init() {
             currentUsername = await getCurrentUser();
             if (!currentUsername) {
