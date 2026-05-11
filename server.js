@@ -62,7 +62,7 @@ io.use((socket, next) => {
     });
 });
 
-// ---------- Helper: render register page inline (like your original) ----------
+// ---------- Helper: render register page inline ----------
 function renderRegisterPage(message, isError = true) {
     const messageHtml = message ? `<div class="${isError ? 'error' : 'success'}">${message}</div>` : '';
     return `<!DOCTYPE html><html><head><title>Ro'yxatdan o'tish - BirMillat</title><style>
@@ -274,7 +274,7 @@ app.post('/api/block', express.json(), (req, res) => {
     updateUserSocial(current, 'friends', friends);
     const blockedUserData = getUser(blockUser);
     let targetFriends = JSON.parse(blockedUserData.friends || '[]');
-    targetFriends = targetFriends.filter(f => f !== current);
+    targetFriends = targetGroups.filter(f => f !== current);
     updateUserSocial(blockUser, 'friends', targetFriends);
     res.json({ success: true });
 });
