@@ -63,7 +63,7 @@
             <a href="/home" class="menu-item active">
                 <i class="fas fa-home"></i> <span>Bosh sahifa</span>
             </a>
-            <!-- Sidebar link – also forced with JavaScript -->
+            <!-- Sidebar link – we'll override with JavaScript -->
             <a href="#" class="menu-item" id="sidebarChatLink">
                 <i class="fas fa-comments"></i> <span>Global suhbat</span>
             </a>
@@ -78,7 +78,7 @@
                 <i class="fas fa-smile-wink"></i> Xush kelibsiz, <span id="username"></span>!
             </div>
             <p style="margin-top:15px;color:#666">Do'stlar toping, suhbatlashing, so'rov yuboring va kerakli shaxslarni bloklang.</p>
-            <!-- Button with explicit JavaScript navigation instead of href -->
+            <!-- Button with explicit JavaScript navigation -->
             <button class="btn" id="chatButton">Suhbatga o‘tish →</button>
         </div>
         <div class="features-grid">
@@ -99,13 +99,19 @@
             </div>
         </div>
     </div>
+
     <script>
         // Fetch current user
-        fetch('/api/me').then(r => r.json()).then(data => {
-            document.getElementById('username').innerText = data.username;
-        }).catch(() => window.location.href = '/login');
+        fetch('/api/me')
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('username').innerText = data.username;
+            })
+            .catch(() => {
+                window.location.href = '/login';
+            });
 
-        // Force navigation to /chat on button click
+        // Main button: go to /chat
         const chatBtn = document.getElementById('chatButton');
         if (chatBtn) {
             chatBtn.onclick = function() {
@@ -113,10 +119,10 @@
             };
         }
 
-        // Also fix the sidebar link
-        const sidebarChat = document.getElementById('sidebarChatLink');
-        if (sidebarChat) {
-            sidebarChat.onclick = function(e) {
+        // Sidebar link: prevent default # and go to /chat
+        const sidebarLink = document.getElementById('sidebarChatLink');
+        if (sidebarLink) {
+            sidebarLink.onclick = function(e) {
                 e.preventDefault();
                 window.location.href = '/chat';
             };
