@@ -1,592 +1,82 @@
 <!DOCTYPE html>
-<html lang="uz">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>BirMillat | Do‘stlaringizni qiziqishlar asosida toping</title>
-    <!-- Font Awesome 6 (free) -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <title>BirMillat – Yoshlarni birlashtiruvchi aqlli platforma</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background: #f8fafc;
-            color: #0f172a;
-            line-height: 1.5;
-        }
-        /* smooth scroll */
-        html {
-            scroll-behavior: smooth;
-        }
-        /* navbar */
-        .navbar {
-            background: rgba(255,255,255,0.96);
-            backdrop-filter: blur(4px);
-            border-bottom: 1px solid #e2e8f0;
-            padding: 0.9rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 1rem;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-        .logo {
-            font-size: 1.7rem;
-            font-weight: 800;
-            background: linear-gradient(135deg, #1e6f5c, #2c7da0);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-            letter-spacing: -0.3px;
-        }
-        .nav-links {
-            display: flex;
-            gap: 2rem;
-            align-items: center;
-        }
-        .nav-links a {
-            text-decoration: none;
-            color: #1e293b;
-            font-weight: 500;
-            transition: 0.2s;
-        }
-        .nav-links a:hover, .nav-links a.active {
-            color: #2c7da0;
-        }
-        .user-badge {
-            background: #eef2f8;
-            padding: 0.45rem 1.2rem;
-            border-radius: 40px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            transition: 0.1s;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 2rem auto;
-            padding: 0 1.5rem;
-        }
-        /* cards */
-        .card {
-            background: white;
-            border-radius: 1.5rem;
-            padding: 1.6rem;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.03), 0 1px 2px rgba(0,0,0,0.05);
-            border: 1px solid #eef2f6;
-            margin-bottom: 2rem;
-            transition: box-shadow 0.2s;
-        }
-        .card:hover {
-            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
-        }
-        .welcome-card {
-            background: linear-gradient(105deg, #ffffff, #fafefd);
-            border-left: 5px solid #2c7da0;
-        }
-        .welcome-card h1 {
-            font-size: 1.9rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-        }
-        .welcome-card h1 span {
-            color: #2c7da0;
-        }
-        .welcome-card p {
-            font-size: 1rem;
-            color: #2d3e50;
-            margin-bottom: 1.2rem;
-            max-width: 85%;
-        }
-        .btn-primary {
-            background: #2c7da0;
-            color: white;
-            border: none;
-            padding: 0.6rem 1.4rem;
-            border-radius: 40px;
-            font-weight: 600;
-            font-size: 0.9rem;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.6rem;
-            cursor: pointer;
-            transition: 0.2s;
-            text-decoration: none;
-        }
-        .btn-primary:hover {
-            background: #1e5f7a;
-            transform: translateY(-1px);
-        }
-        .section-label {
-            font-size: 0.75rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: #5b7f9e;
-            margin-bottom: 0.8rem;
-        }
-        .tag-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.6rem;
-            margin-top: 0.3rem;
-        }
-        .tag {
-            background: #ecf5f9;
-            color: #1e6f5c;
-            padding: 0.3rem 1rem;
-            border-radius: 40px;
-            font-size: 0.8rem;
-            font-weight: 500;
-        }
-        .category-chip {
-            background: #f1f5f9;
-            color: #334155;
-            padding: 0.35rem 1.1rem;
-            border-radius: 40px;
-            font-size: 0.8rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .category-chip:hover, .category-chip.active {
-            background: #2c7da0;
-            color: white;
-        }
-        .rec-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-        .rec-header h2 {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #0f172a;
-        }
-        .users-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 1.8rem;
-        }
-        .user-card {
-            background: white;
-            border-radius: 1.2rem;
-            padding: 1.2rem;
-            border: 1px solid #ecf3f9;
-            transition: all 0.2s ease;
-        }
-        .user-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 24px -10px rgba(0,0,0,0.08);
-            border-color: #cbdde6;
-        }
-        .card-top {
-            display: flex;
-            align-items: center;
-            gap: 0.8rem;
-            margin-bottom: 0.8rem;
-        }
-        .avatar {
-            width: 52px;
-            height: 52px;
-            background: #e4edf4;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.4rem;
-            color: #2c7da0;
-        }
-        .user-info h3 {
-            font-size: 1.05rem;
-            font-weight: 700;
-        }
-        .user-info .username {
-            font-size: 0.7rem;
-            color: #6a7f9b;
-        }
-        .common-interests {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.4rem;
-            margin: 0.8rem 0;
-        }
-        .interest-badge {
-            background: #f0f4fa;
-            font-size: 0.7rem;
-            padding: 0.2rem 0.7rem;
-            border-radius: 20px;
-            color: #2c7da0;
-            font-weight: 500;
-        }
-        .follow-btn {
-            width: 100%;
-            background: transparent;
-            border: 1.5px solid #2c7da0;
-            padding: 0.5rem;
-            border-radius: 2rem;
-            font-weight: 600;
-            font-size: 0.85rem;
-            color: #2c7da0;
-            cursor: pointer;
-            transition: 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            margin-top: 0.6rem;
-        }
-        .follow-btn:hover {
-            background: #2c7da0;
-            color: white;
-        }
-        .follow-btn.followed {
-            background: #e0f0ea;
-            color: #1e6f5c;
-            border-color: #b8d9ce;
-            cursor: default;
-        }
-        /* toast */
-        .toast {
-            position: fixed;
-            top: 90px;
-            right: 24px;
-            background: #1e2a3e;
-            color: white;
-            padding: 12px 20px;
-            border-radius: 60px;
-            font-size: 0.85rem;
-            font-weight: 500;
-            z-index: 1100;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            backdrop-filter: blur(12px);
-            background: rgba(30,42,62,0.92);
-        }
-        /* about modal */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.6);
-            backdrop-filter: blur(6px);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-        }
-        .modal-content {
-            background: white;
-            max-width: 520px;
-            width: 90%;
-            border-radius: 2rem;
-            padding: 2rem;
-            position: relative;
-            box-shadow: 0 25px 40px rgba(0,0,0,0.2);
-        }
-        .modal-content h3 {
-            font-size: 1.6rem;
-            margin-bottom: 0.5rem;
-        }
-        .modal-content .close-modal {
-            position: absolute;
-            top: 1rem;
-            right: 1.5rem;
-            font-size: 1.4rem;
-            cursor: pointer;
-        }
-        .about-text {
-            margin: 1rem 0;
-            line-height: 1.6;
-        }
-        /* footer */
-        footer {
-            text-align: center;
-            padding: 2rem 1rem;
-            font-size: 0.8rem;
-            border-top: 1px solid #e2e8f0;
-            margin-top: 2rem;
-            background: white;
-        }
-        .social-links {
-            display: flex;
-            justify-content: center;
-            gap: 1.8rem;
-            margin-bottom: 1rem;
-        }
-        .social-links a {
-            color: #5f7f9c;
-            font-size: 1.3rem;
-            transition: 0.2s;
-        }
-        .social-links a:hover {
-            color: #2c7da0;
-        }
-        .footer-note {
-            color: #5a6e8a;
-            max-width: 700px;
-            margin: 0.6rem auto 0;
-            font-size: 0.75rem;
-        }
-        .about-trigger {
-            background: none;
-            border: none;
-            font-weight: 600;
-            color: #2c7da0;
-            cursor: pointer;
-            font-size: 0.9rem;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 4px 10px;
-            border-radius: 30px;
-            transition: 0.1s;
-        }
-        .about-trigger:hover {
-            background: #eef2ff;
-        }
-        @media (max-width: 680px) {
-            .navbar { flex-direction: column; align-items: stretch; text-align: center; }
-            .welcome-card p { max-width: 100%; }
-            .container { padding: 0 1rem; }
-        }
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'Segoe UI',sans-serif;background:#f5f7fa;color:#2c3e50}
+        .container{max-width:1200px;margin:0 auto;padding:20px}
+        header{display:flex;justify-content:space-between;align-items:center;padding:20px 0;flex-wrap:wrap}
+        .logo{font-size:28px;font-weight:bold;display:flex;align-items:center;gap:10px}
+        .logo img{height:40px}
+        .nav-buttons a{color:#2c3e50;text-decoration:none;background:#e2e8f0;padding:10px 20px;border-radius:30px;margin-left:10px;transition:0.3s}
+        .nav-buttons a:hover{background:#cbd5e1}
+        .hero{text-align:center;padding:60px 20px}
+        .hero h1{font-size:48px;margin-bottom:20px;color:#c0392b}
+        .hero p{font-size:20px;margin-bottom:30px;max-width:800px;margin-left:auto;margin-right:auto}
+        .btn{background:#c0392b;color:white;padding:12px 30px;border-radius:40px;text-decoration:none;display:inline-block;margin:10px;transition:0.3s}
+        .btn:hover{background:#a93226}
+        .btn-outline{background:transparent;border:2px solid #c0392b;color:#c0392b}
+        .btn-outline:hover{background:#c0392b;color:white}
+        .categories{text-align:center;margin:60px 0}
+        .categories h2{font-size:32px;margin-bottom:30px;color:#2c3e50}
+        .cat-grid{display:flex;justify-content:center;gap:25px;flex-wrap:wrap}
+        .cat-card{background:white;padding:25px;border-radius:20px;width:220px;box-shadow:0 4px 12px rgba(0,0,0,0.05);transition:transform 0.2s}
+        .cat-card:hover{transform:translateY(-5px)}
+        .cat-card i{font-size:40px;color:#c0392b;margin-bottom:15px}
+        .cat-card h3{margin-bottom:10px}
+        .mission{background:white;padding:40px;border-radius:20px;text-align:center;margin:40px 0;box-shadow:0 4px 12px rgba(0,0,0,0.05)}
+        .mission h2{color:#c0392b;margin-bottom:20px}
+        .mission p{font-size:18px;max-width:800px;margin:0 auto}
+        .social{text-align:center;margin:40px 0}
+        .social h3{margin-bottom:20px}
+        .social-icons{display:flex;justify-content:center;gap:30px}
+        .social-icons a{color:#2c3e50;font-size:36px;transition:0.3s}
+        .social-icons a:hover{color:#c0392b}
+        footer{margin-top:60px;text-align:center;padding:20px;border-top:1px solid #e2e8f0;color:#64748b}
+        @media (max-width:768px){.hero h1{font-size:32px}}
     </style>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
 </head>
 <body>
-<div id="root"></div>
-
-<!-- About Modal -->
-<div id="aboutModal" class="modal">
-    <div class="modal-content">
-        <span class="close-modal">&times;</span>
-        <h3>👨‍💻 Bexruz Ravshanov</h3>
-        <div class="about-text">
-            <p><strong>Men — texnologiya, ta’lim va yoshlar rivojiga qiziqadigan yosh dasturchi va loyiha yaratuvchisiman. Hozirda zamonaviy IT texnologiyalar orqali yoshlar uchun foydali platformalar yaratish ustida ishlayapman.</strong></p>
-            <p style="margin-top: 12px;">BirMillat loyihasini yaratishdagi maqsadim — maqsadli, intiluvchan va o‘z ustida ishlaydigan yoshlarni birlashtirish hamda ularga yangi imkoniyatlar yaratib berish.</p>
-            <p>Meni ayniqsa:<br>🤖 sun’iy intellekt,<br>🌐 web dasturlash,<br>🚀 startup loyihalar,<br>📚 ta’lim va self-development yo‘nalishlari qiziqtiradi.</p>
-            <p>Kelajakdagi asosiy maqsadlarimdan biri — texnologiyalar orqali jamiyatga foyda keltiradigan katta loyihalarni yaratish va yoshlar rivojiga hissa qo‘shish.</p>
-        </div>
-        <button class="btn-primary" id="closeModalBtn" style="margin-top: 10px;">Tushunarli</button>
-    </div>
+<div class=container>
+<header>
+<div class=logo><img src="/logo.png" alt="BirMillat logosu" onerror="this.style.display='none'"> BirMillat</div>
+<div class=nav-buttons><a href=/login>Kirish</a><a href=/register>Ro'yxatdan o'tish</a></div>
+</header>
+<div class=hero>
+<h1>Yoshlarni birlashtiruvchi aqlli platforma</h1>
+<p>BirMillat — bu maqsadli, rivojlanishga intiluvchi yoshlarni bir joyga jamlaydigan zamonaviy platforma. Sun’iy intellekt yordamida foydalanuvchilarga o‘ziga o‘xshash fikrlaydigan, bir xil maqsad va qiziqishlarga ega insonlarni topishga yordam beradi.</p>
+<a href=/register class=btn>Boshlash →</a>
+<a href=/login class="btn btn-outline">Kirish</a>
 </div>
 
-<script>
-    // ---------- localStorage user system ----------
-    let users = JSON.parse(localStorage.getItem('birMillat_users')) || {};
-    if (Object.keys(users).length === 0) {
-        users = {
-            "Behruzbek2010": { password: "123", name: "Behruzbek2010", interests: ["🐍 Python", "🤖 Sun’iy intellekt", "🎮 O‘yinlar", "☁️ Cloud computing", "📱 Mobil dasturlash"], friends: [] },
-            "SabinaR": { password: "123", name: "SabinaR", interests: ["🤖 Sun’iy intellekt", "🐍 Python", "📊 Data Science"], friends: [] },
-            "JasurDev": { password: "123", name: "JasurDev", interests: ["🐍 Python", "📱 Mobil dasturlash", "⚙️ Flutter"], friends: [] },
-            "DilnozaCloud": { password: "123", name: "DilnozaCloud", interests: ["☁️ Cloud computing", "🐍 Python", "🔧 DevOps"], friends: [] },
-            "BehzodGamer": { password: "123", name: "BehzodGamer", interests: ["🎮 O‘yinlar", "🕹️ Unity", "🐍 Python"], friends: [] },
-            "MadinaML": { password: "123", name: "MadinaML", interests: ["🤖 Sun’iy intellekt", "📈 Machine Learning", "🎮 O‘yinlar"], friends: [] }
-        };
-        localStorage.setItem('birMillat_users', JSON.stringify(users));
-    }
+<div class=categories>
+<h2>📚 Kategoriyalar</h2>
+<div class=cat-grid>
+<div class=cat-card><i class="fas fa-graduation-cap"></i><h3>Ta’lim</h3><p>IELTS, CEFR, SAT, matematika, dasturlash</p></div>
+<div class=cat-card><i class="fas fa-rocket"></i><h3>Startup va Loyihalar</h3><p>Yangi g‘oyalar, jamoa yig‘ish</p></div>
+<div class=cat-card><i class="fas fa-hands-helping"></i><h3>Volontyorlik</h3><p>Ijtimoiy foydali tadbirlar</p></div>
+<div class=cat-card><i class="fas fa-laptop-code"></i><h3>Texnologiya</h3><p>IT, AI, dizayn</p></div>
+<div class=cat-card><i class="fas fa-trophy"></i><h3>Motivatsiya va Rivojlanish</h3><p>Maqsadli hamjamiyat</p></div>
+</div>
+</div>
 
-    let currentUser = localStorage.getItem('birMillat_user');
-    if (!currentUser) { currentUser = "Behruzbek2010"; localStorage.setItem('birMillat_user', currentUser); }
+<div class=mission>
+<h2>🌟 BirMillat maqsadi</h2>
+<p>Bugungi kunda ko‘plab yoshlar o‘ziga mos muhit va motivatsion insonlarni topishda qiynaladi. BirMillat esa yoshlarni birlashtirib, ularga rivojlanish, hamkorlik va katta maqsadlar sari birga harakat qilish imkonini beradi.</p>
+<p style="margin-top:20px; font-style:italic">“Biz odamlarni emas, maqsadlarni birlashtiramiz.”</p>
+</div>
 
-    function saveUsers() { localStorage.setItem('birMillat_users', JSON.stringify(users)); }
-    function setCurrentUser(username) { currentUser = username; localStorage.setItem('birMillat_user', username); render(); }
-    function logout() { currentUser = null; localStorage.removeItem('birMillat_user'); render(); }
+<div class=social>
+<h3>Bizni ijtimoiy tarmoqlarda kuzating</h3>
+<div class=social-icons>
+<a href="https://t.me/birmillatUZB" target="_blank"><i class="fab fa-telegram"></i></a>
+<a href="https://www.instagram.com/birmillat.uz" target="_blank"><i class="fab fa-instagram"></i></a>
+</div>
+</div>
 
-    function getMatchScore(userInterests, myInterests) {
-        return userInterests.filter(i => myInterests.includes(i)).length;
-    }
-
-    function showToast(message, icon = "✅") {
-        const existing = document.querySelector('.toast');
-        if (existing) existing.remove();
-        const toast = document.createElement('div');
-        toast.className = 'toast';
-        toast.innerHTML = `<span>${icon}</span> ${message}`;
-        document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 2600);
-    }
-
-    const categories = [
-        { name: "Barchasi", filter: null },
-        { name: "💻 Dasturlash", filter: ["Python", "JavaScript", "Mobil dasturlash", "Flutter", "DevOps"] },
-        { name: "🤖 AI / ML", filter: ["Sun’iy intellekt", "Machine Learning", "Data Science"] },
-        { name: "🎮 O‘yinlar", filter: ["O‘yinlar", "Unity"] },
-        { name: "☁️ Cloud", filter: ["Cloud computing", "DevOps"] }
-    ];
-    let activeCategory = "Barchasi";
-    let followedMap = JSON.parse(localStorage.getItem('birMillat_followed')) || {};
-    function saveFollowed() { localStorage.setItem('birMillat_followed', JSON.stringify(followedMap)); }
-
-    // Modal logic
-    function openAboutModal() { document.getElementById('aboutModal').style.display = 'flex'; }
-    function closeAboutModal() { document.getElementById('aboutModal').style.display = 'none'; }
-
-    function render() {
-        const root = document.getElementById('root');
-        if (!currentUser) {
-            // Login screen (clean minimal)
-            root.innerHTML = `
-                <div class="navbar">
-                    <div class="logo">BirMillat</div>
-                    <div class="nav-links"><a href="#">Bosh sahifa</a><a href="#">Global suhbat</a><a href="#">Profil</a></div>
-                    <div class="user-badge"><i class="fas fa-user-circle"></i> Chiqmagan</div>
-                </div>
-                <div class="container">
-                    <div class="card" style="max-width:450px; margin:2rem auto; text-align:center;">
-                        <h2 style="margin-bottom:1rem;">🔐 Kirish / Ro‘yxatdan o‘tish</h2>
-                        <input type="text" id="loginName" placeholder="Foydalanuvchi nomi" style="width:100%; padding:12px; margin:8px 0; border-radius:40px; border:1px solid #cbd5e0;" />
-                        <input type="password" id="loginPass" placeholder="Parol" style="width:100%; padding:12px; margin:8px 0; border-radius:40px; border:1px solid #cbd5e0;" />
-                        <div style="margin-top:1rem;"><button id="loginBtn" class="btn-primary">Kirish</button> <button id="registerBtn" class="btn-primary" style="background:#4f46e5;">Ro‘yxatdan o‘tish</button></div>
-                        <p style="margin-top:1rem; font-size:13px;">Demo: Behruzbek2010 / 123</p>
-                    </div>
-                </div>
-            `;
-            document.getElementById('loginBtn').onclick = () => {
-                let name = document.getElementById('loginName').value.trim();
-                let pass = document.getElementById('loginPass').value;
-                if (name && users[name] && users[name].password === pass) setCurrentUser(name);
-                else showToast("Noto‘g‘ri login yoki parol", "❌");
-            };
-            document.getElementById('registerBtn').onclick = () => {
-                let name = document.getElementById('loginName').value.trim();
-                let pass = document.getElementById('loginPass').value;
-                if (name && !users[name]) { users[name] = { password: pass, name: name, interests: [], friends: [] }; saveUsers(); setCurrentUser(name); }
-                else showToast("Bu nom band yoki bo‘sh", "⚠️");
-            };
-            return;
-        }
-
-        const me = users[currentUser];
-        if (!me) { logout(); return; }
-        const myInterests = me.interests || [];
-        let allUsers = Object.keys(users).filter(u => u !== currentUser).map(u => ({ name: u, interests: users[u].interests || [] }));
-        const cat = categories.find(c => c.name === activeCategory);
-        if (cat && cat.filter) allUsers = allUsers.filter(u => u.interests.some(i => cat.filter.some(f => i.includes(f))));
-        const scored = allUsers.map(u => ({ ...u, matchCount: getMatchScore(u.interests, myInterests) })).sort((a,b) => b.matchCount - a.matchCount);
-
-        let recommendationsHtml = scored.length ? `<div class="users-grid">${scored.map(u => {
-            const isFollowed = followedMap[currentUser] && followedMap[currentUser].includes(u.name);
-            return `
-                <div class="user-card">
-                    <div class="card-top">
-                        <div class="avatar"><i class="fas fa-user-astronaut"></i></div>
-                        <div class="user-info"><h3>${u.name}</h3><div class="username">@${u.name.toLowerCase()}</div></div>
-                    </div>
-                    <div class="common-interests">${u.interests.slice(0,3).map(i => `<span class="interest-badge">#${i}</span>`).join('')}${u.interests.length > 3 ? `<span class="interest-badge">+${u.interests.length-3}</span>` : ''}</div>
-                    <button class="follow-btn ${isFollowed ? 'followed' : ''}" data-name="${u.name}" ${isFollowed ? 'disabled' : ''}><i class="fas ${isFollowed ? 'fa-check-circle' : 'fa-user-plus'}"></i> ${isFollowed ? 'Kuzatyapsiz' : 'Kuzatish'}</button>
-                </div>
-            `;
-        }).join('')}</div>` : '<div class="card" style="text-align:center;">Bu kategoriyada foydalanuvchilar topilmadi.</div>';
-
-        root.innerHTML = `
-            <div class="navbar">
-                <div class="logo">BirMillat</div>
-                <div class="nav-links">
-                    <a href="#" class="active">Bosh sahifa</a>
-                    <a href="#">Global suhbat</a>
-                    <a href="#">Profil</a>
-                    <button class="about-trigger" id="aboutNavBtn"><i class="fas fa-user-astronaut"></i> Bexruz haqida</button>
-                </div>
-                <div class="user-badge" id="userBadge"><i class="fas fa-user-circle"></i> ${currentUser} <i class="fas fa-chevron-down" style="font-size:0.7rem;"></i></div>
-            </div>
-            <div class="container">
-                <div class="card welcome-card">
-                    <h1>Xush kelibsiz, <span>${currentUser}</span>!</h1>
-                    <p>BirMillat – qiziqishlaringiz asosida haqiqiy do‘stlarni toping. Dasturlash, AI, dizayn, sport – kim bilan bo‘lishishni xohlasangiz, ular sizni kutmoqda. Suhbatlashing va birgalikda rivojlaning.</p>
-                    <a href="#" class="btn-primary">Suhbatga o‘tish →</a>
-                </div>
-
-                <div class="card">
-                    <div class="section-label"><i class="fas fa-lightbulb"></i> SIZNING QIZIQISHLARINGIZ</div>
-                    <div class="tag-list" id="interestsList">${myInterests.map(i => `<span class="tag">${i}</span>`).join('')}${myInterests.length === 0 ? '<span class="tag" style="background:#f0f0f0;">Hali qo‘shilmagan</span>' : ''}</div>
-                    <div style="margin-top:1rem; display:flex; gap:0.5rem; flex-wrap:wrap;"><input type="text" id="newInterestInput" placeholder="Yangi qiziqish (masalan: AI)" style="flex:1; padding:10px 16px; border-radius:40px; border:1px solid #cbd5e0;" /><button id="addInterestBtn" class="btn-primary">➕ Qo‘shish</button></div>
-                </div>
-
-                <div class="card">
-                    <div class="section-label"><i class="fas fa-filter"></i> KATEGORIYALAR</div>
-                    <div class="tag-list" id="categoriesList">${categories.map(c => `<span class="category-chip ${c.name === activeCategory ? 'active' : ''}" data-cat="${c.name}">${c.name}</span>`).join('')}</div>
-                </div>
-
-                <div class="rec-header">
-                    <h2><i class="fas fa-users"></i> Sizga tavsiya etiladi</h2>
-                    <button id="logoutBtn" class="btn-primary" style="background:#e2e8f0; color:#2c4a6e;">🚪 Chiqish</button>
-                </div>
-                ${recommendationsHtml}
-            </div>
-            <footer>
-                <div class="social-links">
-                    <a href="https://t.me/birmillatUZB" target="_blank" rel="noopener"><i class="fab fa-telegram"></i></a>
-                    <a href="https://www.instagram.com/birmillat.uz?igsh=OG05MXpkOWs4N2Zj&utm_source=qr" target="_blank" rel="noopener"><i class="fab fa-instagram"></i></a>
-                </div>
-                <div class="footer-note">
-                    BirMillat – yoshlar uchun qiziqishlar asosida «o‘z» muhit va motivatsiyani topish yechimi.<br>
-                    Сайт позиционирует себя как решение проблемы поиска «своей» среды и мотивации для молодых людей в Узбекистане.
-                </div>
-                <div style="margin-top: 0.8rem; font-size:0.7rem;">© 2025 BirMillat | Bexruz Ravshanov</div>
-            </footer>
-        `;
-
-        // Add interest
-        document.getElementById('addInterestBtn').onclick = () => {
-            let val = document.getElementById('newInterestInput').value.trim();
-            if (val && !me.interests.includes(val)) { me.interests.push(val); saveUsers(); render(); showToast(`"${val}" qo‘shildi`, "✨"); }
-            else if (val) showToast("Bu qiziqish allaqachon mavjud", "⚠️");
-        };
-        // category events
-        document.querySelectorAll('.category-chip').forEach(chip => {
-            chip.onclick = () => { activeCategory = chip.getAttribute('data-cat'); render(); };
-        });
-        // follow
-        document.querySelectorAll('.follow-btn').forEach(btn => {
-            if (btn.disabled) return;
-            btn.onclick = (e) => {
-                let target = btn.getAttribute('data-name');
-                if (!followedMap[currentUser]) followedMap[currentUser] = [];
-                if (!followedMap[currentUser].includes(target)) {
-                    followedMap[currentUser].push(target);
-                    saveFollowed();
-                    showToast(`${target} ga kuzatuv so‘rovi yuborildi`, "✅");
-                    render();
-                }
-            };
-        });
-        document.getElementById('logoutBtn').onclick = () => { logout(); showToast("Chiqildi", "👋"); };
-        document.getElementById('userBadge').onclick = () => logout();
-        // about modal trigger (both navbar button and custom trigger)
-        const aboutBtn = document.getElementById('aboutNavBtn');
-        if (aboutBtn) aboutBtn.onclick = () => openAboutModal();
-    }
-
-    // modal event binding after load
-    window.onload = () => {
-        const modal = document.getElementById('aboutModal');
-        const closeSpan = document.querySelector('.close-modal');
-        const closeBtn = document.getElementById('closeModalBtn');
-        if (closeSpan) closeSpan.onclick = () => modal.style.display = 'none';
-        if (closeBtn) closeBtn.onclick = () => modal.style.display = 'none';
-        window.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
-        render();
-    };
-    // pre-call render also
-    if (document.getElementById('root')) render();
-</script>
+<footer>© 2026 BirMillat – Barcha huquqlar himoyalangan</footer>
+</div>
 </body>
 </html>
