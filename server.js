@@ -10,6 +10,8 @@ const PORT = process.env.PORT || 3000;
 
 // Database setup
 const db = new Database('./database.sqlite');
+
+// Ensure all columns exist (for old databases)
 db.exec(`
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -20,6 +22,10 @@ db.exec(`
         interests TEXT DEFAULT '[]'
     )
 `);
+// Add missing columns if they don't exist (for backwards compatibility)
+try { db.exec(`ALTER TABLE users ADD COLUMN name TEXT`); } catch(e) {}
+try { db.exec(`ALTER TABLE users ADD COLUMN bio TEXT`); } catch(e) {}
+try { db.exec(`ALTER TABLE users ADD COLUMN interests TEXT DEFAULT '[]'`); } catch(e) {}
 
 function getUser(username) {
     return db.prepare('SELECT * FROM users WHERE username = ?').get(username);
@@ -51,7 +57,7 @@ app.use(session({
 }));
 app.use(express.static(path.join(__dirname)));
 
-// ---------- Helper: render register page ----------
+// ---------- Helper: render pages ----------
 function renderRegisterPage(message, isError = true) {
     const msgClass = isError ? 'error' : 'success';
     return `<!DOCTYPE html><html><head><title>Ro'yxatdan o'tish - BirMillat</title><style>
@@ -164,7 +170,6 @@ app.get('/api/recommendations', (req, res) => {
     const currentUser = getUserById(req.session.userId);
     const myInterests = JSON.parse(currentUser.interests || '[]');
     const allOthers = getAllUsersExcept(currentUser.username);
-    // Compute match score based on common interests
     const scored = allOthers.map(u => {
         const theirInterests = JSON.parse(u.interests || '[]');
         const common = myInterests.filter(i => theirInterests.includes(i)).length;
