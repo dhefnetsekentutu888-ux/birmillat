@@ -1,15 +1,11 @@
 const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io');
 const session = require('express-session');
 const SQLiteStore = require('connect-sqlite3')(session);
-const cookieParser = require('cookie-parser');
 const bcrypt = require('bcryptjs');
 const Database = require('better-sqlite3');
 const path = require('path');
 
 const app = express();
-const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 // Database setup
@@ -19,9 +15,6 @@ db.exec(`
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE,
         password TEXT,
-        friends TEXT DEFAULT '[]',
-        friendRequests TEXT DEFAULT '[]',
-        blocked TEXT DEFAULT '[]',
         name TEXT,
         bio TEXT,
         interests TEXT DEFAULT '[]'
@@ -31,137 +24,103 @@ db.exec(`
 function getUser(username) {
     return db.prepare('SELECT * FROM users WHERE username = ?').get(username);
 }
-function createUser(username, passwordHash) {
-    return db.prepare('INSERT INTO users (username, password) VALUES (?, ?)').run(username, passwordHash);
+function getUserById(id) {
+    return db.prepare('SELECT * FROM users WHERE id = ?').get(id);
 }
-function updateUserSocial(username, field, value) {
-    return db.prepare(`UPDATE users SET ${field} = ? WHERE username = ?`).run(JSON.stringify(value), username);
+function createUser(username, passwordHash) {
+    return db.prepare('INSERT INTO users (username, password, name) VALUES (?, ?, ?)')
+        .run(username, passwordHash, username);
+}
+function updateUserProfile(username, name, bio, interests) {
+    db.prepare('UPDATE users SET name = ?, bio = ?, interests = ? WHERE username = ?')
+        .run(name, bio, JSON.stringify(interests), username);
+}
+function getAllUsersExcept(username) {
+    return db.prepare('SELECT username, name, bio, interests FROM users WHERE username != ?').all(username);
 }
 
 // Session middleware
-const sessionMiddleware = session({
-    secret: 'birMillat-secret-key-change-in-production',
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+app.use(session({
+    secret: 'birMillat-secret-key',
     resave: false,
     saveUninitialized: false,
     store: new SQLiteStore({ db: 'sessions.sqlite', dir: './' }),
     cookie: { maxAge: 24 * 60 * 60 * 1000 }
-});
-
-app.use(cookieParser());
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
-app.use(sessionMiddleware);
+}));
 app.use(express.static(path.join(__dirname)));
 
-// Socket.io
-const io = new Server(server);
-io.use((socket, next) => {
-    cookieParser()(socket.request, socket.request.res || {}, (err) => {
-        if (err) return next(err);
-        sessionMiddleware(socket.request, socket.request.res || {}, next);
-    });
-});
-
-// ---------- Helper: render register page inline ----------
+// ---------- Helper: render register page ----------
 function renderRegisterPage(message, isError = true) {
-    const messageHtml = message ? `<div class="${isError ? 'error' : 'success'}">${message}</div>` : '';
+    const msgClass = isError ? 'error' : 'success';
     return `<!DOCTYPE html><html><head><title>Ro'yxatdan o'tish - BirMillat</title><style>
-body{font-family:sans-serif;background:#f5f7fa;display:flex;justify-content:center;align-items:center;height:100vh}
-.card{background:white;border-radius:20px;padding:40px;width:350px;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.1)}
-.logo-img{height:50px;margin-bottom:10px}
-input{width:100%;padding:12px;margin:10px 0;border-radius:8px;border:1px solid #ddd}
-button{background:#c0392b;color:white;border:none;padding:12px;width:100%;border-radius:8px;cursor:pointer}
-.error{background:#ffe6e6;color:#c0392b;padding:8px;border-radius:6px;margin-bottom:15px;font-size:14px}
-.success{background:#e6ffe6;color:#2e7d32;padding:8px;border-radius:6px;margin-bottom:15px;font-size:14px}
-a{color:#c0392b}
-</style></head>
-<body>
-<div class=card>
-<img src="/logo.png" alt="BirMillat logosu" class="logo-img" onerror="this.style.display='none'">
-<h2>Hisob yaratish</h2>
-${messageHtml}
-<form method=post action=/register id=regForm>
-<input name=username placeholder="Foydalanuvchi nomi" required>
-<input type=password name=password id=password placeholder="Parol (kamida 8 belgi)" required>
-<div id=pwdError class="error" style="display:none"></div>
-<button type=submit>Ro'yxatdan o'tish</button>
-</form>
-<p>Hisobingiz bormi? <a href=/login>Kirish</a></p>
-</div>
-<script>
-document.getElementById('regForm').addEventListener('submit',function(e){
-    const pwd = document.getElementById('password').value;
-    if(pwd.length<8){
-        e.preventDefault();
-        const errDiv = document.getElementById('pwdError');
-        errDiv.innerText = 'Parol kamida 8 belgi bo\'lishi kerak';
-        errDiv.style.display = 'block';
-    }
-});
-</script>
-</body></html>`;
+        body{font-family:sans-serif;background:#f5f7fa;display:flex;justify-content:center;align-items:center;height:100vh}
+        .card{background:white;border-radius:20px;padding:40px;width:350px;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.1)}
+        input{width:100%;padding:12px;margin:10px 0;border-radius:8px;border:1px solid #ddd}
+        button{background:#c0392b;color:white;border:none;padding:12px;width:100%;border-radius:8px;cursor:pointer}
+        .error{background:#ffe6e6;color:#c0392b;padding:8px;border-radius:6px;margin-bottom:15px}
+        .success{background:#e6ffe6;color:#2e7d32;padding:8px;border-radius:6px;margin-bottom:15px}
+        a{color:#c0392b}
+    </style></head>
+    <body><div class=card>
+        <h2>Hisob yaratish</h2>
+        ${message ? `<div class="${msgClass}">${message}</div>` : ''}
+        <form method=post action=/register>
+            <input name=username placeholder="Foydalanuvchi nomi" required>
+            <input type=password name=password placeholder="Parol (kamida 8 belgi)" required>
+            <button type=submit>Ro'yxatdan o'tish</button>
+        </form>
+        <p>Hisobingiz bormi? <a href=/login>Kirish</a></p>
+    </div></body></html>`;
 }
 
 function renderLoginPage(errorMsg) {
-    const errorHtml = errorMsg ? `<div class="error">${errorMsg}</div>` : '';
     return `<!DOCTYPE html><html><head><title>Kirish - BirMillat</title><style>
-body{font-family:sans-serif;background:#f5f7fa;display:flex;justify-content:center;align-items:center;height:100vh}
-.card{background:white;border-radius:20px;padding:40px;width:350px;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.1)}
-.logo-img{height:50px;margin-bottom:10px}
-input{width:100%;padding:12px;margin:10px 0;border-radius:8px;border:1px solid #ddd}
-button{background:#c0392b;color:white;border:none;padding:12px;width:100%;border-radius:8px;cursor:pointer}
-.error{background:#ffe6e6;color:#c0392b;padding:8px;border-radius:6px;margin-bottom:15px;font-size:14px}
-a{color:#c0392b}
-</style></head>
-<body>
-<div class=card>
-<img src="/logo.png" alt="BirMillat logosu" class="logo-img" onerror="this.style.display='none'">
-<h2>Xush kelibsiz</h2>
-${errorHtml}
-<form method=post action=/login>
-<input name=username placeholder="Foydalanuvchi nomi" required>
-<input type=password name=password placeholder="Parol" required>
-<button type=submit>Kirish</button>
-</form>
-<p>Hisobingiz yo'q? <a href=/register>Ro'yxatdan o'tish</a></p>
-</div></body></html>`;
+        body{font-family:sans-serif;background:#f5f7fa;display:flex;justify-content:center;align-items:center;height:100vh}
+        .card{background:white;border-radius:20px;padding:40px;width:350px;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.1)}
+        input{width:100%;padding:12px;margin:10px 0;border-radius:8px;border:1px solid #ddd}
+        button{background:#c0392b;color:white;border:none;padding:12px;width:100%;border-radius:8px;cursor:pointer}
+        .error{background:#ffe6e6;color:#c0392b;padding:8px;border-radius:6px;margin-bottom:15px}
+        a{color:#c0392b}
+    </style></head>
+    <body><div class=card>
+        <h2>Xush kelibsiz</h2>
+        ${errorMsg ? `<div class="error">${errorMsg}</div>` : ''}
+        <form method=post action=/login>
+            <input name=username placeholder="Foydalanuvchi nomi" required>
+            <input type=password name=password placeholder="Parol" required>
+            <button type=submit>Kirish</button>
+        </form>
+        <p>Hisobingiz yo'q? <a href=/register>Ro'yxatdan o'tish</a></p>
+    </div></body></html>`;
 }
 
-// ---------- Routes ----------
+// Routes
 app.get('/', (req, res) => {
+    if (req.session.userId) return res.redirect('/home');
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-app.get('/home', (req, res) => {
-    if (!req.session.userId) return res.redirect('/login');
-    res.sendFile(path.join(__dirname, 'home.html'));
-});
-
-app.get('/chat', (req, res) => {
-    if (!req.session.userId) return res.redirect('/login');
-    res.sendFile(path.join(__dirname, 'chat.html'));
-});
-
 app.get('/login', (req, res) => {
-    const error = req.query.error;
-    let msg = '';
-    if (error === 'notfound') msg = '❌ Login noto‘g‘ri kiritilgan';
-    if (error === 'wrongpassword') msg = '❌ Parol mos kelmadi';
-    res.send(renderLoginPage(msg));
+    if (req.session.userId) return res.redirect('/home');
+    res.send(renderLoginPage(''));
 });
 
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
     const user = getUser(username);
-    if (!user) return res.redirect('/login?error=notfound');
+    if (!user) return res.send(renderLoginPage('❌ Login noto‘g‘ri'));
     const match = await bcrypt.compare(password, user.password);
-    if (!match) return res.redirect('/login?error=wrongpassword');
-    req.session.userId = username;
+    if (!match) return res.send(renderLoginPage('❌ Parol noto‘g‘ri'));
+    req.session.userId = user.id;
+    req.session.username = username;
     res.redirect('/home');
 });
 
 app.get('/register', (req, res) => {
-    res.send(renderRegisterPage('', false));
+    if (req.session.userId) return res.redirect('/home');
+    res.send(renderRegisterPage(''));
 });
 
 app.post('/register', async (req, res) => {
@@ -175,7 +134,17 @@ app.post('/register', async (req, res) => {
     }
     const hashed = await bcrypt.hash(password, 10);
     createUser(username, hashed);
-    res.send(renderRegisterPage('Muvaffaqiyatli ro‘yxatdan o‘tdingiz! Endi <a href="/login">kirishingiz</a> mumkin.', false));
+    res.send(renderRegisterPage('Muvaffaqiyatli ro‘yxatdan o‘tdingiz! <a href="/login">Kirishingiz</a> mumkin.', false));
+});
+
+app.get('/home', (req, res) => {
+    if (!req.session.userId) return res.redirect('/login');
+    res.sendFile(path.join(__dirname, 'home.html'));
+});
+
+app.get('/profile', (req, res) => {
+    if (!req.session.userId) return res.redirect('/login');
+    res.sendFile(path.join(__dirname, 'profile.html'));
 });
 
 app.get('/logout', (req, res) => {
@@ -183,120 +152,33 @@ app.get('/logout', (req, res) => {
     res.redirect('/');
 });
 
-// ---------- API endpoints ----------
+// API endpoints
 app.get('/api/me', (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
-    res.json({ username: req.session.userId });
+    const user = getUserById(req.session.userId);
+    res.json({ username: user.username, name: user.name, bio: user.bio, interests: JSON.parse(user.interests || '[]') });
 });
 
-app.get('/api/profile/:username', (req, res) => {
+app.get('/api/recommendations', (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
-    const target = req.params.username;
-    const user = getUser(target);
-    if (!user) return res.status(404).json({ error: 'User not found' });
-    res.json({
-        username: user.username,
-        name: user.name || user.username,
-        bio: user.bio || '',
-        interests: JSON.parse(user.interests || '[]')
-    });
+    const currentUser = getUserById(req.session.userId);
+    const myInterests = JSON.parse(currentUser.interests || '[]');
+    const allOthers = getAllUsersExcept(currentUser.username);
+    // Compute match score based on common interests
+    const scored = allOthers.map(u => {
+        const theirInterests = JSON.parse(u.interests || '[]');
+        const common = myInterests.filter(i => theirInterests.includes(i)).length;
+        return { ...u, interests: theirInterests, matchScore: common };
+    }).sort((a,b) => b.matchScore - a.matchScore);
+    res.json(scored);
 });
 
 app.post('/api/profile/update', express.json(), (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
     const { name, bio, interests } = req.body;
-    db.prepare(`UPDATE users SET name = ?, bio = ?, interests = ? WHERE username = ?`)
-        .run(name || req.session.userId, bio || '', JSON.stringify(interests || []), req.session.userId);
+    const username = getUserById(req.session.userId).username;
+    updateUserProfile(username, name, bio, interests);
     res.json({ success: true });
 });
 
-app.get('/api/search', (req, res) => {
-    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
-    const q = req.query.q || '';
-    const usersList = db.prepare(`SELECT username, name, interests FROM users WHERE username LIKE ? OR name LIKE ?`).all(`%${q}%`, `%${q}%`);
-    res.json(usersList.filter(u => u.username !== req.session.userId));
-});
-
-app.get('/api/social', (req, res) => {
-    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
-    const user = getUser(req.session.userId);
-    res.json({
-        friends: JSON.parse(user.friends || '[]'),
-        friendRequests: JSON.parse(user.friendRequests || '[]'),
-        blocked: JSON.parse(user.blocked || '[]')
-    });
-});
-
-app.post('/api/friend-request', express.json(), (req, res) => {
-    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
-    const { to } = req.body;
-    const from = req.session.userId;
-    const target = getUser(to);
-    if (!target) return res.json({ error: 'Foydalanuvchi topilmadi' });
-    let requests = JSON.parse(target.friendRequests || '[]');
-    if (requests.includes(from)) return res.json({ error: 'So‘rov allaqachon yuborilgan' });
-    requests.push(from);
-    updateUserSocial(to, 'friendRequests', requests);
-    res.json({ success: true });
-});
-
-app.post('/api/accept-request', express.json(), (req, res) => {
-    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
-    const { from } = req.body;
-    const to = req.session.userId;
-    const user = getUser(to);
-    let requests = JSON.parse(user.friendRequests || '[]');
-    if (!requests.includes(from)) return res.json({ error: 'So‘rov mavjud emas' });
-    requests = requests.filter(f => f !== from);
-    let friends = JSON.parse(user.friends || '[]');
-    if (!friends.includes(from)) friends.push(from);
-    updateUserSocial(to, 'friendRequests', requests);
-    updateUserSocial(to, 'friends', friends);
-    const friendUser = getUser(from);
-    let friendFriends = JSON.parse(friendUser.friends || '[]');
-    if (!friendFriends.includes(to)) friendFriends.push(to);
-    updateUserSocial(from, 'friends', friendFriends);
-    res.json({ success: true });
-});
-
-app.post('/api/block', express.json(), (req, res) => {
-    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
-    const { blockUser } = req.body;
-    const current = req.session.userId;
-    if (current === blockUser) return res.json({ error: 'O‘z-o‘zini bloklab bo‘lmaydi' });
-    const target = getUser(blockUser);
-    if (!target) return res.json({ error: 'Foydalanuvchi topilmadi' });
-    let blocked = JSON.parse(getUser(current).blocked || '[]');
-    if (!blocked.includes(blockUser)) blocked.push(blockUser);
-    let friends = JSON.parse(getUser(current).friends || '[]');
-    friends = friends.filter(f => f !== blockUser);
-    updateUserSocial(current, 'blocked', blocked);
-    updateUserSocial(current, 'friends', friends);
-    const blockedUserData = getUser(blockUser);
-    let targetFriends = JSON.parse(blockedUserData.friends || '[]');
-    targetFriends = targetFriends.filter(f => f !== current);
-    updateUserSocial(blockUser, 'friends', targetFriends);
-    res.json({ success: true });
-});
-
-app.get('/api/users', (req, res) => {
-    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
-    const rows = db.prepare('SELECT username FROM users').all();
-    const all = rows.map(r => r.username).filter(u => u !== req.session.userId);
-    res.json(all);
-});
-
-// ---------- Socket.io global chat ----------
-io.on('connection', (socket) => {
-    const userId = socket.request.session.userId;
-    if (!userId) {
-        socket.disconnect();
-        return;
-    }
-    socket.username = userId;
-    socket.on('global message', (msg) => {
-        io.emit('global message', { user: socket.username, text: msg, timestamp: Date.now() });
-    });
-});
-
-server.listen(PORT, () => console.log(`Server ishga tushdi: http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
