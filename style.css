@@ -1,0 +1,299 @@
+/* =========================================================
+   BirMillat — Shared Design System
+   One file. Change a value here, it updates everywhere.
+   ========================================================= */
+
+:root {
+  /* Color */
+  --color-primary: #2D1B69;       /* deep indigo — brand, headers, nav */
+  --color-primary-light: #4A2F9E; /* hover states */
+  --color-accent: #FF6B5B;        /* warm coral — CTAs, highlights */
+  --color-accent-light: #FF8B7D;
+  --color-bg: #FAF7F2;            /* warm cream background */
+  --color-surface: #FFFFFF;       /* cards */
+  --color-text: #1A1625;          /* near-black, warm tint */
+  --color-text-muted: #6B6478;
+  --color-border: #E8E2F0;
+  --color-success: #2E7D32;
+  --color-success-bg: #E6F4E6;
+  --color-error: #C0392B;
+  --color-error-bg: #FCEAE8;
+
+  /* Type */
+  --font-display: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  /* Spacing scale */
+  --space-xs: 0.4rem;
+  --space-sm: 0.8rem;
+  --space-md: 1.5rem;
+  --space-lg: 2.5rem;
+  --space-xl: 4rem;
+
+  /* Shape */
+  --radius-sm: 0.6rem;
+  --radius-md: 1rem;
+  --radius-pill: 30px;
+  --shadow-card: 0 2px 12px rgba(45, 27, 105, 0.07);
+  --shadow-hover: 0 10px 28px rgba(45, 27, 105, 0.12);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.6;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+a {
+  color: var(--color-primary);
+}
+
+/* ---------- Navbar (shared across logged-in pages) ---------- */
+.navbar {
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.navbar .logo {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.navbar .nav-links {
+  display: flex;
+  gap: 2rem;
+}
+
+.navbar .nav-links a {
+  text-decoration: none;
+  color: var(--color-text);
+  font-weight: 500;
+  transition: color 0.15s ease;
+}
+
+.navbar .nav-links a:hover,
+.navbar .nav-links a.active {
+  color: var(--color-accent);
+}
+
+.user-badge {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  padding: 0.4rem 1rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--color-primary);
+}
+
+/* ---------- Layout shell ---------- */
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+/* ---------- Buttons ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: none;
+  padding: 0.7rem 1.5rem;
+  border-radius: var(--radius-pill);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  font-family: var(--font-body);
+}
+
+.btn-primary {
+  background: var(--color-accent);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: var(--color-accent-light);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(255, 107, 91, 0.35);
+}
+
+.btn-outline {
+  background: transparent;
+  border: 2px solid var(--color-primary);
+  color: var(--color-primary);
+}
+
+.btn-outline:hover {
+  background: var(--color-primary);
+  color: white;
+}
+
+/* ---------- Cards ---------- */
+.card {
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-card);
+}
+
+.card:hover {
+  box-shadow: var(--shadow-hover);
+}
+
+/* ---------- Interest tags (the signature motif) ---------- */
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.tag {
+  background: #EFEAF8;
+  color: var(--color-primary);
+  padding: 0.35rem 1rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.tag.accent {
+  background: #FFEAE6;
+  color: var(--color-accent);
+}
+
+/* ---------- Section labels ---------- */
+.section-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-bottom: 0.6rem;
+  letter-spacing: 0.6px;
+}
+
+/* ---------- Forms (login/register cards) ---------- */
+.auth-shell {
+  font-family: var(--font-body);
+  background: var(--color-bg);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 1.5rem;
+}
+
+.auth-card {
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: 2.5rem;
+  width: 360px;
+  text-align: center;
+  box-shadow: var(--shadow-hover);
+  border: 1px solid var(--color-border);
+}
+
+.auth-card h2 {
+  margin-bottom: 1.2rem;
+}
+
+.auth-card input {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  margin: 0.5rem 0;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+}
+
+.auth-card input:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.auth-card button {
+  width: 100%;
+  background: var(--color-accent);
+  color: white;
+  border: none;
+  padding: 0.85rem;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  margin-top: 0.6rem;
+  transition: background 0.15s ease;
+}
+
+.auth-card button:hover {
+  background: var(--color-accent-light);
+}
+
+.auth-card p {
+  margin-top: 1.2rem;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
+.auth-card a {
+  color: var(--color-accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.message {
+  padding: 0.7rem;
+  border-radius: var(--radius-sm);
+  margin-bottom: 1rem;
+  font-size: 0.88rem;
+}
+
+.message.error {
+  background: var(--color-error-bg);
+  color: var(--color-error);
+}
+
+.message.success {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+footer {
+  text-align: center;
+  padding: 2rem;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  border-top: 1px solid var(--color-border);
+  margin-top: 3rem;
+}
+
+@media (max-width: 680px) {
+  .navbar { flex-direction: column; align-items: stretch; text-align: center; }
+  .navbar .nav-links { justify-content: center; }
+}
