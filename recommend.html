@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BirMillat – Tavsiyalar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="/style.css">
+<style>
+    .page-container { max-width: 1100px; margin: 2rem auto; padding: 0 1.5rem; }
+    .page-head { margin-bottom: 1.5rem; }
+    .page-head h1 { font-size: 1.6rem; margin-bottom: 0.3rem; }
+    .page-head p { color: var(--color-text-muted); }
+
+    .filter-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+        margin-bottom: 2rem;
+    }
+    .filter-chip {
+        background: var(--color-surface);
+        border: 1.5px solid var(--color-border);
+        color: var(--color-text);
+        padding: 0.5rem 1.1rem;
+        border-radius: var(--radius-pill);
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+    .filter-chip:hover { border-color: var(--color-primary); }
+    .filter-chip.active {
+        background: var(--color-primary);
+        border-color: var(--color-primary);
+        color: white;
+    }
+
+    .users-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 1.5rem;
+    }
+    .user-card {
+        transition: transform 0.18s ease, box-shadow 0.18s ease;
+        text-decoration: none;
+        display: block;
+        color: inherit;
+    }
+    .user-card:hover { transform: translateY(-3px); }
+    .card-top { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 0.8rem; }
+    .avatar {
+        width: 48px; height: 48px; background: #EFEAF8; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-family: var(--font-display); font-weight: 700; font-size: 1.05rem;
+        color: var(--color-primary); flex-shrink: 0;
+    }
+    .user-info h3 { font-size: 1rem; color: var(--color-text); }
+    .user-info .username { font-size: 0.75rem; color: var(--color-text-muted); }
+    .common-interests { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.6rem 0; }
+    .interest-badge {
+        background: var(--color-bg); font-size: 0.7rem; padding: 0.25rem 0.7rem;
+        border-radius: var(--radius-pill); color: var(--color-primary); font-weight: 600;
+    }
+    .match-pill {
+        display: inline-flex; align-items: center; gap: 0.3rem;
+        background: #FFEAE6; color: var(--color-accent);
+        font-size: 0.72rem; font-weight: 700; padding: 0.2rem 0.6rem;
+        border-radius: var(--radius-pill); margin-top: 0.5rem;
+    }
+    .empty-state { text-align: center; padding: 3rem 1rem; color: var(--color-text-muted); grid-column: 1 / -1; }
+</style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/home" class="logo">BirMillat</a>
+        <div class="nav-links">
+            <a href="/home">Bosh sahifa</a>
+            <a href="/recommend" class="active">Tavsiyalar</a>
+            <a href="/search">Qidiruv</a>
+            <a href="/messages">Xabarlar</a>
+            <a href="/profile">Profil</a>
+            <a href="/logout">Chiqish</a>
+        </div>
+        <div class="user-badge" id="userBadge">👤 ...</div>
+    </nav>
+
+    <div class="page-container">
+        <div class="page-head">
+            <h1><i class="fas fa-users"></i> Sizga tavsiya etiladi</h1>
+            <p>Qiziqishlari siznikiga mos keladigan foydalanuvchilar</p>
+        </div>
+
+        <div class="filter-bar" id="filterBar">
+            <button class="filter-chip active" data-category="">Hammasi</button>
+            <button class="filter-chip" data-category="IELTS">IELTS</button>
+            <button class="filter-chip" data-category="IT">IT / Dasturlash</button>
+            <button class="filter-chip" data-category="Sun'iy intellekt">Sun'iy intellekt</button>
+            <button class="filter-chip" data-category="O'yinlar">O'yinlar</button>
+            <button class="filter-chip" data-category="Sport">Sport</button>
+            <button class="filter-chip" data-category="Sayohat">Sayohat</button>
+            <button class="filter-chip" data-category="Startup">Startup</button>
+            <button class="filter-chip" data-category="Dizayn">Dizayn</button>
+        </div>
+
+        <div class="users-grid" id="usersGrid">
+            <p style="color:var(--color-text-muted)">Yuklanmoqda...</p>
+        </div>
+    </div>
+
+    <footer>BirMillat – qiziqishlar asosida do'stlar toping.</footer>
+
+    <script>
+        let myInterests = [];
+        let activeCategory = '';
+
+        function initials(name) {
+            if (!name) return '?';
+            const parts = name.trim().split(/\s+/);
+            return parts.length > 1 ? (parts[0][0] + parts[1][0]).toUpperCase() : parts[0].slice(0, 2).toUpperCase();
+        }
+
+        async function loadMe() {
+            try {
+                const res = await fetch('/api/me');
+                if (!res.ok) { window.location.href = '/login'; return; }
+                const me = await res.json();
+                document.getElementById('userBadge').textContent = '👤 ' + me.username;
+                myInterests = (me.interests || []).map(i => i.toLowerCase());
+            } catch (e) {
+                console.error('Failed to load profile:', e);
+            }
+        }
+
+        function matchScore(theirInterests) {
+            const theirs = (theirInterests || []).map(i => i.toLowerCase());
+            return myInterests.filter(i => theirs.some(t => t.includes(i) || i.includes(t))).length;
+        }
+
+        async function loadUsers(category = '') {
+            const grid = document.getElementById('usersGrid');
+            grid.innerHTML = `<p style="color:var(--color-text-muted)">Yuklanmoqda...</p>`;
+            try {
+                const url = category ? `/api/search?category=${encodeURIComponent(category)}` : '/api/search';
+                const res = await fetch(url);
+                if (!res.ok) { grid.innerHTML = ''; return; }
+                let users = await res.json();
+
+                users = users.map(u => ({ ...u, score: matchScore(u.interests) }))
+                             .sort((a, b) => b.score - a.score);
+
+                if (users.length === 0) {
+                    grid.innerHTML = `<div class="empty-state">Hozircha bu toifada foydalanuvchilar yo'q.</div>`;
+                    return;
+                }
+
+                grid.innerHTML = '';
+                users.forEach(user => {
+                    const interests = user.interests || [];
+                    const card = document.createElement('a');
+                    card.className = 'user-card card';
+                    card.href = `/u/${encodeURIComponent(user.username)}`;
+                    card.innerHTML = `
+                        <div class="card-top">
+                            <div class="avatar">${initials(user.name || user.username)}</div>
+                            <div class="user-info">
+                                <h3>${user.name || user.username}</h3>
+                                <div class="username">@${user.username}</div>
+                            </div>
+                        </div>
+                        <div class="common-interests">
+                            ${interests.slice(0, 3).map(t => `<span class="interest-badge">#${t}</span>`).join('')}
+                            ${interests.length > 3 ? `<span class="interest-badge">+${interests.length - 3}</span>` : ''}
+                            ${interests.length === 0 ? `<span class="interest-badge" style="opacity:0.6">Qiziqish ko'rsatilmagan</span>` : ''}
+                        </div>
+                        ${user.score > 0 ? `<div class="match-pill"><i class="fas fa-bolt"></i> ${user.score} mos qiziqish</div>` : ''}
+                    `;
+                    grid.appendChild(card);
+                });
+            } catch (e) {
+                console.error('Failed to load users:', e);
+                grid.innerHTML = `<div class="empty-state">Yuklab bo'lmadi. Sahifani qaytadan yuklang.</div>`;
+            }
+        }
+
+        document.getElementById('filterBar').addEventListener('click', (e) => {
+            const chip = e.target.closest('.filter-chip');
+            if (!chip) return;
+            document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+            activeCategory = chip.getAttribute('data-category');
+            loadUsers(activeCategory);
+        });
+
+        (async () => {
+            await loadMe();
+            loadUsers();
+        })();
+    </script>
+</body>
+</html>
