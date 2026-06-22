@@ -1,58 +1,129 @@
 const express = require('express');
 const session = require('express-session');
-const SQLiteStore = require('connect-sqlite3')(session);
 const bcrypt = require('bcryptjs');
-const Database = require('better-sqlite3');
 const path = require('path');
+const { createClient } = require('@libsql/client');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Database setup
-const db = new Database('./database.sqlite');
+// ---------- Database setup (Turso / libSQL) ----------
+// These two values come from Render's Environment tab — never hardcode them here.
+const db = createClient({
+    url: process.env.TURSO_DATABASE_URL,
+    authToken: process.env.TURSO_AUTH_TOKEN
+});
 
-// Ensure all columns exist (for old databases)
-db.exec(`
-    CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE,
-        password TEXT,
-        name TEXT,
-        bio TEXT,
-        interests TEXT DEFAULT '[]'
-    )
-`);
-// Add missing columns if they don't exist (for backwards compatibility)
-try { db.exec(`ALTER TABLE users ADD COLUMN name TEXT`); } catch(e) {}
-try { db.exec(`ALTER TABLE users ADD COLUMN bio TEXT`); } catch(e) {}
-try { db.exec(`ALTER TABLE users ADD COLUMN interests TEXT DEFAULT '[]'`); } catch(e) {}
+// Ensure tables exist. This runs every boot but is safe (CREATE TABLE IF NOT EXISTS).
+async function initDb() {
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE,
+            password TEXT,
+            name TEXT,
+            bio TEXT,
+            interests TEXT DEFAULT '[]'
+        )
+    `);
 
-function getUser(username) {
-    return db.prepare('SELECT * FROM users WHERE username = ?').get(username);
+    // Simple session store table (replaces connect-sqlite3, which wrote to local disk)
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS sessions (
+            sid TEXT PRIMARY KEY,
+            sess TEXT NOT NULL,
+            expires INTEGER NOT NULL
+        )
+    `);
 }
-function getUserById(id) {
-    return db.prepare('SELECT * FROM users WHERE id = ?').get(id);
+
+// ---------- Data access helpers (all async now) ----------
+async function getUser(username) {
+    const result = await db.execute({
+        sql: 'SELECT * FROM users WHERE username = ?',
+        args: [username]
+    });
+    return result.rows[0] || null;
 }
-function createUser(username, passwordHash) {
-    return db.prepare('INSERT INTO users (username, password, name) VALUES (?, ?, ?)')
-        .run(username, passwordHash, username);
+
+async function getUserById(id) {
+    const result = await db.execute({
+        sql: 'SELECT * FROM users WHERE id = ?',
+        args: [id]
+    });
+    return result.rows[0] || null;
 }
-function updateUserProfile(username, name, bio, interests) {
-    db.prepare('UPDATE users SET name = ?, bio = ?, interests = ? WHERE username = ?')
-        .run(name, bio, JSON.stringify(interests), username);
+
+async function createUser(username, passwordHash) {
+    return db.execute({
+        sql: 'INSERT INTO users (username, password, name) VALUES (?, ?, ?)',
+        args: [username, passwordHash, username]
+    });
 }
-function getAllUsersExcept(username) {
-    return db.prepare('SELECT username, name, bio, interests FROM users WHERE username != ?').all(username);
+
+async function updateUserProfile(username, name, bio, interests) {
+    return db.execute({
+        sql: 'UPDATE users SET name = ?, bio = ?, interests = ? WHERE username = ?',
+        args: [name, bio, JSON.stringify(interests), username]
+    });
+}
+
+async function getAllUsersExcept(username) {
+    const result = await db.execute({
+        sql: 'SELECT username, name, bio, interests FROM users WHERE username != ?',
+        args: [username]
+    });
+    return result.rows;
+}
+
+// ---------- Custom session store backed by Turso ----------
+// express-session expects a store with get/set/destroy (callback-style).
+const Store = session.Store;
+class TursoStore extends Store {
+    get(sid, callback) {
+        db.execute({ sql: 'SELECT sess, expires FROM sessions WHERE sid = ?', args: [sid] })
+            .then(result => {
+                const row = result.rows[0];
+                if (!row) return callback(null, null);
+                if (row.expires < Date.now()) {
+                    return this.destroy(sid, () => callback(null, null));
+                }
+                callback(null, JSON.parse(row.sess));
+            })
+            .catch(err => callback(err));
+    }
+
+    set(sid, sessionData, callback) {
+        const expires = Date.now() + (sessionData.cookie.maxAge || 24 * 60 * 60 * 1000);
+        const sess = JSON.stringify(sessionData);
+        db.execute({
+            sql: `INSERT INTO sessions (sid, sess, expires) VALUES (?, ?, ?)
+                  ON CONFLICT(sid) DO UPDATE SET sess = excluded.sess, expires = excluded.expires`,
+            args: [sid, sess, expires]
+        })
+            .then(() => callback && callback(null))
+            .catch(err => callback && callback(err));
+    }
+
+    destroy(sid, callback) {
+        db.execute({ sql: 'DELETE FROM sessions WHERE sid = ?', args: [sid] })
+            .then(() => callback && callback(null))
+            .catch(err => callback && callback(err));
+    }
+
+    touch(sid, sessionData, callback) {
+        this.set(sid, sessionData, callback);
+    }
 }
 
 // Session middleware
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(session({
-    secret: 'birMillat-secret-key',
+    secret: process.env.SESSION_SECRET || 'birMillat-secret-key',
     resave: false,
     saveUninitialized: false,
-    store: new SQLiteStore({ db: 'sessions.sqlite', dir: './' }),
+    store: new TursoStore(),
     cookie: { maxAge: 24 * 60 * 60 * 1000 }
 }));
 app.use(express.static(path.join(__dirname)));
@@ -114,14 +185,19 @@ app.get('/login', (req, res) => {
 });
 
 app.post('/login', async (req, res) => {
-    const { username, password } = req.body;
-    const user = getUser(username);
-    if (!user) return res.send(renderLoginPage('❌ Login noto‘g‘ri'));
-    const match = await bcrypt.compare(password, user.password);
-    if (!match) return res.send(renderLoginPage('❌ Parol noto‘g‘ri'));
-    req.session.userId = user.id;
-    req.session.username = username;
-    res.redirect('/home');
+    try {
+        const { username, password } = req.body;
+        const user = await getUser(username);
+        if (!user) return res.send(renderLoginPage('❌ Login noto‘g‘ri'));
+        const match = await bcrypt.compare(password, user.password);
+        if (!match) return res.send(renderLoginPage('❌ Parol noto‘g‘ri'));
+        req.session.userId = user.id;
+        req.session.username = username;
+        res.redirect('/home');
+    } catch (err) {
+        console.error('Login error:', err);
+        res.send(renderLoginPage('❌ Server xatosi, qaytadan urinib ko‘ring'));
+    }
 });
 
 app.get('/register', (req, res) => {
@@ -130,17 +206,22 @@ app.get('/register', (req, res) => {
 });
 
 app.post('/register', async (req, res) => {
-    const { username, password } = req.body;
-    if (password.length < 8) {
-        return res.send(renderRegisterPage('Parol kamida 8 belgi bo‘lishi kerak', true));
+    try {
+        const { username, password } = req.body;
+        if (!username || !password || password.length < 8) {
+            return res.send(renderRegisterPage('Parol kamida 8 belgi bo‘lishi kerak', true));
+        }
+        const existing = await getUser(username);
+        if (existing) {
+            return res.send(renderRegisterPage('Bunday foydalanuvchi mavjud', true));
+        }
+        const hashed = await bcrypt.hash(password, 10);
+        await createUser(username, hashed);
+        res.send(renderRegisterPage('Muvaffaqiyatli ro‘yxatdan o‘tdingiz! <a href="/login">Kirishingiz</a> mumkin.', false));
+    } catch (err) {
+        console.error('Register error:', err);
+        res.send(renderRegisterPage('❌ Server xatosi, qaytadan urinib ko‘ring', true));
     }
-    const existing = getUser(username);
-    if (existing) {
-        return res.send(renderRegisterPage('Bunday foydalanuvchi mavjud', true));
-    }
-    const hashed = await bcrypt.hash(password, 10);
-    createUser(username, hashed);
-    res.send(renderRegisterPage('Muvaffaqiyatli ro‘yxatdan o‘tdingiz! <a href="/login">Kirishingiz</a> mumkin.', false));
 });
 
 app.get('/home', (req, res) => {
@@ -154,36 +235,61 @@ app.get('/profile', (req, res) => {
 });
 
 app.get('/logout', (req, res) => {
-    req.session.destroy();
-    res.redirect('/');
+    req.session.destroy(() => {
+        res.redirect('/');
+    });
 });
 
 // API endpoints
-app.get('/api/me', (req, res) => {
+app.get('/api/me', async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
-    const user = getUserById(req.session.userId);
-    res.json({ username: user.username, name: user.name, bio: user.bio, interests: JSON.parse(user.interests || '[]') });
+    try {
+        const user = await getUserById(req.session.userId);
+        if (!user) return res.status(401).json({ error: 'Unauthorized' });
+        res.json({ username: user.username, name: user.name, bio: user.bio, interests: JSON.parse(user.interests || '[]') });
+    } catch (err) {
+        console.error('api/me error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
 });
 
-app.get('/api/recommendations', (req, res) => {
+app.get('/api/recommendations', async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
-    const currentUser = getUserById(req.session.userId);
-    const myInterests = JSON.parse(currentUser.interests || '[]');
-    const allOthers = getAllUsersExcept(currentUser.username);
-    const scored = allOthers.map(u => {
-        const theirInterests = JSON.parse(u.interests || '[]');
-        const common = myInterests.filter(i => theirInterests.includes(i)).length;
-        return { ...u, interests: theirInterests, matchScore: common };
-    }).sort((a,b) => b.matchScore - a.matchScore);
-    res.json(scored);
+    try {
+        const currentUser = await getUserById(req.session.userId);
+        const myInterests = JSON.parse(currentUser.interests || '[]');
+        const allOthers = await getAllUsersExcept(currentUser.username);
+        const scored = allOthers.map(u => {
+            const theirInterests = JSON.parse(u.interests || '[]');
+            const common = myInterests.filter(i => theirInterests.includes(i)).length;
+            return { ...u, interests: theirInterests, matchScore: common };
+        }).sort((a, b) => b.matchScore - a.matchScore);
+        res.json(scored);
+    } catch (err) {
+        console.error('api/recommendations error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
 });
 
-app.post('/api/profile/update', express.json(), (req, res) => {
+app.post('/api/profile/update', async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
-    const { name, bio, interests } = req.body;
-    const username = getUserById(req.session.userId).username;
-    updateUserProfile(username, name, bio, interests);
-    res.json({ success: true });
+    try {
+        const { name, bio, interests } = req.body;
+        const user = await getUserById(req.session.userId);
+        await updateUserProfile(user.username, name, bio, interests);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('api/profile/update error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
 });
 
-app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+// ---------- Start server ----------
+initDb()
+    .then(() => {
+        app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+    })
+    .catch(err => {
+        console.error('Failed to initialize database:', err);
+        process.exit(1);
+    });
