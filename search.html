@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BirMillat – Qidiruv</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="/style.css">
+<style>
+    .page-container { max-width: 1100px; margin: 2rem auto; padding: 0 1.5rem; }
+    .page-head { margin-bottom: 1.2rem; }
+    .page-head h1 { font-size: 1.6rem; margin-bottom: 0.3rem; }
+    .page-head p { color: var(--color-text-muted); }
+
+    .search-bar {
+        display: flex;
+        gap: 0.6rem;
+        margin-bottom: 1.2rem;
+    }
+    .search-bar input {
+        flex: 1;
+        padding: 0.85rem 1.1rem;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--color-border);
+        font-family: var(--font-body);
+        font-size: 0.98rem;
+    }
+    .search-bar input:focus {
+        outline: 2px solid var(--color-accent);
+        outline-offset: 1px;
+    }
+    .search-bar button {
+        background: var(--color-primary);
+        color: white;
+        border: none;
+        padding: 0 1.6rem;
+        border-radius: var(--radius-sm);
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .search-bar button:hover { background: var(--color-primary-light); }
+
+    .filter-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+        margin-bottom: 2rem;
+    }
+    .filter-chip {
+        background: var(--color-surface);
+        border: 1.5px solid var(--color-border);
+        color: var(--color-text);
+        padding: 0.45rem 1rem;
+        border-radius: var(--radius-pill);
+        font-size: 0.82rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+    .filter-chip:hover { border-color: var(--color-primary); }
+    .filter-chip.active {
+        background: var(--color-primary);
+        border-color: var(--color-primary);
+        color: white;
+    }
+
+    .results-meta {
+        color: var(--color-text-muted);
+        font-size: 0.88rem;
+        margin-bottom: 1rem;
+    }
+
+    .users-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.5rem; }
+    .user-card { transition: transform 0.18s ease; text-decoration: none; display: block; color: inherit; }
+    .user-card:hover { transform: translateY(-3px); }
+    .card-top { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 0.8rem; }
+    .avatar {
+        width: 48px; height: 48px; background: #EFEAF8; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-family: var(--font-display); font-weight: 700; font-size: 1.05rem;
+        color: var(--color-primary); flex-shrink: 0;
+    }
+    .user-info h3 { font-size: 1rem; color: var(--color-text); }
+    .user-info .username { font-size: 0.75rem; color: var(--color-text-muted); }
+    .common-interests { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.6rem 0; }
+    .interest-badge {
+        background: var(--color-bg); font-size: 0.7rem; padding: 0.25rem 0.7rem;
+        border-radius: var(--radius-pill); color: var(--color-primary); font-weight: 600;
+    }
+    .empty-state { text-align: center; padding: 3rem 1rem; color: var(--color-text-muted); grid-column: 1 / -1; }
+</style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/home" class="logo">BirMillat</a>
+        <div class="nav-links">
+            <a href="/home">Bosh sahifa</a>
+            <a href="/recommend">Tavsiyalar</a>
+            <a href="/search" class="active">Qidiruv</a>
+            <a href="/messages">Xabarlar</a>
+            <a href="/profile">Profil</a>
+            <a href="/logout">Chiqish</a>
+        </div>
+        <div class="user-badge" id="userBadge">👤 ...</div>
+    </nav>
+
+    <div class="page-container">
+        <div class="page-head">
+            <h1><i class="fas fa-search"></i> Foydalanuvchi qidirish</h1>
+            <p>Ism, foydalanuvchi nomi yoki qiziqish bo'yicha qidiring</p>
+        </div>
+
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="Masalan: @jasur_dev yoki Python">
+            <button id="searchBtn"><i class="fas fa-search"></i> Qidirish</button>
+        </div>
+
+        <div class="filter-bar" id="filterBar">
+            <button class="filter-chip active" data-category="">Hammasi</button>
+            <button class="filter-chip" data-category="IELTS">IELTS</button>
+            <button class="filter-chip" data-category="IT">IT / Dasturlash</button>
+            <button class="filter-chip" data-category="Sun'iy intellekt">Sun'iy intellekt</button>
+            <button class="filter-chip" data-category="O'yinlar">O'yinlar</button>
+            <button class="filter-chip" data-category="Sport">Sport</button>
+            <button class="filter-chip" data-category="Sayohat">Sayohat</button>
+            <button class="filter-chip" data-category="Startup">Startup</button>
+            <button class="filter-chip" data-category="Dizayn">Dizayn</button>
+        </div>
+
+        <div class="results-meta" id="resultsMeta"></div>
+        <div class="users-grid" id="usersGrid"></div>
+    </div>
+
+    <footer>BirMillat – qiziqishlar asosida do'stlar toping.</footer>
+
+    <script>
+        let activeCategory = '';
+
+        function initials(name) {
+            if (!name) return '?';
+            const parts = name.trim().split(/\s+/);
+            return parts.length > 1 ? (parts[0][0] + parts[1][0]).toUpperCase() : parts[0].slice(0, 2).toUpperCase();
+        }
+
+        async function loadMe() {
+            try {
+                const res = await fetch('/api/me');
+                if (!res.ok) { window.location.href = '/login'; return; }
+                const me = await res.json();
+                document.getElementById('userBadge').textContent = '👤 ' + me.username;
+            } catch (e) {
+                console.error('Failed to load profile:', e);
+            }
+        }
+
+        function renderUsers(users, meta) {
+            const grid = document.getElementById('usersGrid');
+            document.getElementById('resultsMeta').textContent = meta || '';
+
+            if (users.length === 0) {
+                grid.innerHTML = `<div class="empty-state">Hech kim topilmadi. Boshqa so'z bilan urinib ko'ring.</div>`;
+                return;
+            }
+
+            grid.innerHTML = '';
+            users.forEach(user => {
+                const interests = user.interests || [];
+                const card = document.createElement('a');
+                card.className = 'user-card card';
+                card.href = `/u/${encodeURIComponent(user.username)}`;
+                card.innerHTML = `
+                    <div class="card-top">
+                        <div class="avatar">${initials(user.name || user.username)}</div>
+                        <div class="user-info">
+                            <h3>${user.name || user.username}</h3>
+                            <div class="username">@${user.username}</div>
+                        </div>
+                    </div>
+                    <div class="common-interests">
+                        ${interests.slice(0, 3).map(t => `<span class="interest-badge">#${t}</span>`).join('')}
+                        ${interests.length > 3 ? `<span class="interest-badge">+${interests.length - 3}</span>` : ''}
+                        ${interests.length === 0 ? `<span class="interest-badge" style="opacity:0.6">Qiziqish ko'rsatilmagan</span>` : ''}
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        async function runSearch() {
+            const q = document.getElementById('searchInput').value.trim();
+            const grid = document.getElementById('usersGrid');
+            grid.innerHTML = `<p style="color:var(--color-text-muted)">Qidirilmoqda...</p>`;
+
+            try {
+                let url;
+                if (q) {
+                    url = `/api/search?q=${encodeURIComponent(q)}`;
+                } else if (activeCategory) {
+                    url = `/api/search?category=${encodeURIComponent(activeCategory)}`;
+                } else {
+                    url = '/api/search';
+                }
+                const res = await fetch(url);
+                if (!res.ok) { renderUsers([], ''); return; }
+                const users = await res.json();
+                const metaText = q
+                    ? `"${q}" bo'yicha ${users.length} natija topildi`
+                    : (activeCategory ? `${activeCategory} toifasida ${users.length} foydalanuvchi` : `${users.length} foydalanuvchi`);
+                renderUsers(users, metaText);
+            } catch (e) {
+                console.error('Search failed:', e);
+                renderUsers([], '');
+            }
+        }
+
+        document.getElementById('searchBtn').addEventListener('click', runSearch);
+        document.getElementById('searchInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') runSearch();
+        });
+
+        document.getElementById('filterBar').addEventListener('click', (e) => {
+            const chip = e.target.closest('.filter-chip');
+            if (!chip) return;
+            document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+            activeCategory = chip.getAttribute('data-category');
+            document.getElementById('searchInput').value = '';
+            runSearch();
+        });
+
+        (async () => {
+            await loadMe();
+            runSearch();
+        })();
+    </script>
+</body>
+</html>
