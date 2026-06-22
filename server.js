@@ -236,17 +236,56 @@ function renderRegisterPage(message, isError = true) {
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/style.css">
+    <style>
+        .pw-field { position: relative; }
+        .pw-field input { padding-right: 2.6rem !important; }
+        .pw-toggle {
+            position: absolute; right: 0.7rem; top: 50%; transform: translateY(-50%);
+            background: none; border: none; cursor: pointer; padding: 0.3rem;
+            color: var(--color-text-muted); display: flex; align-items: center;
+        }
+        .pw-toggle:hover { color: var(--color-text); }
+        .field-error { color: var(--color-error); font-size: 0.8rem; text-align: left; margin: -0.3rem 0 0.6rem; min-height: 1em; }
+    </style>
     </head>
     <body class="auth-shell"><div class="auth-card">
         <h2>Hisob yaratish</h2>
         ${message ? `<div class="message ${msgClass}">${message}</div>` : ''}
-        <form method=post action=/register>
+        <form method=post action=/register id="registerForm">
             <input name=username placeholder="Foydalanuvchi nomi" required>
-            <input type=password name=password placeholder="Parol (kamida 8 belgi)" required>
+
+            <div class="pw-field">
+                <input type=password name=password id=password placeholder="Parol (kamida 8 belgi)" minlength=8 required>
+                <button type="button" class="pw-toggle" data-target="password" aria-label="Parolni ko'rsatish">${eyeIconOpen()}</button>
+            </div>
+
+            <div class="pw-field">
+                <input type=password name=confirmPassword id=confirmPassword placeholder="Parolni takrorlang" minlength=8 required>
+                <button type="button" class="pw-toggle" data-target="confirmPassword" aria-label="Parolni ko'rsatish">${eyeIconOpen()}</button>
+            </div>
+            <div class="field-error" id="matchError"></div>
+
             <button type=submit>Ro'yxatdan o'tish</button>
         </form>
         <p>Hisobingiz bormi? <a href=/login>Kirish</a></p>
-    </div></body></html>`;
+    </div>
+    <script>${passwordToggleScript()}
+        // Client-side confirm-password check (server also re-checks this)
+        const form = document.getElementById('registerForm');
+        const pw = document.getElementById('password');
+        const confirmPw = document.getElementById('confirmPassword');
+        const matchError = document.getElementById('matchError');
+        form.addEventListener('submit', (e) => {
+            if (pw.value !== confirmPw.value) {
+                e.preventDefault();
+                matchError.textContent = 'Parollar mos kelmadi';
+            }
+        });
+        confirmPw.addEventListener('input', () => {
+            matchError.textContent = (pw.value && confirmPw.value && pw.value !== confirmPw.value) ? 'Parollar mos kelmadi' : '';
+        });
+    </script>
+    </body></html>`;
 }
 
 function renderLoginPage(errorMsg) {
@@ -255,17 +294,57 @@ function renderLoginPage(errorMsg) {
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/style.css">
+    <style>
+        .pw-field { position: relative; }
+        .pw-field input { padding-right: 2.6rem !important; }
+        .pw-toggle {
+            position: absolute; right: 0.7rem; top: 50%; transform: translateY(-50%);
+            background: none; border: none; cursor: pointer; padding: 0.3rem;
+            color: var(--color-text-muted); display: flex; align-items: center;
+        }
+        .pw-toggle:hover { color: var(--color-text); }
+    </style>
     </head>
     <body class="auth-shell"><div class="auth-card">
         <h2>Xush kelibsiz</h2>
         ${errorMsg ? `<div class="message error">${errorMsg}</div>` : ''}
         <form method=post action=/login>
             <input name=username placeholder="Foydalanuvchi nomi" required>
-            <input type=password name=password placeholder="Parol" required>
+            <div class="pw-field">
+                <input type=password name=password id=password placeholder="Parol" required>
+                <button type="button" class="pw-toggle" data-target="password" aria-label="Parolni ko'rsatish">${eyeIconOpen()}</button>
+            </div>
             <button type=submit>Kirish</button>
         </form>
         <p>Hisobingiz yo'q? <a href=/register>Ro'yxatdan o'tish</a></p>
-    </div></body></html>`;
+    </div>
+    <script>${passwordToggleScript()}</script>
+    </body></html>`;
+}
+
+// ---------- Shared bits for password visibility toggle ----------
+function eyeIconOpen() {
+    return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+}
+
+function eyeIconClosed() {
+    return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`;
+}
+
+function passwordToggleScript() {
+    // Toggles type=password/text on the matching input and swaps the icon.
+    return `
+        const eyeOpen = ${JSON.stringify(eyeIconOpen())};
+        const eyeClosed = ${JSON.stringify(eyeIconClosed())};
+        document.querySelectorAll('.pw-toggle').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const input = document.getElementById(btn.getAttribute('data-target'));
+                const showing = input.type === 'text';
+                input.type = showing ? 'password' : 'text';
+                btn.innerHTML = showing ? eyeOpen : eyeClosed;
+            });
+        });
+    `;
 }
 
 // Routes
@@ -302,9 +381,12 @@ app.get('/register', (req, res) => {
 
 app.post('/register', async (req, res) => {
     try {
-        const { username, password } = req.body;
+        const { username, password, confirmPassword } = req.body;
         if (!username || !password || password.length < 8) {
             return res.send(renderRegisterPage('Parol kamida 8 belgi bo‘lishi kerak', true));
+        }
+        if (password !== confirmPassword) {
+            return res.send(renderRegisterPage('Parollar mos kelmadi', true));
         }
         const existing = await getUser(username);
         if (existing) {
