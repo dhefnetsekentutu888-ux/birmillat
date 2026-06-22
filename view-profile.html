@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BirMillat – Profil</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="/style.css">
+<style>
+    .profile-shell { max-width: 760px; margin: 2rem auto; padding: 0 1.5rem; }
+    .profile-card { overflow: hidden; padding: 0; margin-bottom: 1.5rem; }
+    .cover-band { height: 120px; background: linear-gradient(120deg, var(--color-primary), #6B4FC9); }
+    .profile-main { padding: 0 2rem 2rem; position: relative; }
+    .avatar-ring {
+        width: 110px; height: 110px; border-radius: 50%;
+        background: var(--color-surface); border: 4px solid var(--color-surface);
+        margin-top: -55px; display: flex; align-items: center; justify-content: center;
+        box-shadow: var(--shadow-card);
+    }
+    .avatar-circle {
+        width: 100%; height: 100%; border-radius: 50%; background: #EFEAF8;
+        display: flex; align-items: center; justify-content: center;
+        font-family: var(--font-display); font-size: 2.2rem; font-weight: 700;
+        color: var(--color-primary);
+    }
+    .profile-top-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; }
+    .profile-name h1 { font-size: 1.5rem; margin-top: 0.8rem; margin-bottom: 0.15rem; }
+    .profile-name .username { color: var(--color-text-muted); font-size: 0.95rem; margin-bottom: 1rem; }
+    .profile-bio { font-size: 0.98rem; color: var(--color-text); max-width: 540px; margin-bottom: 1.4rem; }
+    .profile-bio.empty { color: var(--color-text-muted); font-style: italic; }
+    .not-found {
+        text-align: center;
+        padding: 4rem 1.5rem;
+        color: var(--color-text-muted);
+    }
+    .not-found i { font-size: 2.4rem; color: var(--color-border); margin-bottom: 1rem; display: block; }
+</style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/home" class="logo">BirMillat</a>
+        <div class="nav-links">
+            <a href="/home">Bosh sahifa</a>
+            <a href="/recommend">Tavsiyalar</a>
+            <a href="/search">Qidiruv</a>
+            <a href="/messages">Xabarlar</a>
+            <a href="/profile">Profil</a>
+            <a href="/logout">Chiqish</a>
+        </div>
+        <div class="user-badge" id="userBadge">👤 ...</div>
+    </nav>
+
+    <div class="profile-shell" id="profileRoot">
+        <div class="profile-card card">
+            <div class="cover-band"></div>
+            <div class="profile-main">
+                <div class="profile-top-row">
+                    <div class="avatar-ring">
+                        <div class="avatar-circle" id="avatarInitial">?</div>
+                    </div>
+                    <a href="#" class="btn btn-primary" id="messageBtn">
+                        <i class="fas fa-paper-plane"></i> Xabar yuborish
+                    </a>
+                </div>
+
+                <div class="profile-name">
+                    <h1 id="viewName">Yuklanmoqda...</h1>
+                    <div class="username" id="viewUsername"></div>
+                </div>
+                <p class="profile-bio" id="viewBio"></p>
+
+                <div class="profile-interests">
+                    <div class="section-label">Qiziqishlar</div>
+                    <div class="tag-list" id="viewInterests"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>BirMillat – qiziqishlar asosida do'stlar toping.</footer>
+
+    <script>
+        function initials(name) {
+            if (!name) return '?';
+            const parts = name.trim().split(/\s+/);
+            return parts.length > 1 ? (parts[0][0] + parts[1][0]).toUpperCase() : parts[0].slice(0, 2).toUpperCase();
+        }
+
+        function getUsernameFromPath() {
+            const parts = window.location.pathname.split('/').filter(Boolean);
+            return decodeURIComponent(parts[parts.length - 1] || '');
+        }
+
+        async function loadMe() {
+            try {
+                const res = await fetch('/api/me');
+                if (!res.ok) { window.location.href = '/login'; return null; }
+                const me = await res.json();
+                document.getElementById('userBadge').textContent = '👤 ' + me.username;
+                return me;
+            } catch (e) {
+                console.error('Failed to load own profile:', e);
+                return null;
+            }
+        }
+
+        async function loadProfile() {
+            const username = getUsernameFromPath();
+            const me = await loadMe();
+
+            // Visiting your own public profile link — send to the editable version instead
+            if (me && me.username === username) {
+                window.location.href = '/profile';
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/users/${encodeURIComponent(username)}`);
+                if (!res.ok) {
+                    document.getElementById('profileRoot').innerHTML = `
+                        <div class="not-found">
+                            <i class="fas fa-user-slash"></i>
+                            <p>Bu foydalanuvchi topilmadi.</p>
+                        </div>`;
+                    return;
+                }
+                const user = await res.json();
+
+                document.getElementById('avatarInitial').textContent = initials(user.name || user.username);
+                document.getElementById('viewName').textContent = user.name || user.username;
+                document.getElementById('viewUsername').textContent = '@' + user.username;
+
+                const bioEl = document.getElementById('viewBio');
+                if (user.bio && user.bio.trim()) {
+                    bioEl.textContent = user.bio;
+                    bioEl.classList.remove('empty');
+                } else {
+                    bioEl.textContent = "Bio qo'shilmagan.";
+                    bioEl.classList.add('empty');
+                }
+
+                const interestsEl = document.getElementById('viewInterests');
+                const interests = user.interests || [];
+                interestsEl.innerHTML = interests.length
+                    ? interests.map(t => `<span class="tag">#${t}</span>`).join('')
+                    : `<span class="tag" style="opacity:0.7">Qiziqish ko'rsatilmagan</span>`;
+
+                document.getElementById('messageBtn').href = `/messages?with=${encodeURIComponent(user.username)}`;
+            } catch (e) {
+                console.error('Failed to load profile:', e);
+            }
+        }
+
+        loadProfile();
+    </script>
+</body>
+</html>
