@@ -1,147 +1,375 @@
 <!DOCTYPE html>
-<html>
+<html lang="uz">
 <head>
-    <title>BirMillat – Profilni tahrirlash</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        *{margin:0;padding:0;box-sizing:border-box}
-        body{font-family:'Segoe UI',sans-serif;background:#f4f6f9;display:flex;min-height:100vh}
-        .sidebar{
-            width:260px;
-            background:white;
-            border-right:1px solid #e0e0e0;
-            position:fixed;
-            height:100vh;
-            overflow:auto;
-        }
-        .sidebar-header{padding:20px;font-size:20px;font-weight:bold;border-bottom:1px solid #e0e0e0;color:#c0392b}
-        .sidebar-menu{padding:15px 0}
-        .menu-item{display:flex;align-items:center;gap:15px;padding:12px 20px;color:#333;text-decoration:none}
-        .menu-item:hover{background:#f0f2f5}
-        .menu-item.active{background:#fce4e1;color:#c0392b;border-left:4px solid #c0392b}
-        .main-content{margin-left:260px;flex:1;padding:20px}
-        .card{background:white;border-radius:20px;padding:30px;max-width:600px;margin:0 auto}
-        .form-group{margin-bottom:20px}
-        label{display:block;margin-bottom:8px;font-weight:600}
-        input,textarea{width:100%;padding:10px;border-radius:8px;border:1px solid #ddd}
-        .interests-input{margin-bottom:15px}
-        .interests-list{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
-        .interest-item{background:#ecf5f9;color:#2c7da0;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:6px}
-        .interest-item i{cursor:pointer;color:#c0392b}
-        .add-interest{display:flex;gap:10px;margin-top:10px}
-        .add-interest input{flex:1}
-        .add-interest button{background:#2c7da0;color:white;border:none;padding:8px 16px;border-radius:30px;cursor:pointer}
-        .btn-save{background:#c0392b;color:white;border:none;padding:12px 24px;border-radius:30px;cursor:pointer;font-size:16px}
-        .message{background:#e6ffe6;color:#2e7d32;padding:10px;border-radius:8px;margin-bottom:20px;display:none}
-        @media (max-width:768px){.sidebar{width:70px}.sidebar-header span{display:none}.main-content{margin-left:70px}}
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BirMillat – Profil</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="/style.css">
+<style>
+    .profile-shell {
+        max-width: 760px;
+        margin: 2rem auto;
+        padding: 0 1.5rem;
+    }
+    .profile-card {
+        overflow: hidden;
+        padding: 0;
+        margin-bottom: 1.5rem;
+    }
+    .cover-band {
+        height: 120px;
+        background: linear-gradient(120deg, var(--color-primary), #6B4FC9);
+    }
+    .profile-main {
+        padding: 0 2rem 2rem;
+        position: relative;
+    }
+    .avatar-ring {
+        width: 110px;
+        height: 110px;
+        border-radius: 50%;
+        background: var(--color-surface);
+        border: 4px solid var(--color-surface);
+        margin-top: -55px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: var(--shadow-card);
+    }
+    .avatar-circle {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        background: #EFEAF8;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-display);
+        font-size: 2.2rem;
+        font-weight: 700;
+        color: var(--color-primary);
+    }
+    .profile-top-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+    .profile-name h1 {
+        font-size: 1.5rem;
+        margin-top: 0.8rem;
+        margin-bottom: 0.15rem;
+    }
+    .profile-name .username {
+        color: var(--color-text-muted);
+        font-size: 0.95rem;
+        margin-bottom: 1rem;
+    }
+    .profile-bio {
+        font-size: 0.98rem;
+        color: var(--color-text);
+        max-width: 540px;
+        margin-bottom: 1.4rem;
+    }
+    .profile-bio.empty {
+        color: var(--color-text-muted);
+        font-style: italic;
+    }
+    .profile-interests .section-label { margin-top: 0; }
+
+    /* Edit mode */
+    .edit-field { margin-bottom: 1.1rem; }
+    .edit-field label {
+        display: block;
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: var(--color-text-muted);
+        margin-bottom: 0.4rem;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+    }
+    .edit-field input[type=text],
+    .edit-field textarea {
+        width: 100%;
+        padding: 0.7rem 0.9rem;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--color-border);
+        font-family: var(--font-body);
+        font-size: 0.95rem;
+        resize: vertical;
+    }
+    .edit-field input:focus,
+    .edit-field textarea:focus {
+        outline: 2px solid var(--color-accent);
+        outline-offset: 1px;
+    }
+    .interest-input-row {
+        display: flex;
+        gap: 0.6rem;
+    }
+    .interest-input-row input { flex: 1; }
+    .btn-add {
+        background: var(--color-primary);
+        color: white;
+        border: none;
+        padding: 0 1.2rem;
+        border-radius: var(--radius-sm);
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+    .btn-add:hover { background: var(--color-primary-light); }
+    .editable-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin: 0.8rem 0;
+    }
+    .editable-tags .tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+    .editable-tags .tag button {
+        background: none;
+        border: none;
+        color: inherit;
+        cursor: pointer;
+        font-size: 0.85rem;
+        opacity: 0.6;
+        line-height: 1;
+        padding: 0;
+    }
+    .editable-tags .tag button:hover { opacity: 1; }
+    .action-row {
+        display: flex;
+        gap: 0.8rem;
+        margin-top: 1.2rem;
+    }
+    .btn-cancel {
+        background: transparent;
+        border: 1.5px solid var(--color-border);
+        color: var(--color-text-muted);
+    }
+    .btn-cancel:hover { border-color: var(--color-text-muted); color: var(--color-text); }
+    .save-status {
+        font-size: 0.85rem;
+        margin-top: 0.6rem;
+        min-height: 1.2em;
+    }
+    .save-status.success { color: var(--color-success); }
+    .save-status.error { color: var(--color-error); }
+
+    [data-mode="edit"] .view-only { display: none; }
+    [data-mode="view"] .edit-only { display: none; }
+</style>
 </head>
 <body>
-    <div class="sidebar">
-        <div class="sidebar-header">BirMillat</div>
-        <div class="sidebar-menu">
-            <a href="/home" class="menu-item"><i class="fas fa-home"></i> <span>Bosh sahifa</span></a>
-            <a href="/profile" class="menu-item active"><i class="fas fa-user-edit"></i> <span>Profilim</span></a>
-            <a href="/logout" class="menu-item"><i class="fas fa-sign-out-alt"></i> <span>Chiqish</span></a>
+    <nav class="navbar">
+        <a href="/home" class="logo">BirMillat</a>
+        <div class="nav-links">
+            <a href="/home">Bosh sahifa</a>
+            <a href="/profile" class="active">Profil</a>
+            <a href="/logout">Chiqish</a>
         </div>
-    </div>
-    <div class="main-content">
-        <div class="card">
-            <h2><i class="fas fa-user-circle"></i> Profilni tahrirlash</h2>
-            <div id="message" class="message"></div>
-            <form id="profileForm">
-                <div class="form-group">
-                    <label>Ism / Familiya</label>
-                    <input type="text" id="name" placeholder="To‘liq ismingiz">
+        <div class="user-badge" id="userBadge">👤 ...</div>
+    </nav>
+
+    <div class="profile-shell" id="profileRoot" data-mode="view">
+        <div class="profile-card card">
+            <div class="cover-band"></div>
+            <div class="profile-main">
+                <div class="profile-top-row">
+                    <div class="avatar-ring">
+                        <div class="avatar-circle" id="avatarInitial">?</div>
+                    </div>
+                    <button class="btn btn-primary view-only" id="editBtn">
+                        <i class="fas fa-pen"></i> Profilni tahrirlash
+                    </button>
                 </div>
-                <div class="form-group">
-                    <label>Bio</label>
-                    <textarea id="bio" rows="3" placeholder="O‘zingiz haqingizda qisqacha"></textarea>
-                </div>
-                <div class="form-group">
-                    <label>Qiziqishlar (kategoriyalar)</label>
-                    <div id="interestsContainer" class="interests-list"></div>
-                    <div class="add-interest">
-                        <input type="text" id="newInterest" placeholder="Masalan: Python, AI, Dasturlash">
-                        <button type="button" id="addInterestBtn">➕ Qo‘shish</button>
+
+                <!-- VIEW MODE -->
+                <div class="view-only">
+                    <div class="profile-name">
+                        <h1 id="viewName">...</h1>
+                        <div class="username" id="viewUsername">@...</div>
+                    </div>
+                    <p class="profile-bio" id="viewBio"></p>
+
+                    <div class="profile-interests">
+                        <div class="section-label">Qiziqishlar</div>
+                        <div class="tag-list" id="viewInterests"></div>
                     </div>
                 </div>
-                <button type="submit" class="btn-save">Saqlash</button>
-            </form>
+
+                <!-- EDIT MODE -->
+                <div class="edit-only">
+                    <div class="edit-field">
+                        <label for="nameInput">Ism / Familiya</label>
+                        <input type="text" id="nameInput" placeholder="Ismingiz">
+                    </div>
+                    <div class="edit-field">
+                        <label for="bioInput">Bio</label>
+                        <textarea id="bioInput" rows="3" placeholder="O'zingiz haqingizda qisqacha"></textarea>
+                    </div>
+                    <div class="edit-field">
+                        <label>Qiziqishlar (kategoriyalar)</label>
+                        <div class="editable-tags" id="editInterests"></div>
+                        <div class="interest-input-row">
+                            <input type="text" id="newInterestInput" placeholder="Masalan: Python, AI, Dasturlash">
+                            <button class="btn-add" id="addInterestBtn"><i class="fas fa-plus"></i> Qo'shish</button>
+                        </div>
+                    </div>
+
+                    <div class="action-row">
+                        <button class="btn btn-primary" id="saveBtn">Saqlash</button>
+                        <button class="btn btn-cancel" id="cancelBtn">Bekor qilish</button>
+                    </div>
+                    <div class="save-status" id="saveStatus"></div>
+                </div>
+            </div>
         </div>
     </div>
-    <script>
-        let currentInterests = [];
 
-        async function loadProfile() {
-            const res = await fetch('/api/me');
-            if (!res.ok) return window.location.href = '/login';
-            const data = await res.json();
-            document.getElementById('name').value = data.name || '';
-            document.getElementById('bio').value = data.bio || '';
-            currentInterests = data.interests || [];
-            renderInterests();
+    <footer>BirMillat – qiziqishlar asosida do'stlar toping.</footer>
+
+    <script>
+        const root = document.getElementById('profileRoot');
+        let currentInterests = [];
+        let editInterests = [];
+        let me = null;
+
+        function initials(name) {
+            if (!name) return '?';
+            const parts = name.trim().split(/\s+/);
+            return parts.length > 1
+                ? (parts[0][0] + parts[1][0]).toUpperCase()
+                : parts[0].slice(0, 2).toUpperCase();
         }
 
-        function renderInterests() {
-            const container = document.getElementById('interestsContainer');
-            if (currentInterests.length === 0) {
-                container.innerHTML = '<span style="color:#aaa;">Hali qiziqishlar qo‘shilmagan</span>';
+        function renderViewInterests(tags) {
+            const el = document.getElementById('viewInterests');
+            if (!tags || tags.length === 0) {
+                el.innerHTML = `<span class="tag" style="opacity:0.7">Hali qiziqish qo'shilmagan</span>`;
                 return;
             }
-            container.innerHTML = currentInterests.map(interest => `
-                <span class="interest-item">
-                    ${interest}
-                    <i class="fas fa-times-circle" data-interest="${interest}"></i>
-                </span>
-            `).join('');
-            document.querySelectorAll('.interest-item i').forEach(icon => {
-                icon.addEventListener('click', (e) => {
-                    const interest = e.target.dataset.interest;
-                    currentInterests = currentInterests.filter(i => i !== interest);
-                    renderInterests();
-                });
-            });
+            el.innerHTML = tags.map(t => `<span class="tag">#${t}</span>`).join('');
         }
 
-        document.getElementById('addInterestBtn').onclick = () => {
-            const input = document.getElementById('newInterest');
+        function renderEditInterests() {
+            const el = document.getElementById('editInterests');
+            if (editInterests.length === 0) {
+                el.innerHTML = `<span style="color:var(--color-text-muted); font-size:0.85rem;">Hali qiziqishlar qo'shilmagan</span>`;
+                return;
+            }
+            el.innerHTML = editInterests.map((t, i) =>
+                `<span class="tag">#${t} <button data-index="${i}" aria-label="O'chirish">✕</button></span>`
+            ).join('');
+        }
+
+        async function loadMe() {
+            try {
+                const res = await fetch('/api/me');
+                if (!res.ok) { window.location.href = '/login'; return; }
+                me = await res.json();
+
+                document.getElementById('userBadge').textContent = '👤 ' + me.username;
+                document.getElementById('avatarInitial').textContent = initials(me.name || me.username);
+                document.getElementById('viewName').textContent = me.name || me.username;
+                document.getElementById('viewUsername').textContent = '@' + me.username;
+
+                const bioEl = document.getElementById('viewBio');
+                if (me.bio && me.bio.trim()) {
+                    bioEl.textContent = me.bio;
+                    bioEl.classList.remove('empty');
+                } else {
+                    bioEl.textContent = "Hali bio qo'shilmagan.";
+                    bioEl.classList.add('empty');
+                }
+
+                currentInterests = me.interests || [];
+                renderViewInterests(currentInterests);
+
+                document.getElementById('nameInput').value = me.name || '';
+                document.getElementById('bioInput').value = me.bio || '';
+                editInterests = [...currentInterests];
+                renderEditInterests();
+            } catch (e) {
+                console.error('Failed to load profile:', e);
+            }
+        }
+
+        document.getElementById('editBtn').addEventListener('click', () => {
+            editInterests = [...currentInterests];
+            renderEditInterests();
+            document.getElementById('nameInput').value = me.name || '';
+            document.getElementById('bioInput').value = me.bio || '';
+            document.getElementById('saveStatus').textContent = '';
+            root.setAttribute('data-mode', 'edit');
+        });
+
+        document.getElementById('cancelBtn').addEventListener('click', () => {
+            root.setAttribute('data-mode', 'view');
+        });
+
+        document.getElementById('addInterestBtn').addEventListener('click', addInterest);
+        document.getElementById('newInterestInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); addInterest(); }
+        });
+
+        function addInterest() {
+            const input = document.getElementById('newInterestInput');
             const val = input.value.trim();
-            if (val && !currentInterests.includes(val)) {
-                currentInterests.push(val);
-                renderInterests();
+            if (!val) return;
+            if (editInterests.some(i => i.toLowerCase() === val.toLowerCase())) {
                 input.value = '';
-            } else if (val && currentInterests.includes(val)) {
-                alert('Bu qiziqish allaqachon mavjud');
+                return;
             }
-        };
+            editInterests.push(val);
+            input.value = '';
+            renderEditInterests();
+        }
 
-        document.getElementById('profileForm').onsubmit = async (e) => {
-            e.preventDefault();
-            const name = document.getElementById('name').value;
-            const bio = document.getElementById('bio').value;
-            const res = await fetch('/api/profile/update', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, bio, interests: currentInterests })
-            });
-            const result = await res.json();
-            const msgDiv = document.getElementById('message');
-            if (result.success) {
-                msgDiv.style.display = 'block';
-                msgDiv.style.background = '#e6ffe6';
-                msgDiv.style.color = '#2e7d32';
-                msgDiv.innerText = '✅ Profil muvaffaqiyatli saqlandi!';
-                setTimeout(() => msgDiv.style.display = 'none', 3000);
-            } else {
-                msgDiv.style.display = 'block';
-                msgDiv.style.background = '#ffe6e6';
-                msgDiv.style.color = '#c0392b';
-                msgDiv.innerText = '❌ Xatolik yuz berdi';
+        document.getElementById('editInterests').addEventListener('click', (e) => {
+            const btn = e.target.closest('button[data-index]');
+            if (!btn) return;
+            const idx = parseInt(btn.getAttribute('data-index'), 10);
+            editInterests.splice(idx, 1);
+            renderEditInterests();
+        });
+
+        document.getElementById('saveBtn').addEventListener('click', async () => {
+            const statusEl = document.getElementById('saveStatus');
+            const name = document.getElementById('nameInput').value.trim();
+            const bio = document.getElementById('bioInput').value.trim();
+
+            statusEl.textContent = 'Saqlanmoqda...';
+            statusEl.className = 'save-status';
+
+            try {
+                const res = await fetch('/api/profile/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, bio, interests: editInterests })
+                });
+                if (!res.ok) throw new Error('Server error');
+
+                statusEl.textContent = 'Saqlandi ✓';
+                statusEl.className = 'save-status success';
+                await loadMe();
+                setTimeout(() => { root.setAttribute('data-mode', 'view'); }, 500);
+            } catch (e) {
+                console.error('Save failed:', e);
+                statusEl.textContent = "Saqlashda xatolik yuz berdi. Qaytadan urinib ko'ring.";
+                statusEl.className = 'save-status error';
             }
-        };
+        });
 
-        loadProfile();
+        loadMe();
     </script>
 </body>
 </html>
