@@ -131,18 +131,15 @@ app.use(express.static(path.join(__dirname)));
 // ---------- Helper: render pages ----------
 function renderRegisterPage(message, isError = true) {
     const msgClass = isError ? 'error' : 'success';
-    return `<!DOCTYPE html><html><head><title>Ro'yxatdan o'tish - BirMillat</title><style>
-        body{font-family:sans-serif;background:#f5f7fa;display:flex;justify-content:center;align-items:center;height:100vh}
-        .card{background:white;border-radius:20px;padding:40px;width:350px;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.1)}
-        input{width:100%;padding:12px;margin:10px 0;border-radius:8px;border:1px solid #ddd}
-        button{background:#c0392b;color:white;border:none;padding:12px;width:100%;border-radius:8px;cursor:pointer}
-        .error{background:#ffe6e6;color:#c0392b;padding:8px;border-radius:6px;margin-bottom:15px}
-        .success{background:#e6ffe6;color:#2e7d32;padding:8px;border-radius:6px;margin-bottom:15px}
-        a{color:#c0392b}
-    </style></head>
-    <body><div class=card>
+    return `<!DOCTYPE html><html><head><title>Ro'yxatdan o'tish - BirMillat</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/style.css">
+    </head>
+    <body class="auth-shell"><div class="auth-card">
         <h2>Hisob yaratish</h2>
-        ${message ? `<div class="${msgClass}">${message}</div>` : ''}
+        ${message ? `<div class="message ${msgClass}">${message}</div>` : ''}
         <form method=post action=/register>
             <input name=username placeholder="Foydalanuvchi nomi" required>
             <input type=password name=password placeholder="Parol (kamida 8 belgi)" required>
@@ -153,17 +150,15 @@ function renderRegisterPage(message, isError = true) {
 }
 
 function renderLoginPage(errorMsg) {
-    return `<!DOCTYPE html><html><head><title>Kirish - BirMillat</title><style>
-        body{font-family:sans-serif;background:#f5f7fa;display:flex;justify-content:center;align-items:center;height:100vh}
-        .card{background:white;border-radius:20px;padding:40px;width:350px;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.1)}
-        input{width:100%;padding:12px;margin:10px 0;border-radius:8px;border:1px solid #ddd}
-        button{background:#c0392b;color:white;border:none;padding:12px;width:100%;border-radius:8px;cursor:pointer}
-        .error{background:#ffe6e6;color:#c0392b;padding:8px;border-radius:6px;margin-bottom:15px}
-        a{color:#c0392b}
-    </style></head>
-    <body><div class=card>
+    return `<!DOCTYPE html><html><head><title>Kirish - BirMillat</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/style.css">
+    </head>
+    <body class="auth-shell"><div class="auth-card">
         <h2>Xush kelibsiz</h2>
-        ${errorMsg ? `<div class="error">${errorMsg}</div>` : ''}
+        ${errorMsg ? `<div class="message error">${errorMsg}</div>` : ''}
         <form method=post action=/login>
             <input name=username placeholder="Foydalanuvchi nomi" required>
             <input type=password name=password placeholder="Parol" required>
