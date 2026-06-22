@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BirMillat – Xabarlar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="/style.css">
+<script src="/socket.io/socket.io.js"></script>
+<style>
+    .chat-shell {
+        max-width: 1100px;
+        margin: 1.5rem auto;
+        padding: 0 1.5rem;
+        height: calc(100vh - 110px);
+    }
+    .chat-grid {
+        display: grid;
+        grid-template-columns: 300px 1fr;
+        height: 100%;
+        background: var(--color-surface);
+        border-radius: var(--radius-md);
+        border: 1px solid var(--color-border);
+        overflow: hidden;
+        box-shadow: var(--shadow-card);
+    }
+    .conv-list {
+        border-right: 1px solid var(--color-border);
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+    }
+    .conv-list-head {
+        padding: 1.1rem 1.2rem;
+        border-bottom: 1px solid var(--color-border);
+        font-family: var(--font-display);
+        font-weight: 600;
+        color: var(--color-primary);
+    }
+    .conv-item {
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        padding: 0.9rem 1.1rem;
+        cursor: pointer;
+        border-bottom: 1px solid var(--color-bg);
+        transition: background 0.12s ease;
+    }
+    .conv-item:hover { background: var(--color-bg); }
+    .conv-item.active { background: #EFEAF8; }
+    .conv-avatar {
+        width: 40px; height: 40px; border-radius: 50%; background: #EFEAF8;
+        display: flex; align-items: center; justify-content: center;
+        font-family: var(--font-display); font-weight: 700; font-size: 0.9rem;
+        color: var(--color-primary); flex-shrink: 0;
+    }
+    .conv-meta { flex: 1; min-width: 0; }
+    .conv-meta .name { font-weight: 600; font-size: 0.92rem; }
+    .conv-meta .preview {
+        font-size: 0.8rem; color: var(--color-text-muted);
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .conv-empty {
+        padding: 2rem 1.2rem;
+        color: var(--color-text-muted);
+        font-size: 0.88rem;
+        text-align: center;
+    }
+
+    .chat-panel { display: flex; flex-direction: column; height: 100%; }
+    .chat-head {
+        padding: 1rem 1.4rem;
+        border-bottom: 1px solid var(--color-border);
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+    }
+    .chat-head .conv-avatar { width: 38px; height: 38px; font-size: 0.85rem; }
+    .chat-head .name { font-weight: 600; }
+    .chat-head a { color: var(--color-text-muted); font-size: 0.85rem; }
+
+    .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1.4rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+    }
+    .msg-bubble {
+        max-width: 70%;
+        padding: 0.6rem 0.95rem;
+        border-radius: 1rem;
+        font-size: 0.92rem;
+        line-height: 1.4;
+        word-wrap: break-word;
+    }
+    .msg-bubble.theirs {
+        background: var(--color-bg);
+        color: var(--color-text);
+        align-self: flex-start;
+        border-bottom-left-radius: 0.3rem;
+    }
+    .msg-bubble.mine {
+        background: var(--color-primary);
+        color: white;
+        align-self: flex-end;
+        border-bottom-right-radius: 0.3rem;
+    }
+    .msg-time {
+        font-size: 0.68rem;
+        opacity: 0.65;
+        margin-top: 0.25rem;
+        display: block;
+    }
+
+    .chat-empty-state, .no-conv-selected {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: var(--color-text-muted);
+        gap: 0.6rem;
+        text-align: center;
+        padding: 2rem;
+    }
+    .chat-empty-state i, .no-conv-selected i { font-size: 2.2rem; color: var(--color-border); }
+
+    .chat-input-row {
+        border-top: 1px solid var(--color-border);
+        padding: 0.9rem 1.2rem;
+        display: flex;
+        gap: 0.7rem;
+    }
+    .chat-input-row input {
+        flex: 1;
+        padding: 0.7rem 1rem;
+        border-radius: var(--radius-pill);
+        border: 1px solid var(--color-border);
+        font-family: var(--font-body);
+        font-size: 0.92rem;
+    }
+    .chat-input-row input:focus { outline: 2px solid var(--color-accent); outline-offset: 1px; }
+    .chat-input-row button {
+        background: var(--color-accent);
+        color: white;
+        border: none;
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    .chat-input-row button:hover { background: var(--color-accent-light); }
+    .chat-input-row button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .connection-banner {
+        font-size: 0.78rem;
+        text-align: center;
+        padding: 0.4rem;
+        background: var(--color-error-bg);
+        color: var(--color-error);
+        display: none;
+    }
+
+    @media (max-width: 760px) {
+        .chat-grid { grid-template-columns: 1fr; }
+        .conv-list { display: none; }
+        .chat-shell.show-list .conv-list { display: flex; }
+        .chat-shell.show-list .chat-panel { display: none; }
+    }
+</style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/home" class="logo">BirMillat</a>
+        <div class="nav-links">
+            <a href="/home">Bosh sahifa</a>
+            <a href="/recommend">Tavsiyalar</a>
+            <a href="/search">Qidiruv</a>
+            <a href="/messages" class="active">Xabarlar</a>
+            <a href="/profile">Profil</a>
+            <a href="/logout">Chiqish</a>
+        </div>
+        <div class="user-badge" id="userBadge">👤 ...</div>
+    </nav>
+
+    <div class="connection-banner" id="connectionBanner">Ulanish yo'q — qayta ulanmoqda...</div>
+
+    <div class="chat-shell" id="chatShell">
+        <div class="chat-grid">
+            <div class="conv-list" id="convList">
+                <div class="conv-list-head">Xabarlar</div>
+                <div id="convItems"><div class="conv-empty">Yuklanmoqda...</div></div>
+            </div>
+            <div class="chat-panel" id="chatPanel">
+                <div class="no-conv-selected" id="noConvSelected">
+                    <i class="fas fa-comments"></i>
+                    <p>Suhbatni boshlash uchun chap tomondan birovni tanlang,<br>yoki <a href="/search">qidiruv</a> orqali birovni toping.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let myUsername = null;
+        let activeChatWith = null;
+        let socket = null;
+
+        function initials(name) {
+            if (!name) return '?';
+            const parts = name.trim().split(/\s+/);
+            return parts.length > 1 ? (parts[0][0] + parts[1][0]).toUpperCase() : parts[0].slice(0, 2).toUpperCase();
+        }
+
+        function formatTime(ts) {
+            const d = new Date(ts);
+            return d.toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        async function loadMe() {
+            const res = await fetch('/api/me');
+            if (!res.ok) { window.location.href = '/login'; return null; }
+            const me = await res.json();
+            myUsername = me.username;
+            document.getElementById('userBadge').textContent = '👤 ' + me.username;
+            return me;
+        }
+
+        async function loadConversations() {
+            const container = document.getElementById('convItems');
+            try {
+                const res = await fetch('/api/conversations');
+                if (!res.ok) { container.innerHTML = '<div class="conv-empty">Yuklab bo\'lmadi</div>'; return; }
+                const list = await res.json();
+
+                if (list.length === 0) {
+                    container.innerHTML = `<div class="conv-empty">Hali suhbatlar yo'q.<br>Qidiruv orqali birovni toping va xabar yuboring.</div>`;
+                    return;
+                }
+
+                container.innerHTML = '';
+                list.forEach(conv => {
+                    const item = document.createElement('div');
+                    item.className = 'conv-item';
+                    item.dataset.username = conv.username;
+                    if (conv.username === activeChatWith) item.classList.add('active');
+                    item.innerHTML = `
+                        <div class="conv-avatar">${initials(conv.name || conv.username)}</div>
+                        <div class="conv-meta">
+                            <div class="name">${conv.name || conv.username}</div>
+                            <div class="preview">${conv.last_message || ''}</div>
+                        </div>
+                    `;
+                    item.addEventListener('click', () => openChat(conv.username, conv.name));
+                    container.appendChild(item);
+                });
+            } catch (e) {
+                console.error('Failed to load conversations:', e);
+                container.innerHTML = '<div class="conv-empty">Yuklab bo\'lmadi</div>';
+            }
+        }
+
+        function renderChatShell(withUsername, withName) {
+            const panel = document.getElementById('chatPanel');
+            panel.innerHTML = `
+                <div class="chat-head">
+                    <div class="conv-avatar">${initials(withName || withUsername)}</div>
+                    <div class="name">${withName || withUsername}</div>
+                    <a href="/u/${encodeURIComponent(withUsername)}" style="margin-left:auto;">Profilni ko'rish</a>
+                </div>
+                <div class="chat-messages" id="chatMessages"></div>
+                <div class="chat-input-row">
+                    <input type="text" id="messageInput" placeholder="Xabar yozing...">
+                    <button id="sendBtn"><i class="fas fa-paper-plane"></i></button>
+                </div>
+            `;
+            document.getElementById('sendBtn').addEventListener('click', sendCurrentMessage);
+            document.getElementById('messageInput').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') sendCurrentMessage();
+            });
+            document.getElementById('messageInput').focus();
+        }
+
+        function appendMessage(content, isMine, createdAt) {
+            const messagesEl = document.getElementById('chatMessages');
+            if (!messagesEl) return;
+            const bubble = document.createElement('div');
+            bubble.className = 'msg-bubble ' + (isMine ? 'mine' : 'theirs');
+            bubble.innerHTML = `${escapeHtml(content)}<span class="msg-time">${formatTime(createdAt)}</span>`;
+            messagesEl.appendChild(bubble);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        async function openChat(username, name) {
+            activeChatWith = username;
+            document.querySelectorAll('.conv-item').forEach(el => {
+                el.classList.toggle('active', el.dataset.username === username);
+            });
+            document.getElementById('chatShell').classList.remove('show-list');
+
+            renderChatShell(username, name);
+
+            try {
+                const res = await fetch(`/api/messages/${encodeURIComponent(username)}`);
+                if (!res.ok) return;
+                const data = await res.json();
+                const messagesEl = document.getElementById('chatMessages');
+                messagesEl.innerHTML = '';
+                if (data.messages.length === 0) {
+                    messagesEl.innerHTML = `<div class="chat-empty-state" style="height:100%;"><i class="fas fa-hand-wave"></i><p>Hali xabar yo'q. Birinchi bo'lib salom ayting!</p></div>`;
+                } else {
+                    data.messages.forEach(m => appendMessage(m.content, m.isMine, m.createdAt));
+                }
+            } catch (e) {
+                console.error('Failed to load messages:', e);
+            }
+        }
+
+        function sendCurrentMessage() {
+            const input = document.getElementById('messageInput');
+            const content = input.value.trim();
+            if (!content || !activeChatWith || !socket) return;
+
+            const sendBtn = document.getElementById('sendBtn');
+            sendBtn.disabled = true;
+
+            socket.emit('send_message', { toUsername: activeChatWith, content }, (response) => {
+                sendBtn.disabled = false;
+                if (response && response.success) {
+                    appendMessage(response.message.content, true, response.message.createdAt);
+                    input.value = '';
+                    loadConversations();
+                } else {
+                    alert((response && response.error) || "Xabar yuborilmadi. Qayta urinib ko'ring.");
+                }
+            });
+            input.value = '';
+            input.focus();
+        }
+
+        function setupSocket() {
+            socket = io();
+            const banner = document.getElementById('connectionBanner');
+
+            socket.on('connect', () => { banner.style.display = 'none'; });
+            socket.on('disconnect', () => { banner.style.display = 'block'; });
+            socket.on('connect_error', () => { banner.style.display = 'block'; });
+
+            socket.on('new_message', (msg) => {
+                // If this message belongs to the open conversation, show it live
+                if (activeChatWith) {
+                    appendMessage(msg.content, false, msg.createdAt);
+                }
+                loadConversations();
+            });
+        }
+
+        (async () => {
+            await loadMe();
+            setupSocket();
+            await loadConversations();
+
+            // Support being linked here as /messages?with=username (e.g. from a profile page)
+            const params = new URLSearchParams(window.location.search);
+            const withUser = params.get('with');
+            if (withUser) {
+                openChat(withUser, withUser);
+            }
+        })();
+    </script>
+</body>
+</html>
