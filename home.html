@@ -1,93 +1,242 @@
 <!DOCTYPE html>
-<html>
+<html lang="uz">
 <head>
-    <title>BirMillat – Tavsiyalar</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        *{margin:0;padding:0;box-sizing:border-box}
-        body{font-family:'Segoe UI',sans-serif;background:#f4f6f9;display:flex;min-height:100vh}
-        .sidebar{
-            width:260px;
-            background:white;
-            border-right:1px solid #e0e0e0;
-            position:fixed;
-            height:100vh;
-            overflow:auto;
-        }
-        .sidebar-header{padding:20px;font-size:20px;font-weight:bold;border-bottom:1px solid #e0e0e0;color:#c0392b}
-        .sidebar-menu{padding:15px 0}
-        .menu-item{display:flex;align-items:center;gap:15px;padding:12px 20px;color:#333;text-decoration:none}
-        .menu-item:hover{background:#f0f2f5}
-        .menu-item.active{background:#fce4e1;color:#c0392b;border-left:4px solid #c0392b}
-        .main-content{margin-left:260px;flex:1;padding:20px}
-        .welcome-card{background:white;border-radius:20px;padding:30px;margin-bottom:20px}
-        .user-greeting{font-size:28px;margin-bottom:10px}
-        .recommendations h2{margin:20px 0}
-        .users-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px}
-        .user-card{background:white;border-radius:16px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,0.05)}
-        .user-card h3{margin-bottom:5px}
-        .user-card p{color:#666;margin:8px 0}
-        .interests{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
-        .interest-tag{background:#ecf5f9;color:#2c7da0;padding:4px 10px;border-radius:20px;font-size:12px}
-        .btn-follow{background:#c0392b;color:white;border:none;padding:8px 16px;border-radius:30px;cursor:pointer}
-        .btn-profile{background:#2c7da0;color:white;border:none;padding:8px 16px;border-radius:30px;cursor:pointer;margin-right:10px}
-        @media (max-width:768px){.sidebar{width:70px}.sidebar-header span{display:none}.main-content{margin-left:70px}}
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BirMillat – Bosh sahifa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="/style.css">
+<style>
+    .page-container {
+        max-width: 1100px;
+        margin: 2rem auto;
+        padding: 0 1.5rem;
+    }
+    .welcome-card {
+        padding: 2rem;
+        margin-bottom: 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+    }
+    .welcome-card h1 {
+        font-size: 1.7rem;
+        margin-bottom: 0.5rem;
+    }
+    .welcome-card h1 span { color: var(--color-accent); }
+    .welcome-card p {
+        color: var(--color-text-muted);
+        max-width: 480px;
+    }
+    .interests-section { margin-bottom: 2rem; }
+    .rec-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: 1.2rem;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    .rec-header h2 { font-size: 1.3rem; }
+    .rec-header p { color: var(--color-text-muted); font-size: 0.85rem; }
+    .users-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 1.5rem;
+    }
+    .user-card {
+        transition: transform 0.18s ease, box-shadow 0.18s ease;
+    }
+    .user-card:hover { transform: translateY(-3px); }
+    .card-top {
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+        margin-bottom: 0.8rem;
+    }
+    .avatar {
+        width: 48px;
+        height: 48px;
+        background: #EFEAF8;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        color: var(--color-primary);
+        flex-shrink: 0;
+    }
+    .user-info h3 { font-size: 1rem; color: var(--color-text); }
+    .user-info .username { font-size: 0.75rem; color: var(--color-text-muted); }
+    .common-interests {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        margin: 0.6rem 0;
+    }
+    .interest-badge {
+        background: var(--color-bg);
+        font-size: 0.7rem;
+        padding: 0.25rem 0.7rem;
+        border-radius: var(--radius-pill);
+        color: var(--color-primary);
+        font-weight: 600;
+    }
+    .follow-btn {
+        width: 100%;
+        background: transparent;
+        border: 1.5px solid var(--color-primary);
+        padding: 0.5rem;
+        border-radius: var(--radius-pill);
+        font-weight: 600;
+        font-size: 0.8rem;
+        color: var(--color-primary);
+        cursor: pointer;
+        transition: 0.18s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+        margin-top: 0.5rem;
+    }
+    .follow-btn:hover {
+        background: var(--color-primary);
+        color: white;
+    }
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: var(--color-text-muted);
+    }
+</style>
 </head>
 <body>
-    <div class="sidebar">
-        <div class="sidebar-header">BirMillat</div>
-        <div class="sidebar-menu">
-            <a href="/home" class="menu-item active"><i class="fas fa-home"></i> <span>Bosh sahifa</span></a>
-            <a href="/profile" class="menu-item"><i class="fas fa-user-edit"></i> <span>Profilim</span></a>
-            <a href="/logout" class="menu-item"><i class="fas fa-sign-out-alt"></i> <span>Chiqish</span></a>
+    <nav class="navbar">
+        <a href="/home" class="logo">BirMillat</a>
+        <div class="nav-links">
+            <a href="/home" class="active">Bosh sahifa</a>
+            <a href="/profile">Profil</a>
+            <a href="/logout">Chiqish</a>
         </div>
-    </div>
-    <div class="main-content">
-        <div class="welcome-card">
-            <div class="user-greeting"><i class="fas fa-smile-wink"></i> Xush kelibsiz, <span id="username"></span>!</div>
-            <p>Qiziqishlaringizga mos foydalanuvchilar quyida tavsiya etiladi.</p>
-        </div>
-        <div class="recommendations">
-            <h2><i class="fas fa-users"></i> Sizga tavsiya etiladi</h2>
-            <div id="recommendationsGrid" class="users-grid">Yuklanmoqda...</div>
-        </div>
-    </div>
-    <script>
-        async function loadUserAndRecommendations() {
-            try {
-                const meRes = await fetch('/api/me');
-                if (!meRes.ok) throw new Error();
-                const me = await meRes.json();
-                document.getElementById('username').innerText = me.name || me.username;
+        <div class="user-badge" id="userBadge">👤 ...</div>
+    </nav>
 
-                const recRes = await fetch('/api/recommendations');
-                const users = await recRes.json();
-                const grid = document.getElementById('recommendationsGrid');
-                if (users.length === 0) {
-                    grid.innerHTML = '<p>Hozircha tavsiyalar yo‘q. Profilingizga qiziqishlar qo‘shib ko‘ring.</p>';
-                    return;
+    <div class="page-container">
+        <div class="welcome-card card">
+            <div>
+                <h1>Xush kelibsiz, <span id="welcomeName">...</span></h1>
+                <p>BirMillat'da siz <strong>qiziqishlaringiz asosida</strong> haqiqiy do'stlar va jamoa topasiz. Suhbatlashing, g'oyalar almashing, birga o'sing.</p>
+            </div>
+            <a href="/profile" class="btn btn-primary">Profilni tahrirlash</a>
+        </div>
+
+        <div class="interests-section">
+            <div class="section-label">⚡ Sizning qiziqishlaringiz</div>
+            <div class="tag-list" id="myInterestsTags">
+                <span class="tag" style="opacity:0.5">Yuklanmoqda...</span>
+            </div>
+        </div>
+
+        <div class="rec-header">
+            <div>
+                <h2><i class="fas fa-users"></i> Sizga tavsiya etiladi</h2>
+                <p>Qiziqishlari siznikiga mos keladigan foydalanuvchilar</p>
+            </div>
+        </div>
+
+        <div class="users-grid" id="recommendGrid">
+            <p style="color:var(--color-text-muted)">Yuklanmoqda...</p>
+        </div>
+    </div>
+
+    <footer>BirMillat – qiziqishlar asosida do'stlar toping.</footer>
+
+    <script>
+        const avatarIcons = ['fa-robot', 'fa-code', 'fa-cloud', 'fa-gamepad', 'fa-brain', 'fa-server', 'fa-star', 'fa-book'];
+
+        function pickIcon(seed) {
+            let hash = 0;
+            for (let i = 0; i < seed.length; i++) hash = (hash + seed.charCodeAt(i)) % avatarIcons.length;
+            return avatarIcons[hash];
+        }
+
+        async function loadMe() {
+            try {
+                const res = await fetch('/api/me');
+                if (!res.ok) { window.location.href = '/login'; return null; }
+                const me = await res.json();
+                document.getElementById('userBadge').textContent = '👤 ' + me.username;
+                document.getElementById('welcomeName').textContent = (me.name || me.username) + '!';
+
+                const tagsEl = document.getElementById('myInterestsTags');
+                if (me.interests && me.interests.length > 0) {
+                    tagsEl.innerHTML = me.interests.map(i => `<span class="tag">#${i}</span>`).join('');
+                } else {
+                    tagsEl.innerHTML = `<span class="tag" style="opacity:0.7">Hali qiziqish qo'shilmagan — <a href="/profile">profilga o'tish</a></span>`;
                 }
-                grid.innerHTML = users.map(u => `
-                    <div class="user-card">
-                        <h3>${u.name || u.username}</h3>
-                        <p>@${u.username}</p>
-                        <div class="interests">
-                            ${(u.interests || []).slice(0,5).map(i => `<span class="interest-tag">#${i}</span>`).join('')}
-                            ${(u.interests || []).length > 5 ? `<span class="interest-tag">+${u.interests.length-5}</span>` : ''}
-                        </div>
-                        <p><small>Moslik: ${u.matchScore} ta umumiy qiziqish</small></p>
-                        <button class="btn-follow" data-username="${u.username}">Kuzatish</button>
-                    </div>
-                `).join('');
-                document.querySelectorAll('.btn-follow').forEach(btn => {
-                    btn.onclick = () => alert(`Siz ${btn.dataset.username} ga kuzatuv so‘rov yubordingiz. (Bu funksiya keyingi versiyada)`);
-                });
-            } catch(e) {
-                window.location.href = '/login';
+                return me;
+            } catch (e) {
+                console.error('Failed to load profile:', e);
+                return null;
             }
         }
-        loadUserAndRecommendations();
+
+        async function loadRecommendations() {
+            const grid = document.getElementById('recommendGrid');
+            try {
+                const res = await fetch('/api/recommendations');
+                if (!res.ok) { grid.innerHTML = ''; return; }
+                const users = await res.json();
+
+                if (users.length === 0) {
+                    grid.innerHTML = `<div class="empty-state">Hozircha boshqa foydalanuvchilar yo'q. Tez orada bu yerda tavsiyalar paydo bo'ladi!</div>`;
+                    return;
+                }
+
+                grid.innerHTML = '';
+                users.forEach(user => {
+                    const card = document.createElement('div');
+                    card.className = 'user-card card';
+                    const interests = user.interests || [];
+                    card.innerHTML = `
+                        <div class="card-top">
+                            <div class="avatar"><i class="fas ${pickIcon(user.username)}"></i></div>
+                            <div class="user-info">
+                                <h3>${user.name || user.username}</h3>
+                                <div class="username">@${user.username}</div>
+                            </div>
+                        </div>
+                        <div class="common-interests">
+                            ${interests.slice(0, 3).map(t => `<span class="interest-badge">#${t}</span>`).join('')}
+                            ${interests.length > 3 ? `<span class="interest-badge">+${interests.length - 3}</span>` : ''}
+                            ${interests.length === 0 ? `<span class="interest-badge" style="opacity:0.6">Qiziqish ko'rsatilmagan</span>` : ''}
+                        </div>
+                        <button class="follow-btn" data-name="${user.name || user.username}"><i class="fas fa-user-plus"></i> Kuzatish</button>
+                    `;
+                    grid.appendChild(card);
+                });
+            } catch (e) {
+                console.error('Failed to load recommendations:', e);
+                grid.innerHTML = `<div class="empty-state">Tavsiyalarni yuklab bo'lmadi. Sahifani qaytadan yuklang.</div>`;
+            }
+        }
+
+        document.addEventListener('click', (e) => {
+            const btn = e.target.closest('.follow-btn');
+            if (btn) {
+                const name = btn.getAttribute('data-name') || 'foydalanuvchi';
+                btn.innerHTML = '<i class="fas fa-check"></i> So\'rov yuborildi';
+                btn.disabled = true;
+                btn.style.opacity = '0.6';
+            }
+        });
+
+        loadMe();
+        loadRecommendations();
     </script>
 </body>
 </html>
