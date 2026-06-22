@@ -239,12 +239,14 @@ function renderRegisterPage(message, isError = true) {
     <style>
         .pw-field { position: relative; }
         .pw-field input { padding-right: 2.6rem !important; }
-        .pw-toggle {
-            position: absolute; right: 0.7rem; top: 50%; transform: translateY(-50%);
-            background: none; border: none; cursor: pointer; padding: 0.3rem;
-            color: var(--color-text-muted); display: flex; align-items: center;
+        .auth-card .pw-toggle {
+            position: absolute; right: 0.4rem; top: 0.65rem;
+            width: 2rem !important; height: 2rem;
+            background: none !important; border: none; cursor: pointer; padding: 0.25rem !important;
+            margin: 0 !important;
+            color: var(--color-text-muted); display: flex; align-items: center; justify-content: center;
         }
-        .pw-toggle:hover { color: var(--color-text); }
+        .auth-card .pw-toggle:hover { color: var(--color-text); background: none !important; }
         .field-error { color: var(--color-error); font-size: 0.8rem; text-align: left; margin: -0.3rem 0 0.6rem; min-height: 1em; }
     </style>
     </head>
@@ -297,12 +299,14 @@ function renderLoginPage(errorMsg) {
     <style>
         .pw-field { position: relative; }
         .pw-field input { padding-right: 2.6rem !important; }
-        .pw-toggle {
-            position: absolute; right: 0.7rem; top: 50%; transform: translateY(-50%);
-            background: none; border: none; cursor: pointer; padding: 0.3rem;
-            color: var(--color-text-muted); display: flex; align-items: center;
+        .auth-card .pw-toggle {
+            position: absolute; right: 0.4rem; top: 0.65rem;
+            width: 2rem !important; height: 2rem;
+            background: none !important; border: none; cursor: pointer; padding: 0.25rem !important;
+            margin: 0 !important;
+            color: var(--color-text-muted); display: flex; align-items: center; justify-content: center;
         }
-        .pw-toggle:hover { color: var(--color-text); }
+        .auth-card .pw-toggle:hover { color: var(--color-text); background: none !important; }
     </style>
     </head>
     <body class="auth-shell"><div class="auth-card">
