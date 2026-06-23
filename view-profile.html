@@ -60,9 +60,14 @@
                     <div class="avatar-ring">
                         <div class="avatar-circle" id="avatarInitial">?</div>
                     </div>
-                    <a href="#" class="btn btn-primary" id="messageBtn">
-                        <i class="fas fa-paper-plane"></i> Xabar yuborish
-                    </a>
+                    <div style="display:flex; gap:0.6rem; align-items:center;">
+                        <button class="btn btn-cancel" id="reportBtn" style="border:1.5px solid var(--color-border); background:transparent; color:var(--color-text-muted);">
+                            <i class="fas fa-flag"></i> Shikoyat
+                        </button>
+                        <a href="#" class="btn btn-primary" id="messageBtn">
+                            <i class="fas fa-paper-plane"></i> Xabar yuborish
+                        </a>
+                    </div>
                 </div>
 
                 <div class="profile-name">
@@ -80,6 +85,87 @@
     </div>
 
     <footer>BirMillat – qiziqishlar asosida do'stlar toping.</footer>
+
+    <div id="reportModal" style="display:none; position:fixed; inset:0; background:rgba(26,22,37,0.5); z-index:100; align-items:center; justify-content:center; padding:1.5rem;">
+        <div class="card" style="max-width:420px; width:100%; max-height:90vh; overflow-y:auto;">
+            <h2 style="font-size:1.2rem; margin-bottom:1rem;"><i class="fas fa-flag"></i> Shikoyat qilish</h2>
+            <form id="reportForm">
+                <div style="margin-bottom:1rem;">
+                    <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--color-text-muted); margin-bottom:0.4rem; text-transform:uppercase; letter-spacing:0.4px;">Sabab</label>
+                    <select id="reportReason" required style="width:100%; padding:0.7rem 0.9rem; border-radius:var(--radius-sm); border:1px solid var(--color-border); font-family:var(--font-body); font-size:0.95rem;">
+                        <option value="">Tanlang...</option>
+                        <option value="Spam">Spam</option>
+                        <option value="Haqorat / tahdid">Haqorat / tahdid</option>
+                        <option value="Nomaqul kontent">Nomaqul kontent</option>
+                        <option value="Soxta profil">Soxta profil</option>
+                        <option value="Boshqa">Boshqa</option>
+                    </select>
+                </div>
+                <div style="margin-bottom:1rem;">
+                    <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--color-text-muted); margin-bottom:0.4rem; text-transform:uppercase; letter-spacing:0.4px;">Tafsilotlar (ixtiyoriy)</label>
+                    <textarea id="reportDetails" rows="3" placeholder="Nima bo'lganini qisqacha tushuntiring" style="width:100%; padding:0.7rem 0.9rem; border-radius:var(--radius-sm); border:1px solid var(--color-border); font-family:var(--font-body); font-size:0.95rem; resize:vertical;"></textarea>
+                </div>
+                <div style="margin-bottom:1.2rem;">
+                    <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--color-text-muted); margin-bottom:0.4rem; text-transform:uppercase; letter-spacing:0.4px;">Skrinshot (ixtiyoriy)</label>
+                    <input type="file" id="reportScreenshot" accept="image/*" style="width:100%; font-size:0.88rem;">
+                </div>
+                <div style="display:flex; gap:0.8rem;">
+                    <button type="submit" class="btn btn-primary" style="flex:1; justify-content:center;">Yuborish</button>
+                    <button type="button" class="btn btn-cancel" id="closeReportModal" style="border:1.5px solid var(--color-border); background:transparent; color:var(--color-text-muted);">Bekor qilish</button>
+                </div>
+                <div class="save-status" id="reportStatus" style="font-size:0.85rem; margin-top:0.6rem; min-height:1.2em;"></div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const reportedUsername = decodeURIComponent(window.location.pathname.split('/').filter(Boolean).pop() || '');
+
+        document.getElementById('reportBtn').addEventListener('click', () => {
+            document.getElementById('reportModal').style.display = 'flex';
+        });
+        document.getElementById('closeReportModal').addEventListener('click', () => {
+            document.getElementById('reportModal').style.display = 'none';
+        });
+
+        document.getElementById('reportForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const statusEl = document.getElementById('reportStatus');
+            const reason = document.getElementById('reportReason').value;
+            const details = document.getElementById('reportDetails').value.trim();
+            const fileInput = document.getElementById('reportScreenshot');
+
+            if (!reason) return;
+
+            statusEl.textContent = 'Yuborilmoqda...';
+            statusEl.style.color = 'var(--color-text-muted)';
+
+            try {
+                const formData = new FormData();
+                formData.append('reportedUsername', reportedUsername);
+                formData.append('reason', reason);
+                formData.append('details', details);
+                if (fileInput.files[0]) {
+                    formData.append('screenshot', fileInput.files[0]);
+                }
+
+                const res = await fetch('/api/report', { method: 'POST', body: formData });
+                if (!res.ok) throw new Error('Server error');
+
+                statusEl.textContent = 'Shikoyat yuborildi. Rahmat!';
+                statusEl.style.color = 'var(--color-success)';
+                setTimeout(() => {
+                    document.getElementById('reportModal').style.display = 'none';
+                    document.getElementById('reportForm').reset();
+                    statusEl.textContent = '';
+                }, 1500);
+            } catch (err) {
+                console.error('Report submit failed:', err);
+                statusEl.textContent = "Xatolik yuz berdi. Qaytadan urinib ko'ring.";
+                statusEl.style.color = 'var(--color-error)';
+            }
+        });
+    </script>
 
     <script>
         function initials(name) {
