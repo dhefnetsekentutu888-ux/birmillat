@@ -5,11 +5,19 @@ const path = require('path');
 const http = require('http');
 const { Server: SocketIOServer } = require('socket.io');
 const { createClient } = require('@libsql/client');
+const multer = require('multer');
 
 const app = express();
 const httpServer = http.createServer(app);
 const io = new SocketIOServer(httpServer);
 const PORT = process.env.PORT || 3000;
+
+// In-memory storage is fine here — screenshots are forwarded straight to
+// Telegram and never written to disk or the database.
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 } // Telegram's own sendPhoto limit is 10MB
+});
 
 // ---------- Database setup (Turso / libSQL) ----------
 // These two values come from Render's Environment tab — never hardcode them here.
@@ -425,6 +433,10 @@ app.get('/messages', (req, res) => {
     res.sendFile(path.join(__dirname, 'messages.html'));
 });
 
+app.get('/contact', (req, res) => {
+    res.sendFile(path.join(__dirname, 'contact.html'));
+});
+
 app.get('/profile', (req, res) => {
     if (!req.session.userId) return res.redirect('/login');
     res.sendFile(path.join(__dirname, 'profile.html'));
@@ -562,9 +574,106 @@ app.get('/api/messages/:username', async (req, res) => {
     }
 });
 
-// ---------- Real-time messaging (Socket.IO) ----------
-// Track which socket(s) belong to which logged-in user, so we can push
-// messages straight to them if they're online.
+// ---------- Telegram bot notifications (reports + contact/ads inquiries) ----------
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const TELEGRAM_ADMIN_CHAT_ID = '8220562180';
+
+async function sendTelegramMessage(text) {
+    if (!TELEGRAM_BOT_TOKEN) {
+        console.error('TELEGRAM_BOT_TOKEN is not set — cannot send Telegram notification');
+        return { ok: false };
+    }
+    const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            chat_id: TELEGRAM_ADMIN_CHAT_ID,
+            text,
+            parse_mode: 'HTML'
+        })
+    });
+    return res.json();
+}
+
+async function sendTelegramPhoto(buffer, filename, caption) {
+    if (!TELEGRAM_BOT_TOKEN) {
+        console.error('TELEGRAM_BOT_TOKEN is not set — cannot send Telegram notification');
+        return { ok: false };
+    }
+    const form = new FormData();
+    form.append('chat_id', TELEGRAM_ADMIN_CHAT_ID);
+    form.append('caption', caption);
+    form.append('parse_mode', 'HTML');
+    form.append('photo', new Blob([buffer]), filename || 'screenshot.jpg');
+
+    const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, {
+        method: 'POST',
+        body: form
+    });
+    return res.json();
+}
+
+function escapeHtmlForTelegram(str) {
+    return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+
+// Report a user, with an optional screenshot attached
+app.post('/api/report', upload.single('screenshot'), async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const reporter = await getUserById(req.session.userId);
+        const { reportedUsername, reason, details } = req.body;
+
+        if (!reportedUsername || !reason) {
+            return res.status(400).json({ error: "Foydalanuvchi va sabab ko'rsatilishi shart" });
+        }
+
+        const caption =
+            `🚩 <b>Yangi shikoyat</b>\n\n` +
+            `<b>Shikoyat qilingan:</b> @${escapeHtmlForTelegram(reportedUsername)}\n` +
+            `<b>Shikoyat qildi:</b> @${escapeHtmlForTelegram(reporter.username)}\n` +
+            `<b>Sabab:</b> ${escapeHtmlForTelegram(reason)}\n` +
+            (details ? `<b>Tafsilotlar:</b> ${escapeHtmlForTelegram(details)}` : '');
+
+        if (req.file) {
+            await sendTelegramPhoto(req.file.buffer, req.file.originalname, caption);
+        } else {
+            await sendTelegramMessage(caption);
+        }
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error('api/report error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// General contact / business / ad inquiries — no login required
+app.post('/api/contact', async (req, res) => {
+    try {
+        const { name, contact, message } = req.body;
+        if (!message || !message.trim()) {
+            return res.status(400).json({ error: 'Xabar bo‘sh bo‘lishi mumkin emas' });
+        }
+
+        const text =
+            `📩 <b>Yangi murojaat</b>\n\n` +
+            `<b>Ism:</b> ${escapeHtmlForTelegram(name || 'Ko‘rsatilmagan')}\n` +
+            `<b>Aloqa:</b> ${escapeHtmlForTelegram(contact || 'Ko‘rsatilmagan')}\n` +
+            `<b>Xabar:</b> ${escapeHtmlForTelegram(message)}`;
+
+        await sendTelegramMessage(text);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('api/contact error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+
 const onlineUsers = new Map(); // userId -> Set of socket ids
 
 // Official Socket.IO v4 pattern: attach the same session middleware used by
