@@ -39,6 +39,28 @@ async function initDb() {
         )
     `);
 
+    // Add email + verification columns for existing databases that predate this feature.
+    // ALTER TABLE ADD COLUMN can't add UNIQUE directly, so uniqueness is enforced
+    // separately below via a unique index (which allows multiple NULLs, so old
+    // accounts without an email yet don't conflict with each other).
+    try { await db.execute(`ALTER TABLE users ADD COLUMN email TEXT`); } catch (e) {}
+    try { await db.execute(`ALTER TABLE users ADD COLUMN is_verified INTEGER DEFAULT 0`); } catch (e) {}
+    await db.execute(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users (email)`);
+
+    // Email verification codes (used at registration and for password reset)
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS verification_codes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT NOT NULL,
+            code TEXT NOT NULL,
+            purpose TEXT NOT NULL,
+            expires_at INTEGER NOT NULL,
+            used INTEGER DEFAULT 0,
+            created_at INTEGER NOT NULL
+        )
+    `);
+    await db.execute(`CREATE INDEX IF NOT EXISTS idx_verification_email ON verification_codes (email, purpose)`);
+
     // Simple session store table (replaces connect-sqlite3, which wrote to local disk)
     await db.execute(`
         CREATE TABLE IF NOT EXISTS sessions (
@@ -72,6 +94,14 @@ async function getUser(username) {
     return result.rows[0] || null;
 }
 
+async function getUserByEmail(email) {
+    const result = await db.execute({
+        sql: 'SELECT * FROM users WHERE email = ?',
+        args: [email]
+    });
+    return result.rows[0] || null;
+}
+
 async function getUserById(id) {
     const result = await db.execute({
         sql: 'SELECT * FROM users WHERE id = ?',
@@ -80,11 +110,57 @@ async function getUserById(id) {
     return result.rows[0] || null;
 }
 
-async function createUser(username, passwordHash) {
-    return db.execute({
-        sql: 'INSERT INTO users (username, password, name) VALUES (?, ?, ?)',
-        args: [username, passwordHash, username]
+async function createUser(username, email, passwordHash) {
+    const result = await db.execute({
+        sql: 'INSERT INTO users (username, email, password, name, is_verified) VALUES (?, ?, ?, ?, 0)',
+        args: [username, email, passwordHash, username]
     });
+    return Number(result.lastInsertRowid);
+}
+
+async function markUserVerified(email) {
+    return db.execute({
+        sql: 'UPDATE users SET is_verified = 1 WHERE email = ?',
+        args: [email]
+    });
+}
+
+async function updateUserPassword(email, passwordHash) {
+    return db.execute({
+        sql: 'UPDATE users SET password = ? WHERE email = ?',
+        args: [passwordHash, email]
+    });
+}
+
+function generateSixDigitCode() {
+    return String(Math.floor(100000 + Math.random() * 900000));
+}
+
+async function createVerificationCode(email, purpose) {
+    const code = generateSixDigitCode();
+    const now = Date.now();
+    const expiresAt = now + 15 * 60 * 1000; // 15 minutes
+    await db.execute({
+        sql: `INSERT INTO verification_codes (email, code, purpose, expires_at, used, created_at)
+              VALUES (?, ?, ?, ?, 0, ?)`,
+        args: [email, code, purpose, expiresAt, now]
+    });
+    return code;
+}
+
+async function verifyCode(email, code, purpose) {
+    const result = await db.execute({
+        sql: `SELECT * FROM verification_codes
+              WHERE email = ? AND code = ? AND purpose = ? AND used = 0
+              ORDER BY created_at DESC LIMIT 1`,
+        args: [email, code, purpose]
+    });
+    const row = result.rows[0];
+    if (!row) return { valid: false, reason: 'Kod noto‘g‘ri' };
+    if (row.expires_at < Date.now()) return { valid: false, reason: 'Kod muddati tugagan' };
+
+    await db.execute({ sql: 'UPDATE verification_codes SET used = 1 WHERE id = ?', args: [row.id] });
+    return { valid: true };
 }
 
 async function updateUserProfile(username, name, bio, interests) {
@@ -265,6 +341,7 @@ function renderRegisterPage(message, isError = true) {
         <h2>Hisob yaratish</h2>
         ${message ? `<div class="message ${msgClass}">${message}</div>` : ''}
         <form method=post action=/register id="registerForm">
+            <input type=email name=email placeholder="Email manzilingiz" required>
             <input name=username placeholder="Foydalanuvchi nomi" required>
 
             <div class="pw-field">
@@ -301,7 +378,8 @@ function renderRegisterPage(message, isError = true) {
     </body></html>`;
 }
 
-function renderLoginPage(errorMsg) {
+function renderLoginPage(message, isError = true) {
+    const msgClass = isError ? 'error' : 'success';
     return `<!DOCTYPE html><html><head><title>Kirish - BirMillat</title>
     <link rel="icon" type="image/png" href="/favicon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -324,15 +402,16 @@ function renderLoginPage(errorMsg) {
     </head>
     <body class="auth-shell"><div class="auth-card">
         <img src="/logo-full.svg" alt="BirMillat" class="auth-logo">        <h2>Xush kelibsiz</h2>
-        ${errorMsg ? `<div class="message error">${errorMsg}</div>` : ''}
+        ${message ? `<div class="message ${msgClass}">${message}</div>` : ''}
         <form method=post action=/login>
-            <input name=username placeholder="Foydalanuvchi nomi" required>
+            <input name=identifier placeholder="Email yoki foydalanuvchi nomi" required>
             <div class="pw-field">
                 <input type=password name=password id=password placeholder="Parol" required>
                 <button type="button" class="pw-toggle" data-target="password" aria-label="Parolni ko'rsatish">${eyeIconOpen()}</button>
             </div>
             <button type=submit>Kirish</button>
         </form>
+        <p><a href=/forgot-password style="font-size:0.85rem;">Parolni unutdingizmi?</a></p>
         <p>Hisobingiz yo'q? <a href=/register>Ro'yxatdan o'tish</a></p>
     </div>
     <script>${passwordToggleScript()}</script>
@@ -377,13 +456,22 @@ app.get('/login', (req, res) => {
 
 app.post('/login', async (req, res) => {
     try {
-        const { username, password } = req.body;
-        const user = await getUser(username);
+        const { identifier, password } = req.body;
+        const clean = (identifier || '').trim();
+        const user = clean.includes('@')
+            ? await getUserByEmail(clean.toLowerCase())
+            : await getUser(clean);
+
         if (!user) return res.send(renderLoginPage('❌ Login noto‘g‘ri'));
         const match = await bcrypt.compare(password, user.password);
         if (!match) return res.send(renderLoginPage('❌ Parol noto‘g‘ri'));
+
+        if (!user.is_verified && user.email) {
+            return res.redirect(`/verify?email=${encodeURIComponent(user.email)}`);
+        }
+
         req.session.userId = user.id;
-        req.session.username = username;
+        req.session.username = user.username;
         res.redirect('/home');
     } catch (err) {
         console.error('Login error:', err);
@@ -396,25 +484,122 @@ app.get('/register', (req, res) => {
     res.send(renderRegisterPage(''));
 });
 
+function isValidEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
 app.post('/register', async (req, res) => {
     try {
-        const { username, password, confirmPassword } = req.body;
-        if (!username || !password || password.length < 8) {
+        const { username, email, password, confirmPassword } = req.body;
+        const cleanEmail = (email || '').trim().toLowerCase();
+
+        if (!username || !cleanEmail || !password) {
+            return res.send(renderRegisterPage('Barcha maydonlarni to‘ldiring', true));
+        }
+        if (!isValidEmail(cleanEmail)) {
+            return res.send(renderRegisterPage('Email manzili noto‘g‘ri', true));
+        }
+        if (password.length < 8) {
             return res.send(renderRegisterPage('Parol kamida 8 belgi bo‘lishi kerak', true));
         }
         if (password !== confirmPassword) {
             return res.send(renderRegisterPage('Parollar mos kelmadi', true));
         }
-        const existing = await getUser(username);
-        if (existing) {
-            return res.send(renderRegisterPage('Bunday foydalanuvchi mavjud', true));
+
+        const existingUsername = await getUser(username);
+        if (existingUsername) {
+            return res.send(renderRegisterPage('Bunday foydalanuvchi nomi band', true));
         }
+        const existingEmail = await getUserByEmail(cleanEmail);
+        if (existingEmail) {
+            return res.send(renderRegisterPage('Bu email allaqachon ro‘yxatdan o‘tgan', true));
+        }
+
         const hashed = await bcrypt.hash(password, 10);
-        await createUser(username, hashed);
-        res.send(renderRegisterPage('Muvaffaqiyatli ro‘yxatdan o‘tdingiz! <a href="/login">Kirishingiz</a> mumkin.', false));
+        await createUser(username, cleanEmail, hashed);
+
+        const code = await createVerificationCode(cleanEmail, 'register');
+        await sendEmail(cleanEmail, 'BirMillat — tasdiqlash kodi', verificationEmailHtml(code));
+
+        res.redirect(`/verify?email=${encodeURIComponent(cleanEmail)}`);
     } catch (err) {
         console.error('Register error:', err);
         res.send(renderRegisterPage('❌ Server xatosi, qaytadan urinib ko‘ring', true));
+    }
+});
+
+function renderVerifyPage(email, message, isError = true) {
+    const msgClass = isError ? 'error' : 'success';
+    return `<!DOCTYPE html><html><head><title>Emailni tasdiqlash - BirMillat</title>
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/style.css">
+    <style>
+        .auth-logo { height: 40px; margin-bottom: 1rem; }
+        .code-input {
+            font-size: 1.6rem; letter-spacing: 6px; text-align: center;
+            font-weight: 700; color: var(--color-primary);
+        }
+        .resend-link { font-size: 0.85rem; margin-top: 0.8rem; display: inline-block; }
+    </style>
+    </head>
+    <body class="auth-shell"><div class="auth-card">
+        <img src="/logo-full.svg" alt="BirMillat" class="auth-logo">
+        <h2>Emailni tasdiqlash</h2>
+        <p style="color:var(--color-text-muted); font-size:0.9rem; margin-bottom:1rem;">
+            <strong>${email}</strong> manziliga 6 xonali kod yubordik.
+        </p>
+        ${message ? `<div class="message ${msgClass}">${message}</div>` : ''}
+        <form method=post action=/verify>
+            <input type=hidden name=email value="${email}">
+            <input name=code class="code-input" placeholder="000000" maxlength=6 inputmode="numeric" required>
+            <button type=submit>Tasdiqlash</button>
+        </form>
+        <form method=post action=/verify/resend>
+            <input type=hidden name=email value="${email}">
+            <button type=submit class="resend-link" style="background:none; border:none; color:var(--color-accent); cursor:pointer; width:auto; padding:0;">Kodni qayta yuborish</button>
+        </form>
+    </div></body></html>`;
+}
+
+app.get('/verify', (req, res) => {
+    const email = (req.query.email || '').trim().toLowerCase();
+    if (!email) return res.redirect('/register');
+    res.send(renderVerifyPage(email, ''));
+});
+
+app.post('/verify', async (req, res) => {
+    try {
+        const email = (req.body.email || '').trim().toLowerCase();
+        const code = (req.body.code || '').trim();
+
+        const result = await verifyCode(email, code, 'register');
+        if (!result.valid) {
+            return res.send(renderVerifyPage(email, result.reason, true));
+        }
+
+        await markUserVerified(email);
+        const user = await getUserByEmail(email);
+        req.session.userId = user.id;
+        req.session.username = user.username;
+        res.redirect('/home');
+    } catch (err) {
+        console.error('Verify error:', err);
+        res.send(renderVerifyPage(req.body.email || '', '❌ Server xatosi', true));
+    }
+});
+
+app.post('/verify/resend', async (req, res) => {
+    try {
+        const email = (req.body.email || '').trim().toLowerCase();
+        const code = await createVerificationCode(email, 'register');
+        await sendEmail(email, 'BirMillat — tasdiqlash kodi', verificationEmailHtml(code));
+        res.send(renderVerifyPage(email, 'Yangi kod yuborildi', false));
+    } catch (err) {
+        console.error('Resend code error:', err);
+        res.send(renderVerifyPage(req.body.email || '', '❌ Server xatosi', true));
     }
 });
 
@@ -456,6 +641,108 @@ app.get('/logout', (req, res) => {
     req.session.destroy(() => {
         res.redirect('/');
     });
+});
+
+// ---------- Forgot password flow ----------
+function renderForgotPasswordPage(message, isError = true) {
+    const msgClass = isError ? 'error' : 'success';
+    return `<!DOCTYPE html><html><head><title>Parolni tiklash - BirMillat</title>
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/style.css">
+    <style>.auth-logo { height: 40px; margin-bottom: 1rem; }</style>
+    </head>
+    <body class="auth-shell"><div class="auth-card">
+        <img src="/logo-full.svg" alt="BirMillat" class="auth-logo">
+        <h2>Parolni tiklash</h2>
+        <p style="color:var(--color-text-muted); font-size:0.9rem; margin-bottom:1rem;">Ro'yxatdan o'tgan email manzilingizni kiriting — kod yuboramiz.</p>
+        ${message ? `<div class="message ${msgClass}">${message}</div>` : ''}
+        <form method=post action=/forgot-password>
+            <input type=email name=email placeholder="Email manzilingiz" required>
+            <button type=submit>Kod yuborish</button>
+        </form>
+        <p><a href=/login style="font-size:0.85rem;">Kirishga qaytish</a></p>
+    </div></body></html>`;
+}
+
+function renderResetPasswordPage(email, message, isError = true) {
+    const msgClass = isError ? 'error' : 'success';
+    return `<!DOCTYPE html><html><head><title>Yangi parol - BirMillat</title>
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/style.css">
+    <style>
+        .auth-logo { height: 40px; margin-bottom: 1rem; }
+        .code-input { font-size: 1.4rem; letter-spacing: 4px; text-align: center; font-weight: 700; color: var(--color-primary); }
+    </style>
+    </head>
+    <body class="auth-shell"><div class="auth-card">
+        <img src="/logo-full.svg" alt="BirMillat" class="auth-logo">
+        <h2>Yangi parol o'rnatish</h2>
+        <p style="color:var(--color-text-muted); font-size:0.9rem; margin-bottom:1rem;"><strong>${email}</strong> manziliga yuborilgan kodni kiriting.</p>
+        ${message ? `<div class="message ${msgClass}">${message}</div>` : ''}
+        <form method=post action=/reset-password>
+            <input type=hidden name=email value="${email}">
+            <input name=code class="code-input" placeholder="000000" maxlength=6 inputmode="numeric" required>
+            <input type=password name=password placeholder="Yangi parol (kamida 8 belgi)" minlength=8 required>
+            <input type=password name=confirmPassword placeholder="Yangi parolni takrorlang" minlength=8 required>
+            <button type=submit>Parolni saqlash</button>
+        </form>
+    </div></body></html>`;
+}
+
+app.get('/forgot-password', (req, res) => {
+    res.send(renderForgotPasswordPage(''));
+});
+
+app.post('/forgot-password', async (req, res) => {
+    try {
+        const email = (req.body.email || '').trim().toLowerCase();
+        const user = await getUserByEmail(email);
+
+        // Always show the same message whether or not the email exists,
+        // so this endpoint can't be used to check which emails are registered.
+        if (user) {
+            const code = await createVerificationCode(email, 'reset');
+            await sendEmail(email, 'BirMillat — parolni tiklash kodi', verificationEmailHtml(code));
+        }
+
+        res.send(renderResetPasswordPage(email, 'Agar bu email ro‘yxatdan o‘tgan bo‘lsa, kod yuborildi.', false));
+    } catch (err) {
+        console.error('Forgot password error:', err);
+        res.send(renderForgotPasswordPage('❌ Server xatosi, qaytadan urinib ko‘ring', true));
+    }
+});
+
+app.post('/reset-password', async (req, res) => {
+    try {
+        const email = (req.body.email || '').trim().toLowerCase();
+        const { code, password, confirmPassword } = req.body;
+
+        if (password.length < 8) {
+            return res.send(renderResetPasswordPage(email, 'Parol kamida 8 belgi bo‘lishi kerak', true));
+        }
+        if (password !== confirmPassword) {
+            return res.send(renderResetPasswordPage(email, 'Parollar mos kelmadi', true));
+        }
+
+        const result = await verifyCode(email, code, 'reset');
+        if (!result.valid) {
+            return res.send(renderResetPasswordPage(email, result.reason, true));
+        }
+
+        const hashed = await bcrypt.hash(password, 10);
+        await updateUserPassword(email, hashed);
+
+        res.send(renderLoginPage('✅ Parolingiz yangilandi. Endi kirishingiz mumkin.', false));
+    } catch (err) {
+        console.error('Reset password error:', err);
+        res.send(renderResetPasswordPage(req.body.email || '', '❌ Server xatosi', true));
+    }
 });
 
 // API endpoints
@@ -578,6 +865,44 @@ app.get('/api/messages/:username', async (req, res) => {
         res.status(500).json({ error: 'Server error' });
     }
 });
+
+// ---------- Email sending (Resend) ----------
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+// NOTE: until birmillat.uz is verified as a sending domain in Resend, this
+// "from" address must stay as onboarding@resend.dev, and Resend will only
+// actually deliver to the email address on the Resend account itself.
+const EMAIL_FROM = process.env.RESEND_FROM_EMAIL || 'BirMillat <onboarding@resend.dev>';
+
+async function sendEmail(to, subject, html) {
+    if (!RESEND_API_KEY) {
+        console.error('RESEND_API_KEY is not set — cannot send email');
+        return { ok: false };
+    }
+    const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${RESEND_API_KEY}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ from: EMAIL_FROM, to, subject, html })
+    });
+    if (!res.ok) {
+        const errText = await res.text();
+        console.error('Resend send failed:', res.status, errText);
+        return { ok: false };
+    }
+    return { ok: true };
+}
+
+function verificationEmailHtml(code) {
+    return `
+    <div style="font-family:sans-serif; max-width:420px; margin:0 auto; padding:2rem; background:#FAF7F2;">
+        <h2 style="color:#2D1B69;">BirMillat</h2>
+        <p style="color:#1A1625; font-size:16px;">Tasdiqlash kodingiz:</p>
+        <div style="font-size:32px; font-weight:700; letter-spacing:4px; color:#FF6B5B; margin:1rem 0;">${code}</div>
+        <p style="color:#6B6478; font-size:13px;">Bu kod 15 daqiqa davomida amal qiladi. Agar siz bu so'rovni yubormagan bo'lsangiz, bu xabarni e'tiborsiz qoldiring.</p>
+    </div>`;
+}
 
 // ---------- Telegram bot notifications (reports + contact/ads inquiries) ----------
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
