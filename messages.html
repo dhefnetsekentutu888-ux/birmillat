@@ -116,6 +116,16 @@
         margin-top: 0.25rem;
         display: block;
     }
+    .date-divider {
+        align-self: center;
+        background: var(--color-bg);
+        color: var(--color-text-muted);
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 0.3rem 0.9rem;
+        border-radius: var(--radius-pill);
+        margin: 0.6rem 0;
+    }
 
     .chat-empty-state, .no-conv-selected {
         flex: 1;
@@ -213,6 +223,7 @@
         let myUsername = null;
         let activeChatWith = null;
         let socket = null;
+        let lastShownDate = null;
 
         function initials(name) {
             if (!name) return '?';
@@ -223,6 +234,24 @@
         function formatTime(ts) {
             const d = new Date(ts);
             return d.toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function isSameDay(a, b) {
+            return a.getFullYear() === b.getFullYear() &&
+                   a.getMonth() === b.getMonth() &&
+                   a.getDate() === b.getDate();
+        }
+
+        function formatDateDivider(ts) {
+            const d = new Date(ts);
+            const now = new Date();
+            const yesterday = new Date(now);
+            yesterday.setDate(now.getDate() - 1);
+
+            if (isSameDay(d, now)) return 'Bugun';
+            if (isSameDay(d, yesterday)) return 'Kecha';
+
+            return d.toLocaleDateString('uz-UZ', { day: 'numeric', month: 'long', year: 'numeric' });
         }
 
         async function loadMe() {
@@ -292,6 +321,16 @@
         function appendMessage(content, isMine, createdAt) {
             const messagesEl = document.getElementById('chatMessages');
             if (!messagesEl) return;
+
+            const msgDate = new Date(createdAt);
+            if (!lastShownDate || !isSameDay(msgDate, lastShownDate)) {
+                const divider = document.createElement('div');
+                divider.className = 'date-divider';
+                divider.textContent = formatDateDivider(createdAt);
+                messagesEl.appendChild(divider);
+                lastShownDate = msgDate;
+            }
+
             const bubble = document.createElement('div');
             bubble.className = 'msg-bubble ' + (isMine ? 'mine' : 'theirs');
             bubble.innerHTML = `${escapeHtml(content)}<span class="msg-time">${formatTime(createdAt)}</span>`;
@@ -307,6 +346,7 @@
 
         async function openChat(username, name) {
             activeChatWith = username;
+            lastShownDate = null;
             document.querySelectorAll('.conv-item').forEach(el => {
                 el.classList.toggle('active', el.dataset.username === username);
             });
