@@ -240,6 +240,7 @@ app.use(express.static(path.join(__dirname)));
 function renderRegisterPage(message, isError = true) {
     const msgClass = isError ? 'error' : 'success';
     return `<!DOCTYPE html><html><head><title>Ro'yxatdan o'tish - BirMillat</title>
+    <link rel="icon" type="image/png" href="/favicon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -256,9 +257,11 @@ function renderRegisterPage(message, isError = true) {
         }
         .auth-card .pw-toggle:hover { color: var(--color-text); background: none !important; }
         .field-error { color: var(--color-error); font-size: 0.8rem; text-align: left; margin: -0.3rem 0 0.6rem; min-height: 1em; }
+        .auth-logo { height: 40px; margin-bottom: 1rem; }
     </style>
     </head>
     <body class="auth-shell"><div class="auth-card">
+        <img src="/logo-full.svg" alt="BirMillat" class="auth-logo">
         <h2>Hisob yaratish</h2>
         ${message ? `<div class="message ${msgClass}">${message}</div>` : ''}
         <form method=post action=/register id="registerForm">
@@ -300,6 +303,7 @@ function renderRegisterPage(message, isError = true) {
 
 function renderLoginPage(errorMsg) {
     return `<!DOCTYPE html><html><head><title>Kirish - BirMillat</title>
+    <link rel="icon" type="image/png" href="/favicon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -315,10 +319,11 @@ function renderLoginPage(errorMsg) {
             color: var(--color-text-muted); display: flex; align-items: center; justify-content: center;
         }
         .auth-card .pw-toggle:hover { color: var(--color-text); background: none !important; }
+        .auth-logo { height: 40px; margin-bottom: 1rem; }
     </style>
     </head>
     <body class="auth-shell"><div class="auth-card">
-        <h2>Xush kelibsiz</h2>
+        <img src="/logo-full.svg" alt="BirMillat" class="auth-logo">        <h2>Xush kelibsiz</h2>
         ${errorMsg ? `<div class="message error">${errorMsg}</div>` : ''}
         <form method=post action=/login>
             <input name=username placeholder="Foydalanuvchi nomi" required>
