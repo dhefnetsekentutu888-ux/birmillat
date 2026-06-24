@@ -157,7 +157,7 @@
         </div>
     </div>
 
-    <footer>BirMillat – qiziqishlar asosida do'stlar toping.</footer>
+    <footer>BirMillat – qiziqishlar asosida do'stlar toping.<br><span style="opacity:0.8;">Founder — Bekhruz Ravshanov</span></footer>
 
     <script>
         const avatarIcons = ['fa-robot', 'fa-code', 'fa-cloud', 'fa-gamepad', 'fa-brain', 'fa-server', 'fa-star', 'fa-book'];
@@ -203,8 +203,12 @@
 
                 grid.innerHTML = '';
                 users.forEach(user => {
-                    const card = document.createElement('div');
+                    const card = document.createElement('a');
                     card.className = 'user-card card';
+                    card.href = `/u/${encodeURIComponent(user.username)}`;
+                    card.style.textDecoration = 'none';
+                    card.style.color = 'inherit';
+                    card.style.display = 'block';
                     const interests = user.interests || [];
                     card.innerHTML = `
                         <div class="card-top">
@@ -232,6 +236,8 @@
         document.addEventListener('click', (e) => {
             const btn = e.target.closest('.follow-btn');
             if (btn) {
+                e.preventDefault();
+                e.stopPropagation();
                 const name = btn.getAttribute('data-name') || 'foydalanuvchi';
                 btn.innerHTML = '<i class="fas fa-check"></i> So\'rov yuborildi';
                 btn.disabled = true;
