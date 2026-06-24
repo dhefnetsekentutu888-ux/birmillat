@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/png" href="/favicon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BirMillat – Tadbir</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="/style.css">
+<style>
+    .detail-shell { max-width: 680px; margin: 2rem auto; padding: 0 1.5rem; }
+    .detail-card { padding: 2.2rem; margin-bottom: 1.5rem; }
+    .event-date-badge {
+        display: inline-flex; align-items: center; gap: 0.4rem; background: #EFEAF8; color: var(--color-primary);
+        font-weight: 700; font-size: 0.8rem; padding: 0.35rem 0.9rem; border-radius: var(--radius-pill); margin-bottom: 1rem;
+    }
+    .detail-card h1 { font-size: 1.6rem; margin-bottom: 1rem; }
+    .meta-row { display: flex; align-items: center; gap: 0.6rem; color: var(--color-text-muted); font-size: 0.92rem; margin-bottom: 0.6rem; }
+    .meta-row i { width: 18px; color: var(--color-primary); }
+    .description { margin: 1.2rem 0; line-height: 1.6; color: var(--color-text); }
+    .join-row { display: flex; gap: 0.8rem; align-items: center; margin-top: 1.4rem; }
+    .attendee-list { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 0.8rem; }
+    .attendee-chip {
+        background: var(--color-bg); padding: 0.35rem 0.9rem; border-radius: var(--radius-pill);
+        font-size: 0.82rem; font-weight: 600; color: var(--color-primary);
+    }
+    .not-found { text-align: center; padding: 4rem 1.5rem; color: var(--color-text-muted); }
+</style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/home" class="logo"><img src="/logo-full.svg" alt="BirMillat" style="height:34px; display:block;"></a>
+        <div class="nav-links">
+            <a href="/home">Bosh sahifa</a>
+            <a href="/recommend">Tavsiyalar</a>
+            <a href="/events" class="active">Tadbirlar</a>
+            <a href="/search">Qidiruv</a>
+            <a href="/messages">Xabarlar</a>
+            <a href="/profile">Profil</a>
+            <a href="/logout">Chiqish</a>
+        </div>
+        <div class="user-badge" id="userBadge">👤 ...</div>
+    </nav>
+
+    <div class="detail-shell" id="detailRoot">
+        <p style="color:var(--color-text-muted); text-align:center; padding:3rem 0;">Yuklanmoqda...</p>
+    </div>
+
+    <footer>BirMillat – qiziqishlar asosida do'stlar toping.<br><span style="opacity:0.8;">Founder — Bekhruz Ravshanov</span></footer>
+
+    <script>
+        function getEventId() {
+            const parts = window.location.pathname.split('/').filter(Boolean);
+            return parts[parts.length - 1];
+        }
+
+        function formatEventDate(ts) {
+            const d = new Date(ts);
+            return d.toLocaleString('uz-UZ', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+        }
+
+        async function loadMe() {
+            const res = await fetch('/api/me');
+            if (!res.ok) { window.location.href = '/login'; return null; }
+            const me = await res.json();
+            document.getElementById('userBadge').textContent = '👤 ' + me.username;
+            return me;
+        }
+
+        async function toggleJoin(eventId, isAttending) {
+            const url = `/api/events/${eventId}/${isAttending ? 'leave' : 'join'}`;
+            try {
+                const res = await fetch(url, { method: 'POST' });
+                if (!res.ok) throw new Error('Server error');
+                loadEvent();
+            } catch (e) {
+                console.error('Join/leave failed:', e);
+                alert("Xatolik yuz berdi. Qaytadan urinib ko'ring.");
+            }
+        }
+
+        async function loadEvent() {
+            const eventId = getEventId();
+            const root = document.getElementById('detailRoot');
+
+            try {
+                const res = await fetch(`/api/events/${eventId}`);
+                if (!res.ok) {
+                    root.innerHTML = `<div class="not-found"><i class="fas fa-calendar-xmark" style="font-size:2.4rem; color:var(--color-border); display:block; margin-bottom:1rem;"></i><p>Bu tadbir topilmadi yoki hali tasdiqlanmagan.</p></div>`;
+                    return;
+                }
+                const ev = await res.json();
+                const isFull = ev.capacity && ev.attendees.length >= ev.capacity;
+
+                root.innerHTML = `
+                    <div class="detail-card card">
+                        <div class="event-date-badge"><i class="fas fa-calendar"></i> ${formatEventDate(ev.event_date)}</div>
+                        <h1>${ev.title}</h1>
+                        <div class="meta-row"><i class="fas fa-tag"></i> ${ev.category}</div>
+                        <div class="meta-row"><i class="fas ${ev.mode === 'online' ? 'fa-video' : 'fa-location-dot'}"></i> ${ev.mode === 'online' ? (ev.location || 'Onlayn havola tez orada qo\'shiladi') : (ev.location || 'Joylashuv ko\'rsatilmagan')}</div>
+                        <div class="meta-row"><i class="fas fa-user"></i> Tashkilotchi: <a href="/u/${ev.creator_username}">@${ev.creator_username}</a></div>
+                        <div class="meta-row"><i class="fas fa-users"></i> ${ev.attendees.length}${ev.capacity ? ' / ' + ev.capacity : ''} qatnashuvchi</div>
+                        ${ev.description ? `<p class="description">${ev.description}</p>` : ''}
+
+                        <div class="join-row">
+                            ${ev.isCreator
+                                ? `<span style="color:var(--color-text-muted); font-size:0.9rem;"><i class="fas fa-star"></i> Siz bu tadbirni yaratdingiz</span>`
+                                : `<button class="btn ${ev.isAttending ? 'btn-cancel' : 'btn-primary'}" id="joinBtn" ${isFull && !ev.isAttending ? 'disabled' : ''} style="${ev.isAttending ? 'border:1.5px solid var(--color-border); background:transparent; color:var(--color-text-muted);' : ''}">
+                                    <i class="fas ${ev.isAttending ? 'fa-circle-check' : 'fa-calendar-plus'}"></i>
+                                    ${ev.isAttending ? "Qatnashasiz \u2014 bekor qilish" : (isFull ? "To'lgan" : "Qatnashish")}
+                                  </button>`
+                            }
+                        </div>
+
+                        ${ev.attendees.length > 0 ? `
+                            <div class="section-label" style="margin-top:1.6rem;">Qatnashuvchilar</div>
+                            <div class="attendee-list">
+                                ${ev.attendees.map(a => `<a href="/u/${a.username}" class="attendee-chip">@${a.username}</a>`).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+
+                const joinBtn = document.getElementById('joinBtn');
+                if (joinBtn) {
+                    joinBtn.addEventListener('click', () => toggleJoin(ev.id, ev.isAttending));
+                }
+            } catch (e) {
+                console.error('Failed to load event:', e);
+                root.innerHTML = `<div class="not-found">Yuklab bo'lmadi. Sahifani qaytadan yuklang.</div>`;
+            }
+        }
+
+        (async () => {
+            await loadMe();
+            loadEvent();
+        })();
+    </script>
+</body>
+</html>
