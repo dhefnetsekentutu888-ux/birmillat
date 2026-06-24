@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/png" href="/favicon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BirMillat – Tadbir qo'shish</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="/style.css">
+<style>
+    .form-shell { max-width: 560px; margin: 2rem auto; padding: 0 1.5rem; }
+    .form-card { padding: 2.2rem; }
+    .form-card h1 { font-size: 1.5rem; margin-bottom: 0.4rem; }
+    .form-card > p { color: var(--color-text-muted); margin-bottom: 1.6rem; font-size: 0.9rem; }
+    .form-field { margin-bottom: 1.1rem; }
+    .form-field label {
+        display: block; font-size: 0.82rem; font-weight: 600; color: var(--color-text-muted);
+        margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.4px;
+    }
+    .form-field input, .form-field textarea, .form-field select {
+        width: 100%; padding: 0.75rem 1rem; border-radius: var(--radius-sm);
+        border: 1px solid var(--color-border); font-family: var(--font-body); font-size: 0.95rem; resize: vertical;
+    }
+    .form-field input:focus, .form-field textarea:focus, .form-field select:focus {
+        outline: 2px solid var(--color-accent); outline-offset: 1px;
+    }
+    .mode-toggle { display: flex; gap: 0.6rem; margin-bottom: 1.1rem; }
+    .mode-btn {
+        flex: 1; padding: 0.75rem; border-radius: var(--radius-sm); border: 1.5px solid var(--color-border);
+        background: var(--color-surface); color: var(--color-text); font-weight: 600; cursor: pointer;
+        display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: all 0.15s ease;
+    }
+    .mode-btn.active { border-color: var(--color-primary); background: #EFEAF8; color: var(--color-primary); }
+    .submit-status { font-size: 0.88rem; margin-top: 0.8rem; min-height: 1.2em; }
+    .submit-status.success { color: var(--color-success); }
+    .submit-status.error { color: var(--color-error); }
+    .approval-note {
+        background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+        padding: 0.8rem 1rem; font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: 1.4rem;
+        display: flex; gap: 0.6rem; align-items: flex-start;
+    }
+</style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/home" class="logo"><img src="/logo-full.svg" alt="BirMillat" style="height:34px; display:block;"></a>
+        <div class="nav-links">
+            <a href="/home">Bosh sahifa</a>
+            <a href="/recommend">Tavsiyalar</a>
+            <a href="/events" class="active">Tadbirlar</a>
+            <a href="/search">Qidiruv</a>
+            <a href="/messages">Xabarlar</a>
+            <a href="/profile">Profil</a>
+            <a href="/logout">Chiqish</a>
+        </div>
+        <div class="user-badge" id="userBadge">👤 ...</div>
+    </nav>
+
+    <div class="form-shell">
+        <div class="form-card card">
+            <h1><i class="fas fa-calendar-plus"></i> Yangi tadbir</h1>
+            <p>Tadbiringizni qo'shing — jamoamiz tasdiqlagandan so'ng u barchaga ko'rinadi.</p>
+
+            <div class="approval-note">
+                <i class="fas fa-circle-info" style="margin-top:0.15rem;"></i>
+                <span>Har bir tadbir e'lon qilinishidan oldin ko'rib chiqiladi. Odatda bu tez orada amalga oshadi.</span>
+            </div>
+
+            <form id="eventForm">
+                <div class="form-field">
+                    <label for="titleInput">Tadbir nomi</label>
+                    <input type="text" id="titleInput" placeholder="Masalan: IELTS Speaking Club" required>
+                </div>
+
+                <div class="form-field">
+                    <label for="categorySelect">Kategoriya</label>
+                    <select id="categorySelect">
+                        <option value="IELTS">IELTS</option>
+                        <option value="IT">IT / Dasturlash</option>
+                        <option value="Startup">Startup</option>
+                        <option value="Sport">Sport</option>
+                        <option value="Volontyorlik">Volontyorlik</option>
+                        <option value="Boshqa">Boshqa</option>
+                    </select>
+                </div>
+
+                <div class="form-field">
+                    <label>Format</label>
+                    <div class="mode-toggle">
+                        <button type="button" class="mode-btn active" data-mode="in_person"><i class="fas fa-location-dot"></i> Yuzma-yuz</button>
+                        <button type="button" class="mode-btn" data-mode="online"><i class="fas fa-video"></i> Onlayn</button>
+                    </div>
+                </div>
+
+                <div class="form-field" id="locationField">
+                    <label for="locationInput">Manzil</label>
+                    <input type="text" id="locationInput" placeholder="Masalan: Toshkent, Amir Temur ko'chasi 1">
+                </div>
+
+                <div class="form-field">
+                    <label for="dateInput">Sana va vaqt</label>
+                    <input type="datetime-local" id="dateInput" required>
+                </div>
+
+                <div class="form-field">
+                    <label for="capacityInput">Maksimal qatnashuvchilar (ixtiyoriy)</label>
+                    <input type="number" id="capacityInput" min="1" placeholder="Cheklov yo'q">
+                </div>
+
+                <div class="form-field">
+                    <label for="descInput">Tavsif</label>
+                    <textarea id="descInput" rows="4" placeholder="Tadbir haqida qisqacha ma'lumot"></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">
+                    <i class="fas fa-paper-plane"></i> Ko'rib chiqishga yuborish
+                </button>
+                <div class="submit-status" id="submitStatus"></div>
+            </form>
+        </div>
+    </div>
+
+    <footer>BirMillat – qiziqishlar asosida do'stlar toping.<br><span style="opacity:0.8;">Founder — Bekhruz Ravshanov</span></footer>
+
+    <script>
+        let selectedMode = 'in_person';
+
+        async function loadMe() {
+            try {
+                const res = await fetch('/api/me');
+                if (!res.ok) { window.location.href = '/login'; return; }
+                const me = await res.json();
+                document.getElementById('userBadge').textContent = '👤 ' + me.username;
+            } catch (e) { console.error(e); }
+        }
+
+        document.querySelectorAll('.mode-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                selectedMode = btn.getAttribute('data-mode');
+                const locationField = document.getElementById('locationField');
+                const locationLabel = locationField.querySelector('label');
+                const locationInput = document.getElementById('locationInput');
+                if (selectedMode === 'online') {
+                    locationLabel.textContent = 'Onlayn havola';
+                    locationInput.placeholder = 'Masalan: Zoom/Google Meet havolasi';
+                } else {
+                    locationLabel.textContent = 'Manzil';
+                    locationInput.placeholder = "Masalan: Toshkent, Amir Temur ko'chasi 1";
+                }
+            });
+        });
+
+        document.getElementById('eventForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const statusEl = document.getElementById('submitStatus');
+            const title = document.getElementById('titleInput').value.trim();
+            const dateVal = document.getElementById('dateInput').value;
+
+            if (!title || !dateVal) return;
+
+            statusEl.textContent = 'Yuborilmoqda...';
+            statusEl.className = 'submit-status';
+
+            try {
+                const res = await fetch('/api/events', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title,
+                        description: document.getElementById('descInput').value.trim(),
+                        category: document.getElementById('categorySelect').value,
+                        mode: selectedMode,
+                        location: document.getElementById('locationInput').value.trim(),
+                        eventDate: new Date(dateVal).toISOString(),
+                        capacity: document.getElementById('capacityInput').value || null
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Server error');
+
+                statusEl.textContent = "Tadbiringiz ko'rib chiqish uchun yuborildi! Tasdiqlangach, /tadbirlar bo'limida ko'rinadi.";
+                statusEl.className = 'submit-status success';
+                document.getElementById('eventForm').reset();
+            } catch (err) {
+                console.error('Event submit failed:', err);
+                statusEl.textContent = err.message || "Xatolik yuz berdi. Qaytadan urinib ko'ring.";
+                statusEl.className = 'submit-status error';
+            }
+        });
+
+        loadMe();
+    </script>
+</body>
+</html>
