@@ -61,6 +61,33 @@ async function initDb() {
     `);
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_verification_email ON verification_codes (email, purpose)`);
 
+    // Community events — submitted by users, require approval before going public
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            creator_id INTEGER NOT NULL,
+            title TEXT NOT NULL,
+            description TEXT,
+            category TEXT,
+            mode TEXT NOT NULL DEFAULT 'in_person',
+            location TEXT,
+            event_date INTEGER NOT NULL,
+            capacity INTEGER,
+            status TEXT NOT NULL DEFAULT 'pending',
+            created_at INTEGER NOT NULL
+        )
+    `);
+    await db.execute(`CREATE INDEX IF NOT EXISTS idx_events_status ON events (status, event_date)`);
+
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS event_attendees (
+            event_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            joined_at INTEGER NOT NULL,
+            PRIMARY KEY (event_id, user_id)
+        )
+    `);
+
     // Simple session store table (replaces connect-sqlite3, which wrote to local disk)
     await db.execute(`
         CREATE TABLE IF NOT EXISTS sessions (
@@ -257,6 +284,87 @@ async function markMessagesRead(senderId, receiverId) {
         sql: `UPDATE messages SET is_read = 1 WHERE sender_id = ? AND receiver_id = ? AND is_read = 0`,
         args: [senderId, receiverId]
     });
+}
+
+// ---------- Events ----------
+async function createEvent({ creatorId, title, description, category, mode, location, eventDate, capacity }) {
+    const result = await db.execute({
+        sql: `INSERT INTO events (creator_id, title, description, category, mode, location, event_date, capacity, status, created_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)`,
+        args: [creatorId, title, description, category, mode, location, eventDate, capacity || null, Date.now()]
+    });
+    return Number(result.lastInsertRowid);
+}
+
+async function getEventById(id) {
+    const result = await db.execute({
+        sql: `SELECT events.*, users.username AS creator_username, users.name AS creator_name
+              FROM events JOIN users ON users.id = events.creator_id
+              WHERE events.id = ?`,
+        args: [id]
+    });
+    return result.rows[0] || null;
+}
+
+async function getApprovedEvents(category) {
+    const now = Date.now();
+    if (category) {
+        const result = await db.execute({
+            sql: `SELECT events.*, users.username AS creator_username, users.name AS creator_name,
+                         (SELECT COUNT(*) FROM event_attendees WHERE event_attendees.event_id = events.id) AS attendee_count
+                  FROM events JOIN users ON users.id = events.creator_id
+                  WHERE events.status = 'approved' AND events.event_date >= ? AND events.category = ?
+                  ORDER BY events.event_date ASC`,
+            args: [now, category]
+        });
+        return result.rows;
+    }
+    const result = await db.execute({
+        sql: `SELECT events.*, users.username AS creator_username, users.name AS creator_name,
+                     (SELECT COUNT(*) FROM event_attendees WHERE event_attendees.event_id = events.id) AS attendee_count
+              FROM events JOIN users ON users.id = events.creator_id
+              WHERE events.status = 'approved' AND events.event_date >= ?
+              ORDER BY events.event_date ASC`,
+        args: [now]
+    });
+    return result.rows;
+}
+
+async function setEventStatus(id, status) {
+    return db.execute({ sql: 'UPDATE events SET status = ? WHERE id = ?', args: [status, id] });
+}
+
+async function joinEvent(eventId, userId) {
+    return db.execute({
+        sql: `INSERT OR IGNORE INTO event_attendees (event_id, user_id, joined_at) VALUES (?, ?, ?)`,
+        args: [eventId, userId, Date.now()]
+    });
+}
+
+async function leaveEvent(eventId, userId) {
+    return db.execute({
+        sql: `DELETE FROM event_attendees WHERE event_id = ? AND user_id = ?`,
+        args: [eventId, userId]
+    });
+}
+
+async function getEventAttendees(eventId) {
+    const result = await db.execute({
+        sql: `SELECT users.username, users.name FROM event_attendees
+              JOIN users ON users.id = event_attendees.user_id
+              WHERE event_attendees.event_id = ?
+              ORDER BY event_attendees.joined_at ASC`,
+        args: [eventId]
+    });
+    return result.rows;
+}
+
+async function isUserAttending(eventId, userId) {
+    const result = await db.execute({
+        sql: `SELECT 1 FROM event_attendees WHERE event_id = ? AND user_id = ?`,
+        args: [eventId, userId]
+    });
+    return result.rows.length > 0;
 }
 
 // ---------- Custom session store backed by Turso ----------
@@ -625,6 +733,21 @@ app.get('/messages', (req, res) => {
 
 app.get('/contact', (req, res) => {
     res.sendFile(path.join(__dirname, 'contact.html'));
+});
+
+app.get('/events', (req, res) => {
+    if (!req.session.userId) return res.redirect('/login');
+    res.sendFile(path.join(__dirname, 'events.html'));
+});
+
+app.get('/events/create', (req, res) => {
+    if (!req.session.userId) return res.redirect('/login');
+    res.sendFile(path.join(__dirname, 'event-create.html'));
+});
+
+app.get('/events/:id', (req, res) => {
+    if (!req.session.userId) return res.redirect('/login');
+    res.sendFile(path.join(__dirname, 'event-detail.html'));
 });
 
 app.get('/profile', (req, res) => {
@@ -1002,6 +1125,129 @@ app.post('/api/contact', async (req, res) => {
         res.status(500).json({ error: 'Server error' });
     }
 });
+
+// ---------- Events ----------
+const ADMIN_SECRET = process.env.ADMIN_SECRET || 'change-me-admin-secret';
+const SITE_URL = process.env.SITE_URL || 'https://birmillat.uz';
+
+app.get('/api/events', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const category = (req.query.category || '').trim();
+        const events = await getApprovedEvents(category || null);
+        res.json(events);
+    } catch (err) {
+        console.error('api/events error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.get('/api/events/:id', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const event = await getEventById(req.params.id);
+        if (!event || event.status !== 'approved') {
+            return res.status(404).json({ error: 'Tadbir topilmadi' });
+        }
+        const attendees = await getEventAttendees(event.id);
+        const isAttending = await isUserAttending(event.id, req.session.userId);
+        res.json({ ...event, attendees, isAttending, isCreator: event.creator_id === req.session.userId });
+    } catch (err) {
+        console.error('api/events/:id error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.post('/api/events', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const { title, description, category, mode, location, eventDate, capacity } = req.body;
+        if (!title || !title.trim()) {
+            return res.status(400).json({ error: 'Tadbir nomi kerak' });
+        }
+        if (!eventDate) {
+            return res.status(400).json({ error: 'Sana kerak' });
+        }
+        const parsedDate = new Date(eventDate).getTime();
+        if (isNaN(parsedDate)) {
+            return res.status(400).json({ error: 'Sana noto‘g‘ri' });
+        }
+
+        const creator = await getUserById(req.session.userId);
+        const eventId = await createEvent({
+            creatorId: req.session.userId,
+            title: title.trim(),
+            description: (description || '').trim(),
+            category: category || 'Boshqa',
+            mode: mode === 'online' ? 'online' : 'in_person',
+            location: (location || '').trim(),
+            eventDate: parsedDate,
+            capacity: capacity ? parseInt(capacity, 10) : null
+        });
+
+        const approveUrl = `${SITE_URL}/admin/events/${eventId}/approve?token=${ADMIN_SECRET}`;
+        const rejectUrl = `${SITE_URL}/admin/events/${eventId}/reject?token=${ADMIN_SECRET}`;
+        const dateStr = new Date(parsedDate).toLocaleString('uz-UZ', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+        const text =
+            `🗓 <b>Yangi tadbir so'rovi</b>\n\n` +
+            `<b>Sarlavha:</b> ${escapeHtmlForTelegram(title)}\n` +
+            `<b>Muallif:</b> @${escapeHtmlForTelegram(creator.username)}\n` +
+            `<b>Kategoriya:</b> ${escapeHtmlForTelegram(category || 'Boshqa')}\n` +
+            `<b>Sana:</b> ${dateStr}\n` +
+            `<b>Joylashuv:</b> ${escapeHtmlForTelegram(location || '—')}\n` +
+            (description ? `<b>Tavsif:</b> ${escapeHtmlForTelegram(description)}\n\n` : '\n') +
+            `✅ Tasdiqlash: ${approveUrl}\n` +
+            `❌ Rad etish: ${rejectUrl}`;
+
+        await sendTelegramMessage(text);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('api/events create error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.post('/api/events/:id/join', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const event = await getEventById(req.params.id);
+        if (!event || event.status !== 'approved') {
+            return res.status(404).json({ error: 'Tadbir topilmadi' });
+        }
+        await joinEvent(event.id, req.session.userId);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('api/events/:id/join error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.post('/api/events/:id/leave', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        await leaveEvent(req.params.id, req.session.userId);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('api/events/:id/leave error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Simple one-tap admin approval — no login needed, gated by a secret token
+// known only to you (sent in the Telegram notification link).
+app.get('/admin/events/:id/approve', async (req, res) => {
+    if (req.query.token !== ADMIN_SECRET) return res.status(403).send('Forbidden');
+    await setEventStatus(req.params.id, 'approved');
+    res.send('✅ Tadbir tasdiqlandi. Bu oynani yopishingiz mumkin.');
+});
+
+app.get('/admin/events/:id/reject', async (req, res) => {
+    if (req.query.token !== ADMIN_SECRET) return res.status(403).send('Forbidden');
+    await setEventStatus(req.params.id, 'rejected');
+    res.send('❌ Tadbir rad etildi. Bu oynani yopishingiz mumkin.');
+});
+
 
 
 const onlineUsers = new Map(); // userId -> Set of socket ids
