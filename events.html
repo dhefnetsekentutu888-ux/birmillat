@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/png" href="/favicon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BirMillat – Tadbirlar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="/style.css">
+<style>
+    .page-container { max-width: 1100px; margin: 2rem auto; padding: 0 1.5rem; }
+    .page-head { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; }
+    .page-head h1 { font-size: 1.6rem; margin-bottom: 0.3rem; }
+    .page-head p { color: var(--color-text-muted); }
+
+    .filter-bar { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 2rem; }
+    .filter-chip {
+        background: var(--color-surface); border: 1.5px solid var(--color-border); color: var(--color-text);
+        padding: 0.5rem 1.1rem; border-radius: var(--radius-pill); font-size: 0.85rem; font-weight: 600;
+        cursor: pointer; transition: all 0.15s ease;
+    }
+    .filter-chip:hover { border-color: var(--color-primary); }
+    .filter-chip.active { background: var(--color-primary); border-color: var(--color-primary); color: white; }
+
+    .events-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }
+    .event-card { text-decoration: none; color: inherit; display: block; transition: transform 0.18s ease; }
+    .event-card:hover { transform: translateY(-3px); }
+    .event-date-badge {
+        display: inline-flex; align-items: center; gap: 0.4rem;
+        background: #EFEAF8; color: var(--color-primary); font-weight: 700;
+        font-size: 0.75rem; padding: 0.3rem 0.8rem; border-radius: var(--radius-pill);
+        margin-bottom: 0.8rem;
+    }
+    .event-card h3 { font-size: 1.1rem; margin-bottom: 0.4rem; }
+    .event-meta { display: flex; flex-direction: column; gap: 0.3rem; color: var(--color-text-muted); font-size: 0.85rem; margin-top: 0.6rem; }
+    .event-meta span { display: flex; align-items: center; gap: 0.5rem; }
+    .empty-state { text-align: center; padding: 3rem 1rem; color: var(--color-text-muted); grid-column: 1 / -1; }
+</style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/home" class="logo"><img src="/logo-full.svg" alt="BirMillat" style="height:34px; display:block;"></a>
+        <div class="nav-links">
+            <a href="/home">Bosh sahifa</a>
+            <a href="/recommend">Tavsiyalar</a>
+            <a href="/events" class="active">Tadbirlar</a>
+            <a href="/search">Qidiruv</a>
+            <a href="/messages">Xabarlar</a>
+            <a href="/profile">Profil</a>
+            <a href="/logout">Chiqish</a>
+        </div>
+        <div class="user-badge" id="userBadge">👤 ...</div>
+    </nav>
+
+    <div class="page-container">
+        <div class="page-head">
+            <div>
+                <h1><i class="fas fa-calendar-star"></i> Tadbirlar</h1>
+                <p>Yoshlar uchun tadbirlar, klublar va uchrashuvlar</p>
+            </div>
+            <a href="/events/create" class="btn btn-primary"><i class="fas fa-plus"></i> Tadbir qo'shish</a>
+        </div>
+
+        <div class="filter-bar" id="filterBar">
+            <button class="filter-chip active" data-category="">Hammasi</button>
+            <button class="filter-chip" data-category="IELTS">IELTS</button>
+            <button class="filter-chip" data-category="IT">IT / Dasturlash</button>
+            <button class="filter-chip" data-category="Startup">Startup</button>
+            <button class="filter-chip" data-category="Sport">Sport</button>
+            <button class="filter-chip" data-category="Volontyorlik">Volontyorlik</button>
+            <button class="filter-chip" data-category="Boshqa">Boshqa</button>
+        </div>
+
+        <div class="events-grid" id="eventsGrid">
+            <p style="color:var(--color-text-muted)">Yuklanmoqda...</p>
+        </div>
+    </div>
+
+    <footer>BirMillat – qiziqishlar asosida do'stlar toping.<br><span style="opacity:0.8;">Founder — Bekhruz Ravshanov</span></footer>
+
+    <script>
+        let activeCategory = '';
+
+        async function loadMe() {
+            try {
+                const res = await fetch('/api/me');
+                if (!res.ok) { window.location.href = '/login'; return; }
+                const me = await res.json();
+                document.getElementById('userBadge').textContent = '👤 ' + me.username;
+            } catch (e) { console.error(e); }
+        }
+
+        function formatEventDate(ts) {
+            const d = new Date(ts);
+            return d.toLocaleString('uz-UZ', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+        }
+
+        async function loadEvents(category = '') {
+            const grid = document.getElementById('eventsGrid');
+            grid.innerHTML = `<p style="color:var(--color-text-muted)">Yuklanmoqda...</p>`;
+            try {
+                const url = category ? `/api/events?category=${encodeURIComponent(category)}` : '/api/events';
+                const res = await fetch(url);
+                if (!res.ok) { grid.innerHTML = ''; return; }
+                const events = await res.json();
+
+                if (events.length === 0) {
+                    grid.innerHTML = `<div class="empty-state">Hozircha bu toifada tadbirlar yo'q. Birinchi bo'lib o'zingiz qo'shing!</div>`;
+                    return;
+                }
+
+                grid.innerHTML = '';
+                events.forEach(ev => {
+                    const card = document.createElement('a');
+                    card.className = 'event-card card';
+                    card.href = `/events/${ev.id}`;
+                    card.innerHTML = `
+                        <div class="event-date-badge"><i class="fas fa-calendar"></i> ${formatEventDate(ev.event_date)}</div>
+                        <h3>${ev.title}</h3>
+                        <div class="event-meta">
+                            <span><i class="fas fa-tag"></i> ${ev.category}</span>
+                            <span><i class="fas ${ev.mode === 'online' ? 'fa-video' : 'fa-location-dot'}"></i> ${ev.mode === 'online' ? 'Onlayn' : (ev.location || 'Joylashuv ko\'rsatilmagan')}</span>
+                            <span><i class="fas fa-users"></i> ${ev.attendee_count} qatnashuvchi</span>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+            } catch (e) {
+                console.error('Failed to load events:', e);
+                grid.innerHTML = `<div class="empty-state">Yuklab bo'lmadi. Sahifani qaytadan yuklang.</div>`;
+            }
+        }
+
+        document.getElementById('filterBar').addEventListener('click', (e) => {
+            const chip = e.target.closest('.filter-chip');
+            if (!chip) return;
+            document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+            activeCategory = chip.getAttribute('data-category');
+            loadEvents(activeCategory);
+        });
+
+        (async () => {
+            await loadMe();
+            loadEvents();
+        })();
+    </script>
+</body>
+</html>
