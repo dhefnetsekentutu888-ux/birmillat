@@ -180,6 +180,15 @@ a {
   border-radius: var(--radius-pill);
   font-size: 0.8rem;
   font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.tag-icon {
+  width: 14px;
+  height: 14px;
+  display: inline-block;
 }
 
 .tag.accent {
