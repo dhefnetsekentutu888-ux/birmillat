@@ -55,6 +55,23 @@ async function initDb() {
     // Moderation: block/unblock via Telegram bot admin command
     try { await db.execute(`ALTER TABLE users ADD COLUMN is_blocked INTEGER DEFAULT 0`); } catch (e) {}
 
+    // Two-way support chat: tracks every message in either direction so an
+    // admin reply (via Telegram's native Reply feature) can be routed back
+    // to the correct user, whether they reached out via Telegram or the website.
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS support_messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            telegram_chat_id TEXT NOT NULL,
+            website_username TEXT,
+            direction TEXT NOT NULL,
+            content TEXT,
+            admin_message_id TEXT,
+            created_at INTEGER NOT NULL
+        )
+    `);
+    await db.execute(`CREATE INDEX IF NOT EXISTS idx_support_admin_msg ON support_messages (admin_message_id)`);
+    await db.execute(`CREATE INDEX IF NOT EXISTS idx_support_chat ON support_messages (telegram_chat_id)`);
+
     // Email verification codes (used at registration and for password reset)
     await db.execute(`
         CREATE TABLE IF NOT EXISTS verification_codes (
@@ -238,6 +255,24 @@ async function setUserBlocked(username, blocked) {
     }
 
     return result.rowsAffected > 0;
+}
+
+// ---------- Support chat helpers ----------
+async function recordSupportMessage({ telegramChatId, websiteUsername, direction, content, adminMessageId }) {
+    const result = await db.execute({
+        sql: `INSERT INTO support_messages (telegram_chat_id, website_username, direction, content, admin_message_id, created_at)
+              VALUES (?, ?, ?, ?, ?, ?)`,
+        args: [telegramChatId, websiteUsername || null, direction, content || null, adminMessageId || null, Date.now()]
+    });
+    return Number(result.lastInsertRowid);
+}
+
+async function findSupportThreadByAdminMessageId(adminMessageId) {
+    const result = await db.execute({
+        sql: `SELECT * FROM support_messages WHERE admin_message_id = ? ORDER BY created_at DESC LIMIT 1`,
+        args: [String(adminMessageId)]
+    });
+    return result.rows[0] || null;
 }
 
 function calculateAge(birthdateStr) {
@@ -795,6 +830,10 @@ app.get('/contact', (req, res) => {
     res.sendFile(path.join(__dirname, 'contact.html'));
 });
 
+app.get('/support', (req, res) => {
+    res.sendFile(path.join(__dirname, 'support.html'));
+});
+
 app.get('/events', (req, res) => {
     if (!req.session.userId) return res.redirect('/login');
     res.sendFile(path.join(__dirname, 'events.html'));
@@ -1161,30 +1200,29 @@ function verificationEmailHtml(code) {
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_ADMIN_CHAT_ID = '8220562180';
 
-async function sendTelegramMessage(text) {
+async function sendTelegramMessageTo(chatId, text, replyMarkup) {
     if (!TELEGRAM_BOT_TOKEN) {
         console.error('TELEGRAM_BOT_TOKEN is not set — cannot send Telegram notification');
         return { ok: false };
     }
+    const body = { chat_id: chatId, text, parse_mode: 'HTML' };
+    if (replyMarkup) body.reply_markup = replyMarkup;
+
     const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            chat_id: TELEGRAM_ADMIN_CHAT_ID,
-            text,
-            parse_mode: 'HTML'
-        })
+        body: JSON.stringify(body)
     });
     return res.json();
 }
 
-async function sendTelegramPhoto(buffer, filename, caption) {
+async function sendTelegramPhotoTo(chatId, buffer, filename, caption) {
     if (!TELEGRAM_BOT_TOKEN) {
         console.error('TELEGRAM_BOT_TOKEN is not set — cannot send Telegram notification');
         return { ok: false };
     }
     const form = new FormData();
-    form.append('chat_id', TELEGRAM_ADMIN_CHAT_ID);
+    form.append('chat_id', chatId);
     form.append('caption', caption);
     form.append('parse_mode', 'HTML');
     form.append('photo', new Blob([buffer]), filename || 'screenshot.jpg');
@@ -1194,6 +1232,15 @@ async function sendTelegramPhoto(buffer, filename, caption) {
         body: form
     });
     return res.json();
+}
+
+// Existing callers throughout the file use these two, always targeting you (the admin).
+async function sendTelegramMessage(text) {
+    return sendTelegramMessageTo(TELEGRAM_ADMIN_CHAT_ID, text);
+}
+
+async function sendTelegramPhoto(buffer, filename, caption) {
+    return sendTelegramPhotoTo(TELEGRAM_ADMIN_CHAT_ID, buffer, filename, caption);
 }
 
 function escapeHtmlForTelegram(str) {
@@ -1223,41 +1270,156 @@ app.post(`/telegram/webhook/${TELEGRAM_BOT_TOKEN}`, async (req, res) => {
     }
 
     const message = req.body && req.body.message;
-    if (!message || !message.text || !message.chat) return;
+    if (!message || !message.chat) return;
 
     const fromChatId = String(message.chat.id);
-    if (fromChatId !== TELEGRAM_ADMIN_CHAT_ID) {
-        console.warn('Telegram webhook: command from non-admin chat, ignoring:', fromChatId);
-        return;
-    }
-
-    const text = message.text.trim();
-    const blockMatch = text.match(/^\/block\s+@?(\S+)/i);
-    const unblockMatch = text.match(/^\/unblock\s+@?(\S+)/i);
+    const isAdmin = fromChatId === TELEGRAM_ADMIN_CHAT_ID;
 
     try {
-        if (blockMatch) {
-            const username = blockMatch[1];
-            const success = await setUserBlocked(username, true);
-            await sendTelegramMessage(success
-                ? `🚫 @${escapeHtmlForTelegram(username)} bloklandi.`
-                : `❌ @${escapeHtmlForTelegram(username)} topilmadi.`);
-        } else if (unblockMatch) {
-            const username = unblockMatch[1];
-            const success = await setUserBlocked(username, false);
-            await sendTelegramMessage(success
-                ? `✅ @${escapeHtmlForTelegram(username)} blokdan chiqarildi.`
-                : `❌ @${escapeHtmlForTelegram(username)} topilmadi.`);
-        } else if (text === '/start' || text === '/help') {
-            await sendTelegramMessage(
-                `<b>BirMillat admin buyruqlari</b>\n\n` +
-                `/block foydalanuvchi_nomi — hisobni bloklash\n` +
-                `/unblock foydalanuvchi_nomi — blokdan chiqarish`
-            );
+        // ---------- Admin chat: commands, or a reply to forward back to a user ----------
+        if (isAdmin) {
+            if (message.reply_to_message) {
+                // You replied (Telegram's native Reply) to a message we forwarded —
+                // route your reply back to whichever user that thread belongs to.
+                const repliedToId = String(message.reply_to_message.message_id);
+                const thread = await findSupportThreadByAdminMessageId(repliedToId);
+                if (!thread) {
+                    await sendTelegramMessage("⚠️ Bu xabarning kimga tegishli ekanini topa olmadim.");
+                    return;
+                }
+
+                const replyText = message.text || message.caption || '';
+                if (thread.telegram_chat_id && thread.telegram_chat_id !== 'website') {
+                    await sendTelegramMessageTo(thread.telegram_chat_id, replyText);
+                }
+                await recordSupportMessage({
+                    telegramChatId: thread.telegram_chat_id,
+                    websiteUsername: thread.website_username,
+                    direction: 'out',
+                    content: replyText
+                });
+                await sendTelegramMessage("✅ Javobingiz yuborildi.");
+                return;
+            }
+
+            const text = (message.text || '').trim();
+            const blockMatch = text.match(/^\/block\s+@?(\S+)/i);
+            const unblockMatch = text.match(/^\/unblock\s+@?(\S+)/i);
+
+            if (blockMatch) {
+                const username = blockMatch[1];
+                const success = await setUserBlocked(username, true);
+                await sendTelegramMessage(success
+                    ? `🚫 @${escapeHtmlForTelegram(username)} bloklandi.`
+                    : `❌ @${escapeHtmlForTelegram(username)} topilmadi.`);
+            } else if (unblockMatch) {
+                const username = unblockMatch[1];
+                const success = await setUserBlocked(username, false);
+                await sendTelegramMessage(success
+                    ? `✅ @${escapeHtmlForTelegram(username)} blokdan chiqarildi.`
+                    : `❌ @${escapeHtmlForTelegram(username)} topilmadi.`);
+            } else if (text === '/start' || text === '/help') {
+                await sendTelegramMessage(
+                    `<b>BirMillat admin buyruqlari</b>\n\n` +
+                    `/block foydalanuvchi_nomi — hisobni bloklash\n` +
+                    `/unblock foydalanuvchi_nomi — blokdan chiqarish\n\n` +
+                    `Foydalanuvchiga javob berish uchun, uning xabariga Telegram'ning "Reply" funksiyasidan foydalaning.`
+                );
+            }
+            return;
+        }
+
+        // ---------- Anyone else: treat as an incoming support message ----------
+        const fromName = [message.from?.first_name, message.from?.last_name].filter(Boolean).join(' ') ||
+            message.from?.username || 'Noma\'lum';
+
+        let forwarded;
+        const captionHeader = `💬 <b>Yordam so'rovi</b>\nKimdan: ${escapeHtmlForTelegram(fromName)} (Telegram)`;
+
+        if (message.photo && message.photo.length > 0) {
+            // Telegram sends multiple resolutions; the last one is the largest.
+            const fileId = message.photo[message.photo.length - 1].file_id;
+            const fileRes = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getFile?file_id=${fileId}`);
+            const fileData = await fileRes.json();
+            if (fileData.ok) {
+                const fileUrl = `https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${fileData.result.file_path}`;
+                const imgRes = await fetch(fileUrl);
+                const buffer = Buffer.from(await imgRes.arrayBuffer());
+                const caption = `${captionHeader}\n${message.caption ? escapeHtmlForTelegram(message.caption) : ''}`;
+                forwarded = await sendTelegramPhoto(buffer, 'support.jpg', caption);
+            }
+        } else if (message.text) {
+            const text = `${captionHeader}\n\n${escapeHtmlForTelegram(message.text)}`;
+            forwarded = await sendTelegramMessage(text);
+        }
+
+        if (forwarded && forwarded.ok && forwarded.result) {
+            await recordSupportMessage({
+                telegramChatId: fromChatId,
+                websiteUsername: null,
+                direction: 'in',
+                content: message.text || message.caption || '[rasm]',
+                adminMessageId: forwarded.result.message_id
+            });
+            await sendTelegramMessageTo(fromChatId, "Xabaringiz qabul qilindi. Tez orada javob beramiz!");
         }
     } catch (err) {
-        console.error('Telegram webhook command error:', err);
-        await sendTelegramMessage('❌ Buyruqni bajarishda xatolik yuz berdi.');
+        console.error('Telegram webhook error:', err);
+    }
+});
+
+// Website support: submit a message (+ optional screenshot), routed through
+// the same admin reply mechanism as direct Telegram messages.
+app.post('/api/support', upload.single('screenshot'), async (req, res) => {
+    try {
+        const { message } = req.body;
+        const username = req.session.userId ? (await getUserById(req.session.userId))?.username : null;
+        const identity = username ? `@${username} (vebsayt)` : 'Mehmon (vebsayt)';
+        const captionHeader = `💬 <b>Yordam so'rovi</b>\nKimdan: ${escapeHtmlForTelegram(identity)}`;
+
+        let forwarded;
+        if (req.file) {
+            const caption = `${captionHeader}\n${message ? escapeHtmlForTelegram(message) : ''}`;
+            forwarded = await sendTelegramPhoto(req.file.buffer, req.file.originalname, caption);
+        } else {
+            if (!message || !message.trim()) {
+                return res.status(400).json({ error: 'Xabar bo‘sh bo‘lishi mumkin emas' });
+            }
+            forwarded = await sendTelegramMessage(`${captionHeader}\n\n${escapeHtmlForTelegram(message)}`);
+        }
+
+        if (forwarded && forwarded.ok && forwarded.result) {
+            await recordSupportMessage({
+                telegramChatId: 'website',
+                websiteUsername: username,
+                direction: 'in',
+                content: message || '[rasm]',
+                adminMessageId: forwarded.result.message_id
+            });
+        }
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error('api/support error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Poll for admin replies to this user's website support thread
+app.get('/api/support/replies', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const user = await getUserById(req.session.userId);
+        const result = await db.execute({
+            sql: `SELECT content, created_at FROM support_messages
+                  WHERE website_username = ? AND direction = 'out'
+                  ORDER BY created_at ASC`,
+            args: [user.username]
+        });
+        res.json(result.rows);
+    } catch (err) {
+        console.error('api/support/replies error:', err);
+        res.status(500).json({ error: 'Server error' });
     }
 });
 
