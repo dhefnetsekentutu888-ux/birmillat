@@ -60,6 +60,7 @@
             <div class="profile-main">
                 <div class="profile-top-row">
                     <div class="avatar-ring">
+                        <img id="avatarPhoto" class="avatar-circle" style="display:none; object-fit:cover;" alt="">
                         <div class="avatar-circle" id="avatarInitial">?</div>
                     </div>
                     <div style="display:flex; gap:0.6rem; align-items:center;">
@@ -77,6 +78,7 @@
                     <div class="username" id="viewUsername"></div>
                 </div>
                 <p class="profile-bio" id="viewBio"></p>
+                <div id="viewMeta" style="display:flex; gap:1rem; color:var(--color-text-muted); font-size:0.88rem; margin-bottom:1rem;"></div>
 
                 <div class="profile-interests">
                     <div class="section-label">Qiziqishlar</div>
@@ -216,7 +218,13 @@
                 }
                 const user = await res.json();
 
-                document.getElementById('avatarInitial').textContent = initials(user.name || user.username);
+                if (user.photoUrl) {
+                    document.getElementById('avatarPhoto').src = user.photoUrl;
+                    document.getElementById('avatarPhoto').style.display = 'block';
+                    document.getElementById('avatarInitial').style.display = 'none';
+                } else {
+                    document.getElementById('avatarInitial').textContent = initials(user.name || user.username);
+                }
                 document.getElementById('viewName').textContent = user.name || user.username;
                 document.getElementById('viewUsername').textContent = '@' + user.username;
 
@@ -228,6 +236,11 @@
                     bioEl.textContent = "Bio qo'shilmagan.";
                     bioEl.classList.add('empty');
                 }
+
+                const metaParts = [];
+                if (user.age) metaParts.push(`<span><i class="fas fa-cake-candles"></i> ${user.age} yosh</span>`);
+                if (user.region) metaParts.push(`<span><i class="fas fa-location-dot"></i> ${user.region}</span>`);
+                document.getElementById('viewMeta').innerHTML = metaParts.join('');
 
                 const interestsEl = document.getElementById('viewInterests');
                 const interests = user.interests || [];
