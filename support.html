@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/png" href="/favicon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BirMillat – Yordam</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="/style.css">
+<style>
+    .support-shell { max-width: 560px; margin: 2rem auto; padding: 0 1.5rem; }
+    .support-card { padding: 2.2rem; }
+    .support-card h1 { font-size: 1.5rem; margin-bottom: 0.4rem; }
+    .support-card > p { color: var(--color-text-muted); margin-bottom: 1.6rem; font-size: 0.9rem; }
+
+    .replies-list { margin-bottom: 1.4rem; display: flex; flex-direction: column; gap: 0.6rem; max-height: 280px; overflow-y: auto; }
+    .reply-bubble {
+        background: var(--color-bg); border-radius: var(--radius-sm); padding: 0.7rem 1rem;
+        font-size: 0.9rem; align-self: flex-start; max-width: 85%;
+    }
+    .reply-bubble .reply-label { font-size: 0.72rem; font-weight: 700; color: var(--color-primary); margin-bottom: 0.2rem; display: block; }
+
+    .form-field { margin-bottom: 1.1rem; }
+    .form-field label {
+        display: block; font-size: 0.82rem; font-weight: 600; color: var(--color-text-muted);
+        margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.4px;
+    }
+    .form-field textarea, .form-field input[type=file] {
+        width: 100%; padding: 0.75rem 1rem; border-radius: var(--radius-sm);
+        border: 1px solid var(--color-border); font-family: var(--font-body); font-size: 0.95rem; resize: vertical;
+    }
+    .submit-status { font-size: 0.88rem; margin-top: 0.8rem; min-height: 1.2em; }
+    .submit-status.success { color: var(--color-success); }
+    .submit-status.error { color: var(--color-error); }
+</style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/home" class="logo"><img src="/logo-full.svg" alt="BirMillat" style="height:34px; display:block;"></a>
+        <div class="nav-links">
+            <a href="/home">Bosh sahifa</a>
+        </div>
+    </nav>
+
+    <div class="support-shell">
+        <div class="support-card card">
+            <h1><i class="fas fa-headset"></i> Yordam</h1>
+            <p>Savolingiz bo'lsa yoki muammoga duch kelsangiz, shu yerga yozing. Agar kerak bo'lsa, skrinshot ham qo'shing.</p>
+
+            <div class="replies-list" id="repliesList"></div>
+
+            <form id="supportForm">
+                <div class="form-field">
+                    <label for="messageInput">Xabaringiz</label>
+                    <textarea id="messageInput" rows="4" placeholder="Muammoni tasvirlab bering..."></textarea>
+                </div>
+                <div class="form-field">
+                    <label for="screenshotInput">Skrinshot (ixtiyoriy)</label>
+                    <input type="file" id="screenshotInput" accept="image/*">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">
+                    <i class="fas fa-paper-plane"></i> Yuborish
+                </button>
+                <div class="submit-status" id="submitStatus"></div>
+            </form>
+        </div>
+    </div>
+
+    <footer>BirMillat – qiziqishlar asosida do'stlar toping.<br><span style="opacity:0.8;">Founder — Bekhruz Ravshanov</span></footer>
+
+    <script>
+        async function loadReplies() {
+            try {
+                const res = await fetch('/api/support/replies');
+                if (!res.ok) return; // not logged in — replies only work for logged-in users
+                const replies = await res.json();
+                const list = document.getElementById('repliesList');
+                if (replies.length === 0) { list.innerHTML = ''; return; }
+                list.innerHTML = replies.map(r => `
+                    <div class="reply-bubble">
+                        <span class="reply-label">BirMillat jamoasi</span>
+                        ${r.content}
+                    </div>
+                `).join('');
+            } catch (e) {
+                console.error('Failed to load replies:', e);
+            }
+        }
+
+        document.getElementById('supportForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const statusEl = document.getElementById('submitStatus');
+            const message = document.getElementById('messageInput').value.trim();
+            const fileInput = document.getElementById('screenshotInput');
+
+            if (!message && !fileInput.files[0]) return;
+
+            statusEl.textContent = 'Yuborilmoqda...';
+            statusEl.className = 'submit-status';
+
+            try {
+                const formData = new FormData();
+                formData.append('message', message);
+                if (fileInput.files[0]) formData.append('screenshot', fileInput.files[0]);
+
+                const res = await fetch('/api/support', { method: 'POST', body: formData });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Server error');
+
+                statusEl.textContent = "Xabaringiz yuborildi! Tez orada javob beramiz.";
+                statusEl.className = 'submit-status success';
+                document.getElementById('supportForm').reset();
+            } catch (err) {
+                console.error('Support submit failed:', err);
+                statusEl.textContent = err.message || "Xatolik yuz berdi. Qaytadan urinib ko'ring.";
+                statusEl.className = 'submit-status error';
+            }
+        });
+
+        loadReplies();
+        setInterval(loadReplies, 8000);
+    </script>
+</body>
+</html>
