@@ -47,6 +47,11 @@ async function initDb() {
     try { await db.execute(`ALTER TABLE users ADD COLUMN is_verified INTEGER DEFAULT 0`); } catch (e) {}
     await db.execute(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users (email)`);
 
+    // Profile enrichment: photo, birthdate (age is calculated from this, not stored directly), region
+    try { await db.execute(`ALTER TABLE users ADD COLUMN photo_url TEXT`); } catch (e) {}
+    try { await db.execute(`ALTER TABLE users ADD COLUMN birthdate TEXT`); } catch (e) {}
+    try { await db.execute(`ALTER TABLE users ADD COLUMN region TEXT`); } catch (e) {}
+
     // Email verification codes (used at registration and for password reset)
     await db.execute(`
         CREATE TABLE IF NOT EXISTS verification_codes (
@@ -190,11 +195,31 @@ async function verifyCode(email, code, purpose) {
     return { valid: true };
 }
 
-async function updateUserProfile(username, name, bio, interests) {
+async function updateUserProfile(username, { name, bio, interests, birthdate, region }) {
     return db.execute({
-        sql: 'UPDATE users SET name = ?, bio = ?, interests = ? WHERE username = ?',
-        args: [name, bio, JSON.stringify(interests), username]
+        sql: `UPDATE users SET name = ?, bio = ?, interests = ?, birthdate = ?, region = ? WHERE username = ?`,
+        args: [name, bio, JSON.stringify(interests), birthdate || null, region || null, username]
     });
+}
+
+async function updateUserPhoto(userId, photoUrl) {
+    return db.execute({
+        sql: 'UPDATE users SET photo_url = ? WHERE id = ?',
+        args: [photoUrl, userId]
+    });
+}
+
+function calculateAge(birthdateStr) {
+    if (!birthdateStr) return null;
+    const birth = new Date(birthdateStr);
+    if (isNaN(birth.getTime())) return null;
+    const now = new Date();
+    let age = now.getFullYear() - birth.getFullYear();
+    const monthDiff = now.getMonth() - birth.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birth.getDate())) {
+        age--;
+    }
+    return age;
 }
 
 async function getAllUsersExcept(username) {
@@ -874,7 +899,16 @@ app.get('/api/me', async (req, res) => {
     try {
         const user = await getUserById(req.session.userId);
         if (!user) return res.status(401).json({ error: 'Unauthorized' });
-        res.json({ username: user.username, name: user.name, bio: user.bio, interests: JSON.parse(user.interests || '[]') });
+        res.json({
+            username: user.username,
+            name: user.name,
+            bio: user.bio,
+            interests: JSON.parse(user.interests || '[]'),
+            photoUrl: user.photo_url,
+            birthdate: user.birthdate,
+            age: calculateAge(user.birthdate),
+            region: user.region
+        });
     } catch (err) {
         console.error('api/me error:', err);
         res.status(500).json({ error: 'Server error' });
@@ -899,12 +933,70 @@ app.get('/api/recommendations', async (req, res) => {
     }
 });
 
+const UZ_REGIONS = [
+    'Toshkent shahri', 'Toshkent viloyati', 'Andijon', 'Buxoro', "Farg'ona",
+    'Jizzax', 'Xorazm', 'Namangan', 'Navoiy', 'Qashqadaryo', 'Samarqand',
+    'Sirdaryo', 'Surxondaryo', "Qoraqalpog'iston"
+];
+
+const FREEIMAGE_API_KEY = process.env.FREEIMAGE_API_KEY;
+
+app.post('/api/profile/photo', upload.single('photo'), async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'Rasm tanlanmadi' });
+        }
+        if (!FREEIMAGE_API_KEY) {
+            console.error('FREEIMAGE_API_KEY is not set');
+            return res.status(500).json({ error: 'Server konfiguratsiyasi xato' });
+        }
+
+        const base64Image = req.file.buffer.toString('base64');
+        const form = new URLSearchParams();
+        form.append('key', FREEIMAGE_API_KEY);
+        form.append('action', 'upload');
+        form.append('source', base64Image);
+        form.append('format', 'json');
+
+        const uploadRes = await fetch('https://freeimage.host/api/1/upload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: form
+        });
+        const data = await uploadRes.json();
+
+        if (!uploadRes.ok || data.status_code !== 200 || !data.image) {
+            console.error('Freeimage upload failed:', data);
+            return res.status(500).json({ error: 'Rasmni yuklab bo‘lmadi' });
+        }
+
+        const photoUrl = data.image.display_url || data.image.url;
+        await updateUserPhoto(req.session.userId, photoUrl);
+        res.json({ success: true, photoUrl });
+    } catch (err) {
+        console.error('api/profile/photo error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 app.post('/api/profile/update', async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
     try {
-        const { name, bio, interests } = req.body;
+        const { name, bio, interests, birthdate, region } = req.body;
+
+        if (region && !UZ_REGIONS.includes(region)) {
+            return res.status(400).json({ error: "Noto'g'ri viloyat tanlandi" });
+        }
+        if (birthdate) {
+            const parsed = new Date(birthdate);
+            if (isNaN(parsed.getTime()) || parsed > new Date()) {
+                return res.status(400).json({ error: "Tug'ilgan sana noto'g'ri" });
+            }
+        }
+
         const user = await getUserById(req.session.userId);
-        await updateUserProfile(user.username, name, bio, interests);
+        await updateUserProfile(user.username, { name, bio, interests, birthdate, region });
         res.json({ success: true });
     } catch (err) {
         console.error('api/profile/update error:', err);
@@ -945,7 +1037,10 @@ app.get('/api/users/:username', async (req, res) => {
             username: user.username,
             name: user.name,
             bio: user.bio,
-            interests: JSON.parse(user.interests || '[]')
+            interests: JSON.parse(user.interests || '[]'),
+            photoUrl: user.photo_url,
+            age: calculateAge(user.birthdate),
+            region: user.region
         });
     } catch (err) {
         console.error('api/users/:username error:', err);
