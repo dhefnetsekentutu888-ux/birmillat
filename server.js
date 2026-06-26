@@ -52,6 +52,9 @@ async function initDb() {
     try { await db.execute(`ALTER TABLE users ADD COLUMN birthdate TEXT`); } catch (e) {}
     try { await db.execute(`ALTER TABLE users ADD COLUMN region TEXT`); } catch (e) {}
 
+    // Moderation: block/unblock via Telegram bot admin command
+    try { await db.execute(`ALTER TABLE users ADD COLUMN is_blocked INTEGER DEFAULT 0`); } catch (e) {}
+
     // Email verification codes (used at registration and for password reset)
     await db.execute(`
         CREATE TABLE IF NOT EXISTS verification_codes (
@@ -207,6 +210,34 @@ async function updateUserPhoto(userId, photoUrl) {
         sql: 'UPDATE users SET photo_url = ? WHERE id = ?',
         args: [photoUrl, userId]
     });
+}
+
+async function setUserBlocked(username, blocked) {
+    const result = await db.execute({
+        sql: 'UPDATE users SET is_blocked = ? WHERE username = ?',
+        args: [blocked ? 1 : 0, username]
+    });
+
+    if (blocked && result.rowsAffected > 0) {
+        // Destroy any active session(s) for this user so the block takes
+        // effect immediately, not just the next time they try to log in.
+        // Sessions store userId inside a JSON blob, so we scan rather than
+        // query it directly — sessions tables are small enough that this is fine.
+        const user = await getUser(username);
+        if (user) {
+            const sessions = await db.execute('SELECT sid, sess FROM sessions');
+            for (const row of sessions.rows) {
+                try {
+                    const parsed = JSON.parse(row.sess);
+                    if (parsed.userId === user.id) {
+                        await db.execute({ sql: 'DELETE FROM sessions WHERE sid = ?', args: [row.sid] });
+                    }
+                } catch (e) { /* skip malformed session rows */ }
+            }
+        }
+    }
+
+    return result.rowsAffected > 0;
 }
 
 function calculateAge(birthdateStr) {
@@ -598,6 +629,10 @@ app.post('/login', async (req, res) => {
         if (!user) return res.send(renderLoginPage('❌ Login noto‘g‘ri'));
         const match = await bcrypt.compare(password, user.password);
         if (!match) return res.send(renderLoginPage('❌ Parol noto‘g‘ri'));
+
+        if (user.is_blocked) {
+            return res.send(renderLoginPage('🚫 Hisobingiz bloklangan. Savollar bo‘yicha /contact orqali murojaat qiling.'));
+        }
 
         if (!user.is_verified && user.email) {
             return res.redirect(`/verify?email=${encodeURIComponent(user.email)}`);
@@ -1167,6 +1202,64 @@ function escapeHtmlForTelegram(str) {
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;');
 }
+
+// ---------- Telegram webhook: /block and /unblock admin commands ----------
+// Security has three layers:
+//  1. The URL path includes the bot token itself — only Telegram and you know this.
+//  2. Telegram's X-Telegram-Bot-Api-Secret-Token header is checked against our own secret.
+//  3. Even if both of those were somehow bypassed, commands are only honored if they
+//     come from your specific Telegram chat ID — nobody else's /block command does anything.
+const TELEGRAM_WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET || 'change-me-webhook-secret';
+
+app.post(`/telegram/webhook/${TELEGRAM_BOT_TOKEN}`, async (req, res) => {
+    // Always respond 200 quickly so Telegram doesn't retry — even on auth failures,
+    // since we don't want to leak info via different response codes.
+    res.sendStatus(200);
+
+    const headerToken = req.get('X-Telegram-Bot-Api-Secret-Token');
+    if (headerToken !== TELEGRAM_WEBHOOK_SECRET) {
+        console.warn('Telegram webhook: secret token mismatch, ignoring request');
+        return;
+    }
+
+    const message = req.body && req.body.message;
+    if (!message || !message.text || !message.chat) return;
+
+    const fromChatId = String(message.chat.id);
+    if (fromChatId !== TELEGRAM_ADMIN_CHAT_ID) {
+        console.warn('Telegram webhook: command from non-admin chat, ignoring:', fromChatId);
+        return;
+    }
+
+    const text = message.text.trim();
+    const blockMatch = text.match(/^\/block\s+@?(\S+)/i);
+    const unblockMatch = text.match(/^\/unblock\s+@?(\S+)/i);
+
+    try {
+        if (blockMatch) {
+            const username = blockMatch[1];
+            const success = await setUserBlocked(username, true);
+            await sendTelegramMessage(success
+                ? `🚫 @${escapeHtmlForTelegram(username)} bloklandi.`
+                : `❌ @${escapeHtmlForTelegram(username)} topilmadi.`);
+        } else if (unblockMatch) {
+            const username = unblockMatch[1];
+            const success = await setUserBlocked(username, false);
+            await sendTelegramMessage(success
+                ? `✅ @${escapeHtmlForTelegram(username)} blokdan chiqarildi.`
+                : `❌ @${escapeHtmlForTelegram(username)} topilmadi.`);
+        } else if (text === '/start' || text === '/help') {
+            await sendTelegramMessage(
+                `<b>BirMillat admin buyruqlari</b>\n\n` +
+                `/block foydalanuvchi_nomi — hisobni bloklash\n` +
+                `/unblock foydalanuvchi_nomi — blokdan chiqarish`
+            );
+        }
+    } catch (err) {
+        console.error('Telegram webhook command error:', err);
+        await sendTelegramMessage('❌ Buyruqni bajarishda xatolik yuz berdi.');
+    }
+});
 
 // Report a user, with an optional screenshot attached
 app.post('/api/report', upload.single('screenshot'), async (req, res) => {
