@@ -190,11 +190,20 @@
             <div class="profile-main">
                 <div class="profile-top-row">
                     <div class="avatar-ring">
+                        <img id="avatarPhoto" class="avatar-circle" style="display:none; object-fit:cover;" alt="">
                         <div class="avatar-circle" id="avatarInitial">?</div>
                     </div>
                     <button class="btn btn-primary view-only" id="editBtn">
                         <i class="fas fa-pen"></i> Profilni tahrirlash
                     </button>
+                </div>
+
+                <div class="edit-only" style="margin-bottom:1rem;">
+                    <input type="file" id="photoInput" accept="image/*" style="display:none;">
+                    <button type="button" class="btn btn-cancel" id="changePhotoBtn" style="border:1.5px solid var(--color-border); background:transparent; color:var(--color-text-muted); font-size:0.85rem; padding:0.5rem 1rem;">
+                        <i class="fas fa-camera"></i> Rasmni o'zgartirish
+                    </button>
+                    <span id="photoStatus" style="font-size:0.82rem; margin-left:0.6rem; color:var(--color-text-muted);"></span>
                 </div>
 
                 <!-- VIEW MODE -->
@@ -204,6 +213,7 @@
                         <div class="username" id="viewUsername">@...</div>
                     </div>
                     <p class="profile-bio" id="viewBio"></p>
+                    <div class="meta-row" id="viewMeta" style="display:flex; gap:1rem; color:var(--color-text-muted); font-size:0.88rem; margin-bottom:1rem;"></div>
 
                     <div class="profile-interests">
                         <div class="section-label">Qiziqishlar</div>
@@ -220,6 +230,16 @@
                     <div class="edit-field">
                         <label for="bioInput">Bio</label>
                         <textarea id="bioInput" rows="3" placeholder="O'zingiz haqingizda qisqacha"></textarea>
+                    </div>
+                    <div class="edit-field">
+                        <label for="birthdateInput">Tug'ilgan sana (ixtiyoriy)</label>
+                        <input type="date" id="birthdateInput">
+                    </div>
+                    <div class="edit-field">
+                        <label for="regionInput">Viloyat (ixtiyoriy)</label>
+                        <select id="regionInput">
+                            <option value="">Tanlanmagan</option>
+                        </select>
                     </div>
                     <div class="edit-field">
                         <label>Qiziqishlar (kategoriyalar)</label>
@@ -276,6 +296,36 @@
             ).join('');
         }
 
+        const UZ_REGIONS = [
+            'Toshkent shahri', 'Toshkent viloyati', 'Andijon', 'Buxoro', "Farg'ona",
+            'Jizzax', 'Xorazm', 'Namangan', 'Navoiy', 'Qashqadaryo', 'Samarqand',
+            'Sirdaryo', 'Surxondaryo', "Qoraqalpog'iston"
+        ];
+
+        function populateRegionDropdown() {
+            const select = document.getElementById('regionInput');
+            UZ_REGIONS.forEach(r => {
+                const opt = document.createElement('option');
+                opt.value = r;
+                opt.textContent = r;
+                select.appendChild(opt);
+            });
+        }
+
+        function renderAvatar(photoUrl, name, username) {
+            const img = document.getElementById('avatarPhoto');
+            const initialsEl = document.getElementById('avatarInitial');
+            if (photoUrl) {
+                img.src = photoUrl;
+                img.style.display = 'block';
+                initialsEl.style.display = 'none';
+            } else {
+                img.style.display = 'none';
+                initialsEl.style.display = 'flex';
+                initialsEl.textContent = initials(name || username);
+            }
+        }
+
         async function loadMe() {
             try {
                 const res = await fetch('/api/me');
@@ -283,7 +333,7 @@
                 me = await res.json();
 
                 document.getElementById('userBadge').textContent = '👤 ' + me.username;
-                document.getElementById('avatarInitial').textContent = initials(me.name || me.username);
+                renderAvatar(me.photoUrl, me.name, me.username);
                 document.getElementById('viewName').textContent = me.name || me.username;
                 document.getElementById('viewUsername').textContent = '@' + me.username;
 
@@ -296,11 +346,19 @@
                     bioEl.classList.add('empty');
                 }
 
+                const metaEl = document.getElementById('viewMeta');
+                const metaParts = [];
+                if (me.age) metaParts.push(`<span><i class="fas fa-cake-candles"></i> ${me.age} yosh</span>`);
+                if (me.region) metaParts.push(`<span><i class="fas fa-location-dot"></i> ${me.region}</span>`);
+                metaEl.innerHTML = metaParts.join('');
+
                 currentInterests = me.interests || [];
                 renderViewInterests(currentInterests);
 
                 document.getElementById('nameInput').value = me.name || '';
                 document.getElementById('bioInput').value = me.bio || '';
+                document.getElementById('birthdateInput').value = me.birthdate ? me.birthdate.split('T')[0] : '';
+                document.getElementById('regionInput').value = me.region || '';
                 editInterests = [...currentInterests];
                 renderEditInterests();
             } catch (e) {
@@ -351,6 +409,8 @@
             const statusEl = document.getElementById('saveStatus');
             const name = document.getElementById('nameInput').value.trim();
             const bio = document.getElementById('bioInput').value.trim();
+            const birthdate = document.getElementById('birthdateInput').value;
+            const region = document.getElementById('regionInput').value;
 
             statusEl.textContent = 'Saqlanmoqda...';
             statusEl.className = 'save-status';
@@ -359,9 +419,10 @@
                 const res = await fetch('/api/profile/update', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, bio, interests: editInterests })
+                    body: JSON.stringify({ name, bio, interests: editInterests, birthdate, region })
                 });
-                if (!res.ok) throw new Error('Server error');
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(data.error || 'Server error');
 
                 statusEl.textContent = 'Saqlandi ✓';
                 statusEl.className = 'save-status success';
@@ -369,11 +430,38 @@
                 setTimeout(() => { root.setAttribute('data-mode', 'view'); }, 500);
             } catch (e) {
                 console.error('Save failed:', e);
-                statusEl.textContent = "Saqlashda xatolik yuz berdi. Qaytadan urinib ko'ring.";
+                statusEl.textContent = e.message && e.message !== 'Server error' ? e.message : "Saqlashda xatolik yuz berdi. Qaytadan urinib ko'ring.";
                 statusEl.className = 'save-status error';
             }
         });
 
+        document.getElementById('changePhotoBtn').addEventListener('click', () => {
+            document.getElementById('photoInput').click();
+        });
+
+        document.getElementById('photoInput').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const statusEl = document.getElementById('photoStatus');
+
+            statusEl.textContent = 'Yuklanmoqda...';
+            try {
+                const formData = new FormData();
+                formData.append('photo', file);
+                const res = await fetch('/api/profile/photo', { method: 'POST', body: formData });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Server error');
+
+                renderAvatar(data.photoUrl, me.name, me.username);
+                statusEl.textContent = 'Yangilandi ✓';
+                setTimeout(() => { statusEl.textContent = ''; }, 2000);
+            } catch (err) {
+                console.error('Photo upload failed:', err);
+                statusEl.textContent = err.message || "Xatolik yuz berdi";
+            }
+        });
+
+        populateRegionDropdown();
         loadMe();
     </script>
 </body>
