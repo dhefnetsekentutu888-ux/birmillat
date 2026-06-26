@@ -666,7 +666,7 @@ app.post('/login', async (req, res) => {
         if (!match) return res.send(renderLoginPage('❌ Parol noto‘g‘ri'));
 
         if (user.is_blocked) {
-            return res.send(renderLoginPage('🚫 Hisobingiz bloklangan. Savollar bo‘yicha /contact orqali murojaat qiling.'));
+            return res.send(renderLoginPage('🚫 Hisobingiz bloklangan. Savollar bo‘yicha <a href="/support">shu yerdan</a> murojaat qiling.'));
         }
 
         if (!user.is_verified && user.email) {
