@@ -72,6 +72,20 @@ async function initDb() {
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_support_admin_msg ON support_messages (admin_message_id)`);
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_support_chat ON support_messages (telegram_chat_id)`);
 
+    // Profile achievements/certificates — title + image always shown, description/date optional and revealed on click
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS achievements (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            title TEXT NOT NULL,
+            image_url TEXT NOT NULL,
+            description TEXT,
+            achieved_date TEXT,
+            created_at INTEGER NOT NULL
+        )
+    `);
+    await db.execute(`CREATE INDEX IF NOT EXISTS idx_achievements_user ON achievements (user_id)`);
+
     // Email verification codes (used at registration and for password reset)
     await db.execute(`
         CREATE TABLE IF NOT EXISTS verification_codes (
@@ -456,6 +470,48 @@ async function isUserAttending(eventId, userId) {
         args: [eventId, userId]
     });
     return result.rows.length > 0;
+}
+
+// ---------- Achievements ----------
+const MAX_ACHIEVEMENTS_PER_USER = 4;
+
+async function getAchievementsByUserId(userId) {
+    const result = await db.execute({
+        sql: `SELECT * FROM achievements WHERE user_id = ? ORDER BY created_at ASC`,
+        args: [userId]
+    });
+    return result.rows;
+}
+
+async function countAchievements(userId) {
+    const result = await db.execute({
+        sql: `SELECT COUNT(*) as count FROM achievements WHERE user_id = ?`,
+        args: [userId]
+    });
+    return result.rows[0].count;
+}
+
+async function createAchievement(userId, { title, imageUrl, description, achievedDate }) {
+    const result = await db.execute({
+        sql: `INSERT INTO achievements (user_id, title, image_url, description, achieved_date, created_at)
+              VALUES (?, ?, ?, ?, ?, ?)`,
+        args: [userId, title, imageUrl, description || null, achievedDate || null, Date.now()]
+    });
+    return Number(result.lastInsertRowid);
+}
+
+async function getAchievementById(id) {
+    const result = await db.execute({ sql: 'SELECT * FROM achievements WHERE id = ?', args: [id] });
+    return result.rows[0] || null;
+}
+
+async function deleteAchievement(id, userId) {
+    // Scoped to userId so someone can't delete another user's achievement by guessing IDs.
+    const result = await db.execute({
+        sql: 'DELETE FROM achievements WHERE id = ? AND user_id = ?',
+        args: [id, userId]
+    });
+    return result.rowsAffected > 0;
 }
 
 // ---------- Custom session store backed by Turso ----------
@@ -1024,41 +1080,117 @@ const UZ_REGIONS = [
 
 const FREEIMAGE_API_KEY = process.env.FREEIMAGE_API_KEY;
 
+async function uploadImageToFreeimage(buffer) {
+    if (!FREEIMAGE_API_KEY) {
+        console.error('FREEIMAGE_API_KEY is not set');
+        return { ok: false, error: 'Server konfiguratsiyasi xato' };
+    }
+
+    const base64Image = buffer.toString('base64');
+    const form = new URLSearchParams();
+    form.append('key', FREEIMAGE_API_KEY);
+    form.append('action', 'upload');
+    form.append('source', base64Image);
+    form.append('format', 'json');
+
+    const uploadRes = await fetch('https://freeimage.host/api/1/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: form
+    });
+    const data = await uploadRes.json();
+
+    if (!uploadRes.ok || data.status_code !== 200 || !data.image) {
+        console.error('Freeimage upload failed:', data);
+        return { ok: false, error: 'Rasmni yuklab bo‘lmadi' };
+    }
+
+    return { ok: true, url: data.image.display_url || data.image.url };
+}
+
 app.post('/api/profile/photo', upload.single('photo'), async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
     try {
         if (!req.file) {
             return res.status(400).json({ error: 'Rasm tanlanmadi' });
         }
-        if (!FREEIMAGE_API_KEY) {
-            console.error('FREEIMAGE_API_KEY is not set');
-            return res.status(500).json({ error: 'Server konfiguratsiyasi xato' });
+
+        const uploadResult = await uploadImageToFreeimage(req.file.buffer);
+        if (!uploadResult.ok) {
+            return res.status(500).json({ error: uploadResult.error });
         }
 
-        const base64Image = req.file.buffer.toString('base64');
-        const form = new URLSearchParams();
-        form.append('key', FREEIMAGE_API_KEY);
-        form.append('action', 'upload');
-        form.append('source', base64Image);
-        form.append('format', 'json');
-
-        const uploadRes = await fetch('https://freeimage.host/api/1/upload', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: form
-        });
-        const data = await uploadRes.json();
-
-        if (!uploadRes.ok || data.status_code !== 200 || !data.image) {
-            console.error('Freeimage upload failed:', data);
-            return res.status(500).json({ error: 'Rasmni yuklab bo‘lmadi' });
-        }
-
-        const photoUrl = data.image.display_url || data.image.url;
-        await updateUserPhoto(req.session.userId, photoUrl);
-        res.json({ success: true, photoUrl });
+        await updateUserPhoto(req.session.userId, uploadResult.url);
+        res.json({ success: true, photoUrl: uploadResult.url });
     } catch (err) {
         console.error('api/profile/photo error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// ---------- Achievements API ----------
+app.get('/api/users/:username/achievements', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const user = await getUser(req.params.username);
+        if (!user) return res.status(404).json({ error: 'Foydalanuvchi topilmadi' });
+        const achievements = await getAchievementsByUserId(user.id);
+        res.json(achievements.map(a => ({
+            id: a.id,
+            title: a.title,
+            imageUrl: a.image_url,
+            description: a.description,
+            achievedDate: a.achieved_date
+        })));
+    } catch (err) {
+        console.error('api/users/:username/achievements error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.post('/api/achievements', upload.single('image'), async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const { title, description, achievedDate } = req.body;
+        if (!title || !title.trim()) {
+            return res.status(400).json({ error: 'Sarlavha kerak' });
+        }
+        if (!req.file) {
+            return res.status(400).json({ error: 'Rasm tanlanmadi' });
+        }
+
+        const existingCount = await countAchievements(req.session.userId);
+        if (existingCount >= MAX_ACHIEVEMENTS_PER_USER) {
+            return res.status(400).json({ error: `Maksimal ${MAX_ACHIEVEMENTS_PER_USER} ta yutuq qo'shish mumkin` });
+        }
+
+        const uploadResult = await uploadImageToFreeimage(req.file.buffer);
+        if (!uploadResult.ok) {
+            return res.status(500).json({ error: uploadResult.error });
+        }
+
+        const id = await createAchievement(req.session.userId, {
+            title: title.trim(),
+            imageUrl: uploadResult.url,
+            description: (description || '').trim(),
+            achievedDate: achievedDate || null
+        });
+
+        res.json({ success: true, id, imageUrl: uploadResult.url });
+    } catch (err) {
+        console.error('api/achievements create error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.delete('/api/achievements/:id', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const success = await deleteAchievement(req.params.id, req.session.userId);
+        if (!success) return res.status(404).json({ error: "Yutuq topilmadi" });
+        res.json({ success: true });
+    } catch (err) {
+        console.error('api/achievements delete error:', err);
         res.status(500).json({ error: 'Server error' });
     }
 });
