@@ -143,7 +143,7 @@
             <a href="/profile">Profil</a>
             <a href="/logout">Chiqish</a>
         </div>
-        <div class="user-badge" id="userBadge">👤 ...</div>
+        <div class="user-badge" id="userBadge"><img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ...</div>
     </nav>
 
     <div class="page-container">
@@ -162,7 +162,7 @@
         </div>
 
         <div class="interests-section">
-            <div class="section-label">⚡ Sizning qiziqishlaringiz</div>
+            <div class="section-label"><img src="/icons/icon-bolt.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> Sizning qiziqishlaringiz</div>
             <div class="tag-list" id="myInterestsTags">
                 <span class="tag" style="opacity:0.5">Yuklanmoqda...</span>
             </div>
@@ -196,7 +196,7 @@
                 const res = await fetch('/api/me');
                 if (!res.ok) { window.location.href = '/login'; return null; }
                 const me = await res.json();
-                document.getElementById('userBadge').textContent = '👤 ' + me.username;
+                document.getElementById('userBadge').innerHTML = '<img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ' + me.username;
                 document.getElementById('welcomeName').textContent = (me.name || me.username) + '!';
 
                 const tagsEl = document.getElementById('myInterestsTags');
