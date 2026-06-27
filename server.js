@@ -717,9 +717,9 @@ app.post('/login', async (req, res) => {
             ? await getUserByEmail(clean.toLowerCase())
             : await getUser(clean);
 
-        if (!user) return res.send(renderLoginPage('❌ Login noto‘g‘ri'));
+        if (!user) return res.send(renderLoginPage('Login noto‘g‘ri'));
         const match = await bcrypt.compare(password, user.password);
-        if (!match) return res.send(renderLoginPage('❌ Parol noto‘g‘ri'));
+        if (!match) return res.send(renderLoginPage('Parol noto‘g‘ri'));
 
         if (user.is_blocked) {
             return res.send(renderLoginPage('🚫 Hisobingiz bloklangan. Savollar bo‘yicha <a href="/support">shu yerdan</a> murojaat qiling.'));
@@ -734,7 +734,7 @@ app.post('/login', async (req, res) => {
         res.redirect('/home');
     } catch (err) {
         console.error('Login error:', err);
-        res.send(renderLoginPage('❌ Server xatosi, qaytadan urinib ko‘ring'));
+        res.send(renderLoginPage('Server xatosi, qaytadan urinib ko‘ring'));
     }
 });
 
@@ -783,7 +783,7 @@ app.post('/register', async (req, res) => {
         res.redirect(`/verify?email=${encodeURIComponent(cleanEmail)}`);
     } catch (err) {
         console.error('Register error:', err);
-        res.send(renderRegisterPage('❌ Server xatosi, qaytadan urinib ko‘ring', true));
+        res.send(renderRegisterPage('Server xatosi, qaytadan urinib ko‘ring', true));
     }
 });
 
@@ -846,7 +846,7 @@ app.post('/verify', async (req, res) => {
         res.redirect('/home');
     } catch (err) {
         console.error('Verify error:', err);
-        res.send(renderVerifyPage(req.body.email || '', '❌ Server xatosi', true));
+        res.send(renderVerifyPage(req.body.email || '', 'Server xatosi', true));
     }
 });
 
@@ -858,7 +858,7 @@ app.post('/verify/resend', async (req, res) => {
         res.send(renderVerifyPage(email, 'Yangi kod yuborildi', false));
     } catch (err) {
         console.error('Resend code error:', err);
-        res.send(renderVerifyPage(req.body.email || '', '❌ Server xatosi', true));
+        res.send(renderVerifyPage(req.body.email || '', 'Server xatosi', true));
     }
 });
 
@@ -992,7 +992,7 @@ app.post('/forgot-password', async (req, res) => {
         res.send(renderResetPasswordPage(email, 'Agar bu email ro‘yxatdan o‘tgan bo‘lsa, kod yuborildi.', false));
     } catch (err) {
         console.error('Forgot password error:', err);
-        res.send(renderForgotPasswordPage('❌ Server xatosi, qaytadan urinib ko‘ring', true));
+        res.send(renderForgotPasswordPage('Server xatosi, qaytadan urinib ko‘ring', true));
     }
 });
 
@@ -1016,10 +1016,10 @@ app.post('/reset-password', async (req, res) => {
         const hashed = await bcrypt.hash(password, 10);
         await updateUserPassword(email, hashed);
 
-        res.send(renderLoginPage('✅ Parolingiz yangilandi. Endi kirishingiz mumkin.', false));
+        res.send(renderLoginPage('Parolingiz yangilandi. Endi kirishingiz mumkin.', false));
     } catch (err) {
         console.error('Reset password error:', err);
-        res.send(renderResetPasswordPage(req.body.email || '', '❌ Server xatosi', true));
+        res.send(renderResetPasswordPage(req.body.email || '', 'Server xatosi', true));
     }
 });
 
