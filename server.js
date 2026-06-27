@@ -290,7 +290,7 @@ function calculateAge(birthdateStr) {
 
 async function getAllUsersExcept(username) {
     const result = await db.execute({
-        sql: 'SELECT username, name, bio, interests FROM users WHERE username != ?',
+        sql: 'SELECT username, name, bio, interests, photo_url, birthdate, region FROM users WHERE username != ?',
         args: [username]
     });
     return result.rows;
@@ -300,7 +300,7 @@ async function searchUsers(currentUsername, query) {
     // Matches against username, name, and the raw interests JSON text (simple substring match)
     const likeQuery = `%${query}%`;
     const result = await db.execute({
-        sql: `SELECT username, name, bio, interests FROM users
+        sql: `SELECT username, name, bio, interests, photo_url, birthdate, region FROM users
               WHERE username != ?
               AND (username LIKE ? OR name LIKE ? OR interests LIKE ?)
               LIMIT 50`,
@@ -312,7 +312,7 @@ async function searchUsers(currentUsername, query) {
 async function getUsersByCategory(currentUsername, category) {
     const likeQuery = `%${category}%`;
     const result = await db.execute({
-        sql: `SELECT username, name, bio, interests FROM users
+        sql: `SELECT username, name, bio, interests, photo_url, birthdate, region FROM users
               WHERE username != ? AND interests LIKE ?
               LIMIT 50`,
         args: [currentUsername, likeQuery]
@@ -998,7 +998,16 @@ app.get('/api/recommendations', async (req, res) => {
         const scored = allOthers.map(u => {
             const theirInterests = JSON.parse(u.interests || '[]');
             const common = myInterests.filter(i => theirInterests.includes(i)).length;
-            return { ...u, interests: theirInterests, matchScore: common };
+            return {
+                username: u.username,
+                name: u.name,
+                bio: u.bio,
+                interests: theirInterests,
+                photoUrl: u.photo_url,
+                age: calculateAge(u.birthdate),
+                region: u.region,
+                matchScore: common
+            };
         }).sort((a, b) => b.matchScore - a.matchScore);
         res.json(scored);
     } catch (err) {
@@ -1094,7 +1103,15 @@ app.get('/api/search', async (req, res) => {
             rows = await getAllUsersExcept(currentUser.username);
         }
 
-        const results = rows.map(u => ({ ...u, interests: JSON.parse(u.interests || '[]') }));
+        const results = rows.map(u => ({
+            username: u.username,
+            name: u.name,
+            bio: u.bio,
+            interests: JSON.parse(u.interests || '[]'),
+            photoUrl: u.photo_url,
+            age: calculateAge(u.birthdate),
+            region: u.region
+        }));
         res.json(results);
     } catch (err) {
         console.error('api/search error:', err);
