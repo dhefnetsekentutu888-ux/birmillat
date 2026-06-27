@@ -1372,10 +1372,22 @@ app.post(`/telegram/webhook/${TELEGRAM_BOT_TOKEN}`, async (req, res) => {
 // the same admin reply mechanism as direct Telegram messages.
 app.post('/api/support', upload.single('screenshot'), async (req, res) => {
     try {
-        const { message } = req.body;
-        const username = req.session.userId ? (await getUserById(req.session.userId))?.username : null;
-        const identity = username ? `@${username} (vebsayt)` : 'Mehmon (vebsayt)';
-        const captionHeader = `💬 <b>Yordam so'rovi</b>\nKimdan: ${escapeHtmlForTelegram(identity)}`;
+        const { message, claimedUsername } = req.body;
+        const sessionUser = req.session.userId ? await getUserById(req.session.userId) : null;
+        const username = sessionUser?.username || null;
+
+        let identity;
+        if (username) {
+            identity = `@${username} (vebsayt, tizimga kirgan)`;
+        } else if (claimedUsername && claimedUsername.trim()) {
+            // Not logged in (e.g. a blocked account) — they typed their username manually.
+            // Label it clearly as unverified since we can't confirm it ourselves.
+            identity = `@${escapeHtmlForTelegram(claimedUsername.trim())} (o'zi yozgan, tasdiqlanmagan)`;
+        } else {
+            identity = "Mehmon (username ko'rsatilmagan)";
+        }
+
+        const captionHeader = `💬 <b>Yordam so'rovi</b>\nKimdan: ${identity}`;
 
         let forwarded;
         if (req.file) {
@@ -1391,7 +1403,7 @@ app.post('/api/support', upload.single('screenshot'), async (req, res) => {
         if (forwarded && forwarded.ok && forwarded.result) {
             await recordSupportMessage({
                 telegramChatId: 'website',
-                websiteUsername: username,
+                websiteUsername: username || (claimedUsername ? claimedUsername.trim() : null),
                 direction: 'in',
                 content: message || '[rasm]',
                 adminMessageId: forwarded.result.message_id
