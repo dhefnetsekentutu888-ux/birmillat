@@ -131,6 +131,10 @@ a {
   font-family: var(--font-body);
 }
 
+.btn:active {
+  transform: translateY(0) scale(0.97);
+}
+
 .btn-primary {
   background: var(--color-accent);
   color: white;
