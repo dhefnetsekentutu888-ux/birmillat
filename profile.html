@@ -167,7 +167,72 @@
 
     [data-mode="edit"] .view-only { display: none; }
     [data-mode="view"] .edit-only { display: none; }
+
+    .achievements-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+        gap: 0.8rem;
+    }
+    .ach-card {
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-sm);
+        overflow: hidden;
+        cursor: pointer;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+        background: var(--color-surface);
+    }
+    .ach-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); }
+    .ach-card img { width: 100%; height: 90px; object-fit: cover; display: block; }
+    .ach-card .ach-title {
+        padding: 0.5rem 0.6rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--color-text);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .ach-empty { color: var(--color-text-muted); font-size: 0.85rem; }
+    .ach-delete {
+        position: absolute; top: 0.4rem; right: 0.4rem;
+        background: rgba(26,22,37,0.6); color: white; border: none;
+        width: 22px; height: 22px; border-radius: 50%; font-size: 0.7rem;
+        cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+    .ach-card-wrap { position: relative; }
+
+    .ach-modal {
+        display: none;
+        position: fixed; inset: 0; background: rgba(26,22,37,0.55);
+        z-index: 200; align-items: center; justify-content: center; padding: 1.5rem;
+    }
+    .ach-modal.open { display: flex; }
+    .ach-modal-card {
+        background: var(--color-surface); border-radius: var(--radius-md);
+        max-width: 420px; width: 100%; overflow: hidden; max-height: 90vh; overflow-y: auto;
+    }
+    .ach-modal-card img { width: 100%; max-height: 260px; object-fit: cover; display: block; }
+    .ach-modal-body { padding: 1.4rem; }
+    .ach-modal-body h3 { font-size: 1.1rem; margin-bottom: 0.4rem; }
+    .ach-modal-body .ach-date { font-size: 0.78rem; color: var(--color-text-muted); margin-bottom: 0.6rem; }
+    .ach-modal-body p { font-size: 0.92rem; color: var(--color-text); line-height: 1.5; }
+    .ach-modal-close {
+        background: transparent; border: 1.5px solid var(--color-border); color: var(--color-text-muted);
+        padding: 0.5rem 1rem; border-radius: var(--radius-pill); cursor: pointer; margin-top: 1rem; font-size: 0.85rem;
+    }
 </style>
+
+<div class="ach-modal" id="achModal">
+    <div class="ach-modal-card">
+        <img id="achModalImage" src="" alt="">
+        <div class="ach-modal-body">
+            <h3 id="achModalTitle"></h3>
+            <div class="ach-date" id="achModalDate"></div>
+            <p id="achModalDesc"></p>
+            <button class="ach-modal-close" id="achModalClose">Yopish</button>
+        </div>
+    </div>
+</div>
 </head>
 <body>
     <nav class="navbar">
@@ -219,6 +284,11 @@
                         <div class="section-label">Qiziqishlar</div>
                         <div class="tag-list" id="viewInterests"></div>
                     </div>
+
+                    <div class="profile-achievements" style="margin-top:1.6rem;">
+                        <div class="section-label">Yutuqlarim</div>
+                        <div class="achievements-grid" id="achievementsGrid"></div>
+                    </div>
                 </div>
 
                 <!-- EDIT MODE -->
@@ -255,6 +325,22 @@
                         <button class="btn btn-cancel" id="cancelBtn">Bekor qilish</button>
                     </div>
                     <div class="save-status" id="saveStatus"></div>
+
+                    <hr style="border:none; border-top:1px solid var(--color-border); margin:1.6rem 0;">
+
+                    <div class="edit-field">
+                        <label>Yutuqlarim (maksimal 4 ta)</label>
+                        <div class="achievements-grid" id="editAchievementsGrid" style="margin-bottom:1rem;"></div>
+
+                        <div id="achievementFormWrap">
+                            <input type="text" id="achTitleInput" placeholder="Sarlavha (masalan: IELTS 7.0)" style="margin-bottom:0.6rem;">
+                            <textarea id="achDescInput" rows="2" placeholder="Tavsif (ixtiyoriy)" style="margin-bottom:0.6rem;"></textarea>
+                            <input type="date" id="achDateInput" style="margin-bottom:0.6rem;">
+                            <input type="file" id="achImageInput" accept="image/*" style="margin-bottom:0.6rem;">
+                            <button type="button" class="btn-add" id="addAchievementBtn"><i class="fas fa-plus"></i> Yutuq qo'shish</button>
+                        </div>
+                        <div class="save-status" id="achStatus"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -461,8 +547,132 @@
             }
         });
 
+        // ---------- Achievements ----------
+        let myAchievements = [];
+
+        function renderAchievementCard(ach, editable) {
+            const wrap = document.createElement('div');
+            wrap.className = 'ach-card-wrap';
+            wrap.innerHTML = `
+                <div class="ach-card" data-id="${ach.id}">
+                    <img src="${ach.imageUrl}" alt="">
+                    <div class="ach-title">${ach.title}</div>
+                </div>
+                ${editable ? `<button class="ach-delete" data-id="${ach.id}" aria-label="O'chirish">✕</button>` : ''}
+            `;
+            return wrap;
+        }
+
+        function openAchievementModal(ach) {
+            document.getElementById('achModalImage').src = ach.imageUrl;
+            document.getElementById('achModalTitle').textContent = ach.title;
+            document.getElementById('achModalDate').textContent = ach.achievedDate
+                ? new Date(ach.achievedDate).toLocaleDateString('uz-UZ', { day: 'numeric', month: 'long', year: 'numeric' })
+                : '';
+            document.getElementById('achModalDesc').textContent = ach.description || '';
+            document.getElementById('achModal').classList.add('open');
+        }
+
+        document.getElementById('achModalClose').addEventListener('click', () => {
+            document.getElementById('achModal').classList.remove('open');
+        });
+        document.getElementById('achModal').addEventListener('click', (e) => {
+            if (e.target.id === 'achModal') document.getElementById('achModal').classList.remove('open');
+        });
+
+        async function loadAchievements() {
+            try {
+                const res = await fetch(`/api/users/${encodeURIComponent(me.username)}/achievements`);
+                if (!res.ok) return;
+                myAchievements = await res.json();
+
+                const viewGrid = document.getElementById('achievementsGrid');
+                const editGrid = document.getElementById('editAchievementsGrid');
+
+                if (myAchievements.length === 0) {
+                    viewGrid.innerHTML = `<span class="ach-empty">Hali yutuqlar qo'shilmagan</span>`;
+                } else {
+                    viewGrid.innerHTML = '';
+                    myAchievements.forEach(ach => {
+                        const card = renderAchievementCard(ach, false);
+                        card.querySelector('.ach-card').addEventListener('click', () => openAchievementModal(ach));
+                        viewGrid.appendChild(card);
+                    });
+                }
+
+                editGrid.innerHTML = '';
+                myAchievements.forEach(ach => {
+                    const card = renderAchievementCard(ach, true);
+                    card.querySelector('.ach-card').addEventListener('click', () => openAchievementModal(ach));
+                    editGrid.appendChild(card);
+                });
+
+                document.getElementById('achievementFormWrap').style.display =
+                    myAchievements.length >= 4 ? 'none' : 'block';
+            } catch (e) {
+                console.error('Failed to load achievements:', e);
+            }
+        }
+
+        document.getElementById('editAchievementsGrid').addEventListener('click', async (e) => {
+            const delBtn = e.target.closest('.ach-delete');
+            if (!delBtn) return;
+            const id = delBtn.getAttribute('data-id');
+            if (!confirm("Bu yutuqni o'chirmoqchimisiz?")) return;
+            try {
+                const res = await fetch(`/api/achievements/${id}`, { method: 'DELETE' });
+                if (!res.ok) throw new Error('Server error');
+                await loadAchievements();
+            } catch (err) {
+                console.error('Delete achievement failed:', err);
+                alert("O'chirishda xatolik yuz berdi.");
+            }
+        });
+
+        document.getElementById('addAchievementBtn').addEventListener('click', async () => {
+            const statusEl = document.getElementById('achStatus');
+            const title = document.getElementById('achTitleInput').value.trim();
+            const description = document.getElementById('achDescInput').value.trim();
+            const achievedDate = document.getElementById('achDateInput').value;
+            const fileInput = document.getElementById('achImageInput');
+
+            if (!title || !fileInput.files[0]) {
+                statusEl.textContent = "Sarlavha va rasm kerak";
+                statusEl.style.color = 'var(--color-error)';
+                return;
+            }
+
+            statusEl.textContent = 'Yuklanmoqda...';
+            statusEl.style.color = 'var(--color-text-muted)';
+
+            try {
+                const formData = new FormData();
+                formData.append('title', title);
+                formData.append('description', description);
+                formData.append('achievedDate', achievedDate);
+                formData.append('image', fileInput.files[0]);
+
+                const res = await fetch('/api/achievements', { method: 'POST', body: formData });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Server error');
+
+                statusEl.textContent = "Qo'shildi ✓";
+                statusEl.style.color = 'var(--color-success)';
+                document.getElementById('achTitleInput').value = '';
+                document.getElementById('achDescInput').value = '';
+                document.getElementById('achDateInput').value = '';
+                fileInput.value = '';
+                await loadAchievements();
+                setTimeout(() => { statusEl.textContent = ''; }, 2000);
+            } catch (err) {
+                console.error('Add achievement failed:', err);
+                statusEl.textContent = err.message || "Xatolik yuz berdi";
+                statusEl.style.color = 'var(--color-error)';
+            }
+        });
+
         populateRegionDropdown();
-        loadMe();
+        loadMe().then(() => loadAchievements());
     </script>
 </body>
 </html>
