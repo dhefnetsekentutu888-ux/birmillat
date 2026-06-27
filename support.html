@@ -52,6 +52,10 @@
             <div class="replies-list" id="repliesList"></div>
 
             <form id="supportForm">
+                <div class="form-field" id="usernameField" style="display:none;">
+                    <label for="usernameInput">Foydalanuvchi nomingiz</label>
+                    <input type="text" id="usernameInput" placeholder="Tizimga kira olmasangiz, shu yerga yozing" style="width:100%; padding:0.75rem 1rem; border-radius:var(--radius-sm); border:1px solid var(--color-border); font-family:var(--font-body); font-size:0.95rem;">
+                </div>
                 <div class="form-field">
                     <label for="messageInput">Xabaringiz</label>
                     <textarea id="messageInput" rows="4" placeholder="Muammoni tasvirlab bering..."></textarea>
@@ -71,10 +75,24 @@
     <footer>BirMillat – qiziqishlar asosida do'stlar toping.<br><span style="opacity:0.8;">Founder — Bekhruz Ravshanov</span></footer>
 
     <script>
+        let isLoggedIn = false;
+
+        async function checkLoginStatus() {
+            try {
+                const res = await fetch('/api/me');
+                isLoggedIn = res.ok;
+                document.getElementById('usernameField').style.display = isLoggedIn ? 'none' : 'block';
+            } catch (e) {
+                isLoggedIn = false;
+                document.getElementById('usernameField').style.display = 'block';
+            }
+        }
+
         async function loadReplies() {
+            if (!isLoggedIn) return; // replies only work for logged-in users
             try {
                 const res = await fetch('/api/support/replies');
-                if (!res.ok) return; // not logged in — replies only work for logged-in users
+                if (!res.ok) return;
                 const replies = await res.json();
                 const list = document.getElementById('repliesList');
                 if (replies.length === 0) { list.innerHTML = ''; return; }
@@ -94,6 +112,7 @@
             const statusEl = document.getElementById('submitStatus');
             const message = document.getElementById('messageInput').value.trim();
             const fileInput = document.getElementById('screenshotInput');
+            const claimedUsername = document.getElementById('usernameInput').value.trim();
 
             if (!message && !fileInput.files[0]) return;
 
@@ -103,6 +122,7 @@
             try {
                 const formData = new FormData();
                 formData.append('message', message);
+                if (claimedUsername) formData.append('claimedUsername', claimedUsername);
                 if (fileInput.files[0]) formData.append('screenshot', fileInput.files[0]);
 
                 const res = await fetch('/api/support', { method: 'POST', body: formData });
@@ -112,6 +132,7 @@
                 statusEl.textContent = "Xabaringiz yuborildi! Tez orada javob beramiz.";
                 statusEl.className = 'submit-status success';
                 document.getElementById('supportForm').reset();
+                document.getElementById('usernameField').style.display = isLoggedIn ? 'none' : 'block';
             } catch (err) {
                 console.error('Support submit failed:', err);
                 statusEl.textContent = err.message || "Xatolik yuz berdi. Qaytadan urinib ko'ring.";
@@ -119,8 +140,11 @@
             }
         });
 
-        loadReplies();
-        setInterval(loadReplies, 8000);
+        (async () => {
+            await checkLoginStatus();
+            loadReplies();
+            setInterval(loadReplies, 8000);
+        })();
     </script>
 </body>
 </html>
