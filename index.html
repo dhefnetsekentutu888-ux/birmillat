@@ -14,7 +14,19 @@
         text-align: center;
         padding: 5rem 1.5rem 4rem;
         background: linear-gradient(180deg, #FAF7F2 0%, #F1ECF9 100%);
+        position: relative;
+        overflow: hidden;
     }
+    .hero::before, .hero::after {
+        content: '';
+        position: absolute;
+        border-radius: 50%;
+        border: 18px solid rgba(45, 27, 105, 0.05);
+        z-index: 0;
+    }
+    .hero::before { width: 240px; height: 240px; top: -60px; left: -80px; }
+    .hero::after { width: 180px; height: 180px; bottom: -50px; right: -40px; border-color: rgba(255, 107, 91, 0.07); }
+    .hero > * { position: relative; z-index: 1; }
     .hero .eyebrow {
         display: inline-block;
         background: #EFEAF8;
@@ -47,6 +59,13 @@
         flex-wrap: wrap;
         margin-bottom: 2.5rem;
     }
+    .btn-arrow .arrow {
+        display: inline-block;
+        transition: transform 0.2s ease;
+    }
+    .btn-arrow:hover .arrow {
+        transform: translateX(4px);
+    }
     .hero-tags {
         display: flex;
         gap: 0.6rem;
@@ -71,6 +90,51 @@
     .section-head p {
         color: var(--color-text-muted);
     }
+
+    .how-it-works { padding-top: 2.5rem; padding-bottom: 2.5rem; }
+    .steps-row {
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        gap: 0;
+        max-width: 980px;
+        margin: 0 auto;
+        flex-wrap: wrap;
+    }
+    .step {
+        flex: 1;
+        min-width: 200px;
+        max-width: 260px;
+        text-align: center;
+        padding: 0 1rem;
+    }
+    .step-ring-icon {
+        width: 56px;
+        height: 56px;
+        margin: 0 auto 1rem;
+    }
+    .step h3 {
+        font-size: 1.05rem;
+        margin-bottom: 0.5rem;
+        color: var(--color-primary);
+    }
+    .step p {
+        font-size: 0.88rem;
+        color: var(--color-text-muted);
+        line-height: 1.5;
+    }
+    .step-connector {
+        flex: 0 0 auto;
+        width: 60px;
+        height: 2px;
+        background: repeating-linear-gradient(90deg, var(--color-border) 0, var(--color-border) 6px, transparent 6px, transparent 12px);
+        margin-top: 28px;
+    }
+    @media (max-width: 760px) {
+        .steps-row { flex-direction: column; align-items: center; }
+        .step-connector { width: 2px; height: 32px; margin: 0; background: repeating-linear-gradient(180deg, var(--color-border) 0, var(--color-border) 6px, transparent 6px, transparent 12px); }
+    }
+
     .cat-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -208,7 +272,7 @@
     <h1>Qiziqishlaringiz asosida <span class="highlight">haqiqiy do'stlar</span> toping</h1>
     <p>Dasturlash, sun'iy intellekt, o'yinlar, sport yoki sayohat — kim bilan bo'lishishni xohlasangiz, ular shu yerda. Suhbatlashing, birga o'sing.</p>
     <div class="hero-actions">
-        <a href="/register" class="btn btn-primary">Boshlash →</a>
+        <a href="/register" class="btn btn-primary btn-arrow">Boshlash <span class="arrow">→</span></a>
         <a href="/login" class="btn btn-outline">Kirish</a>
     </div>
     <div class="hero-tags">
@@ -217,6 +281,60 @@
         <span class="tag"><img src="/icons/icon-games.svg" alt="" class="tag-icon"> O'yinlar</span>
         <span class="tag accent"><img src="/icons/icon-cloud.svg" alt="" class="tag-icon"> Cloud</span>
         <span class="tag"><img src="/icons/icon-mobile.svg" alt="" class="tag-icon"> Mobil dasturlash</span>
+    </div>
+</div>
+
+<div class="section how-it-works">
+    <div class="section-head">
+        <h2>Qanday ishlaydi</h2>
+        <p>Uch qadam — shu qadar oddiy</p>
+    </div>
+    <div class="steps-row">
+        <div class="step">
+            <div class="step-ring-icon">
+                <svg viewBox="0 0 60 60" width="56" height="56">
+                    <g transform="translate(30,30) rotate(-18)">
+                        <ellipse cx="-5" cy="0" rx="11" ry="20" fill="none" stroke="#2D1B69" stroke-width="6"/>
+                    </g>
+                    <g transform="translate(30,30) rotate(18)">
+                        <ellipse cx="5" cy="0" rx="11" ry="20" fill="none" stroke="#FF6B5B" stroke-width="6"/>
+                    </g>
+                </svg>
+            </div>
+            <h3>Profil yarating</h3>
+            <p>Ism, rasm, qiziqishlaringizni qo'shing — bir necha daqiqa ichida</p>
+        </div>
+        <div class="step-connector"></div>
+        <div class="step">
+            <div class="step-ring-icon">
+                <svg viewBox="0 0 60 60" width="56" height="56">
+                    <g transform="translate(30,30) rotate(-18)">
+                        <ellipse cx="-5" cy="0" rx="11" ry="20" fill="none" stroke="#2D1B69" stroke-width="6"/>
+                    </g>
+                    <g transform="translate(30,30) rotate(18)">
+                        <ellipse cx="5" cy="0" rx="11" ry="20" fill="none" stroke="#FF6B5B" stroke-width="6"/>
+                    </g>
+                    <path d="M19 30 A11 20 0 0 1 30 11" fill="none" stroke="#2D1B69" stroke-width="6" stroke-linecap="round" transform="translate(0,0) rotate(-18 30 30)"/>
+                </svg>
+            </div>
+            <h3>Mos kelganlarni toping</h3>
+            <p>Qiziqishlaringiz asosida tavsiyalar va qidiruv orqali odamlarni kashf eting</p>
+        </div>
+        <div class="step-connector"></div>
+        <div class="step">
+            <div class="step-ring-icon">
+                <svg viewBox="0 0 60 60" width="56" height="56">
+                    <g transform="translate(30,30) rotate(-18)">
+                        <ellipse cx="-5" cy="0" rx="11" ry="20" fill="#2D1B69" stroke="#2D1B69" stroke-width="6"/>
+                    </g>
+                    <g transform="translate(30,30) rotate(18)">
+                        <ellipse cx="5" cy="0" rx="11" ry="20" fill="#FF6B5B" stroke="#FF6B5B" stroke-width="6"/>
+                    </g>
+                </svg>
+            </div>
+            <h3>Suhbatlashing va birga o'sing</h3>
+            <p>Real vaqtda xabar yozing, tadbirlarga qatnashing, do'stlar orttiring</p>
+        </div>
     </div>
 </div>
 
@@ -260,7 +378,7 @@
     </div>
 </div>
 
-<footer>© 2026 BirMillat · <a href="/contact" style="color:inherit;">Biz bilan bog'lanish</a><br><span style="opacity:0.8;">Founder — Bekhruz Ravshanov</span></footer>
+<footer>© 2026 BirMillat · <a href="/contact" style="color:inherit;">Biz bilan bog'lanish</a> · <a href="/support" style="color:inherit;">Yordam</a><br><span style="opacity:0.8;">Founder — Bekhruz Ravshanov</span></footer>
 
 </body>
 </html>
