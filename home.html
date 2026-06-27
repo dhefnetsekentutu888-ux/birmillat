@@ -34,6 +34,22 @@
         max-width: 480px;
     }
     .interests-section { margin-bottom: 2rem; }
+    .events-ticker-wrap { margin: 1.5rem 0; }
+    .event-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        padding: 0.5rem 1rem;
+        border-radius: var(--radius-pill);
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: var(--color-primary);
+        text-decoration: none;
+        white-space: nowrap;
+    }
+    .event-chip i { color: var(--color-accent); }
     .rec-header {
         display: flex;
         justify-content: space-between;
@@ -137,6 +153,12 @@
                 <p>BirMillat'da siz <strong>qiziqishlaringiz asosida</strong> haqiqiy do'stlar va jamoa topasiz. Suhbatlashing, g'oyalar almashing, birga o'sing.</p>
             </div>
             <a href="/profile" class="btn btn-primary">Profilni tahrirlash</a>
+        </div>
+
+        <div class="events-ticker-wrap" id="eventsTickerWrap" style="display:none;">
+            <div class="marquee">
+                <div class="marquee-track" id="eventsTickerTrack"></div>
+            </div>
         </div>
 
         <div class="interests-section">
@@ -246,8 +268,30 @@
             }
         });
 
+        async function loadEventsTicker() {
+            try {
+                const res = await fetch('/api/events');
+                if (!res.ok) return;
+                const events = await res.json();
+                if (events.length === 0) return;
+
+                const chips = events.slice(0, 8).map(ev => {
+                    const d = new Date(ev.event_date);
+                    const dateStr = d.toLocaleDateString('uz-UZ', { day: 'numeric', month: 'short' });
+                    return `<a href="/events/${ev.id}" class="event-chip"><i class="fas fa-calendar"></i> ${ev.title} — ${dateStr}</a>`;
+                });
+                // Duplicate the set so the scroll loop is seamless
+                const track = document.getElementById('eventsTickerTrack');
+                track.innerHTML = chips.join('') + chips.join('');
+                document.getElementById('eventsTickerWrap').style.display = 'block';
+            } catch (e) {
+                console.error('Failed to load events ticker:', e);
+            }
+        }
+
         loadMe();
         loadRecommendations();
+        loadEventsTicker();
     </script>
 </body>
 </html>
