@@ -66,11 +66,60 @@
     .member-kick:hover { color: var(--color-error); }
     .leave-btn { width: 100%; margin-top: 1rem; }
 
+    .member-action {
+        background: none; border: none; color: var(--color-text-muted); cursor: pointer;
+        font-size: 0.78rem; padding: 0.3rem; margin-left: 0.2rem;
+    }
+    .member-action:hover { color: var(--color-primary); }
+    .member-action.member-kick:hover { color: var(--color-error); }
+
+    .role-badge {
+        font-size: 0.65rem; font-weight: 700; padding: 0.1rem 0.5rem; border-radius: var(--radius-pill);
+        margin-left: 0.4rem; text-transform: uppercase; letter-spacing: 0.3px;
+    }
+    .role-badge.creator { background: #FFEAE6; color: var(--color-accent); }
+    .role-badge.admin { background: #EFEAF8; color: var(--color-primary); }
+
+    .member-count-btn:hover { color: var(--color-primary) !important; }
+
+    .members-modal {
+        display: none; position: fixed; inset: 0; background: rgba(26,16,64,0.5);
+        z-index: 200; align-items: center; justify-content: center; padding: 1.5rem;
+    }
+    .members-modal.open { display: flex; }
+    .members-modal-card { max-width: 400px; width: 100%; max-height: 70vh; display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+    .members-modal-head {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 1.1rem 1.3rem; border-bottom: 1px solid var(--color-border);
+    }
+    .members-modal-head h3 { font-size: 1rem; }
+    .members-modal-head button { background: none; border: none; color: var(--color-text-muted); cursor: pointer; font-size: 1rem; }
+    .members-modal-list { padding: 0.6rem; overflow-y: auto; flex: 1; }
+
+    .reply-preview-row {
+        padding: 0.6rem 1.2rem; border-top: 1px solid var(--color-border); background: var(--color-bg);
+        display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; font-size: 0.82rem;
+    }
+    .reply-preview-row .reply-preview-text { color: var(--color-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .reply-preview-row .reply-preview-text strong { color: var(--color-primary); }
+    .reply-preview-row button { background: none; border: none; color: var(--color-text-muted); cursor: pointer; flex-shrink: 0; }
+
+    .msg-reply-quote {
+        font-size: 0.78rem; opacity: 0.85; border-left: 2px solid currentColor;
+        padding-left: 0.5rem; margin-bottom: 0.3rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+    }
+    .msg-reply-btn {
+        background: none; border: none; color: var(--color-text-muted); cursor: pointer;
+        font-size: 0.72rem; opacity: 0; transition: opacity 0.15s ease; padding: 0.2rem 0.4rem; align-self: center;
+    }
+    .msg-row:hover .msg-reply-btn { opacity: 1; }
+
     .connection-banner { font-size: 0.78rem; text-align: center; padding: 0.4rem; background: var(--color-error-bg); color: var(--color-error); display: none; }
 
     @media (max-width: 760px) {
         .chat-grid { grid-template-columns: 1fr; }
         .members-panel { display: none; }
+        .msg-reply-btn { opacity: 1; }
     }
 </style>
 </head>
@@ -102,6 +151,16 @@
     <div class="chat-shell">
         <div class="chat-grid" id="chatGrid">
             <p style="padding:2rem; color:var(--color-text-muted);">Yuklanmoqda...</p>
+        </div>
+    </div>
+
+    <div class="members-modal" id="membersModal">
+        <div class="members-modal-card card">
+            <div class="members-modal-head">
+                <h3 id="membersModalTitle">A'zolar</h3>
+                <button id="closeMembersModal" aria-label="Yopish"><i class="fas fa-xmark"></i></button>
+            </div>
+            <div id="membersModalList" class="members-modal-list"></div>
         </div>
     </div>
 
@@ -151,26 +210,75 @@
             return me;
         }
 
+        const messageContentMap = new Map();
+
         function appendMessage(msg) {
             const messagesEl = document.getElementById('chatMessages');
             if (!messagesEl) return;
             const isMine = msg.senderId === myUserId || msg.isMine;
             const row = document.createElement('div');
             row.className = 'msg-row ' + (isMine ? 'mine' : '');
+            row.dataset.messageId = msg.id;
+            messageContentMap.set(String(msg.id), {
+                senderName: msg.senderName || msg.senderUsername,
+                content: msg.content
+            });
+
+            const replyQuoteHtml = msg.replyTo
+                ? `<div class="msg-reply-quote">${msg.replyTo.senderName || msg.replyTo.senderUsername}: ${escapeHtml(msg.replyTo.content)}</div>`
+                : '';
+
             row.innerHTML = `
                 <div class="msg-avatar">${avatarHtml(msg.senderPhoto, msg.senderName || msg.senderUsername)}</div>
+                <button class="msg-reply-btn" data-msgid="${msg.id}" title="Javob berish"><i class="fas fa-reply"></i></button>
                 <div class="msg-bubble-wrap">
                     ${!isMine ? `<div class="msg-sender-name">${msg.senderName || msg.senderUsername}</div>` : ''}
-                    <div class="msg-bubble ${isMine ? 'mine' : 'theirs'}">${escapeHtml(msg.content)}<span class="msg-time">${formatTime(msg.createdAt)}</span></div>
+                    <div class="msg-bubble ${isMine ? 'mine' : 'theirs'}">${replyQuoteHtml}${escapeHtml(msg.content)}<span class="msg-time">${formatTime(msg.createdAt)}</span></div>
                 </div>
             `;
             messagesEl.appendChild(row);
             messagesEl.scrollTop = messagesEl.scrollHeight;
         }
 
+        document.addEventListener('click', (e) => {
+            const btn = e.target.closest('.msg-reply-btn');
+            if (!btn) return;
+            const msgId = btn.getAttribute('data-msgid');
+            const stored = messageContentMap.get(String(msgId));
+            if (!stored) return;
+
+            replyingTo = { id: msgId, senderName: stored.senderName, content: stored.content };
+            const previewRow = document.getElementById('replyPreviewRow');
+            if (previewRow) {
+                previewRow.style.display = 'flex';
+                const textEl = document.createElement('div');
+                textEl.className = 'reply-preview-text';
+                const strongEl = document.createElement('strong');
+                strongEl.textContent = replyingTo.senderName;
+                textEl.appendChild(strongEl);
+                textEl.appendChild(document.createTextNode("ga javob: " + replyingTo.content));
+
+                previewRow.innerHTML = '';
+                previewRow.appendChild(textEl);
+                const cancelBtn = document.createElement('button');
+                cancelBtn.id = 'cancelReplyBtn';
+                cancelBtn.innerHTML = '<i class="fas fa-xmark"></i>';
+                previewRow.appendChild(cancelBtn);
+
+                cancelBtn.addEventListener('click', () => {
+                    replyingTo = null;
+                    previewRow.style.display = 'none';
+                });
+                document.getElementById('messageInput')?.focus();
+            }
+        });
+
+        let replyingTo = null;
+
         function renderChat(community) {
             const grid = document.getElementById('chatGrid');
             const avatarClickable = community.isCreator;
+            const canManage = community.canManage;
             grid.innerHTML = `
                 <div class="chat-panel">
                     <div class="chat-head">
@@ -181,10 +289,11 @@
                         ${avatarClickable ? `<input type="file" id="commImageInput" accept="image/*" style="display:none;">` : ''}
                         <div>
                             <h2>${community.name}</h2>
-                            <div class="sub">${community.memberCount} a'zo · ${community.category}</div>
+                            <button class="sub member-count-btn" id="memberCountBtn" style="background:none; border:none; padding:0; cursor:pointer; color:var(--color-text-muted); font-size:0.8rem; text-decoration:underline;">${community.memberCount} a'zo · ${community.category}</button>
                         </div>
                     </div>
                     <div class="chat-messages" id="chatMessages"></div>
+                    <div class="reply-preview-row" id="replyPreviewRow" style="display:none;"></div>
                     <div class="chat-input-row">
                         <input type="text" id="messageInput" placeholder="Xabar yozing...">
                         <button id="sendBtn"><i class="fas fa-paper-plane"></i></button>
@@ -196,6 +305,9 @@
                     ${!community.isCreator ? `<button class="btn btn-cancel leave-btn" id="leaveBtn" style="border:1.5px solid var(--color-border); background:transparent; color:var(--color-text-muted);">Jamoadan chiqish</button>` : ''}
                 </div>
             `;
+
+            renderMembersInto(document.getElementById('membersList'), community, canManage);
+            document.getElementById('memberCountBtn').addEventListener('click', () => openMembersModal(community, canManage));
 
             if (avatarClickable) {
                 const wrap = document.getElementById('commAvatarWrap');
@@ -223,17 +335,6 @@
                 });
             }
 
-            community.members.forEach(m => {
-                const row = document.createElement('div');
-                row.className = 'member-row';
-                row.innerHTML = `
-                    <div class="member-avatar">${avatarHtml(m.photo_url, m.name || m.username)}</div>
-                    <div class="member-name"><a href="/u/${m.username}">${m.name || m.username}</a></div>
-                    ${community.isCreator && m.id !== myUserId ? `<button class="member-kick" data-userid="${m.id}" title="Chiqarish"><i class="fas fa-user-xmark"></i></button>` : ''}
-                `;
-                document.getElementById('membersList').appendChild(row);
-            });
-
             document.getElementById('sendBtn').addEventListener('click', sendCurrentMessage);
             document.getElementById('messageInput').addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') sendCurrentMessage();
@@ -247,27 +348,101 @@
                     if (res.ok) window.location.href = '/communities';
                 });
             }
+        }
 
-            document.getElementById('membersList').addEventListener('click', async (e) => {
-                const btn = e.target.closest('.member-kick');
+        function renderMembersInto(container, community, canManage) {
+            container.innerHTML = '';
+            community.members.forEach(m => {
+                const isCreatorMember = m.id === community.creator_id;
+                const isAdminMember = m.role === 'admin';
+                const row = document.createElement('div');
+                row.className = 'member-row';
+                row.innerHTML = `
+                    <div class="member-avatar">${avatarHtml(m.photo_url, m.name || m.username)}</div>
+                    <div class="member-name">
+                        <a href="/u/${m.username}">${m.name || m.username}</a>
+                        ${isCreatorMember ? `<span class="role-badge creator">Egasi</span>` : (isAdminMember ? `<span class="role-badge admin">Admin</span>` : '')}
+                    </div>
+                    ${community.isCreator && !isCreatorMember ? `
+                        <button class="member-action" data-action="${isAdminMember ? 'demote' : 'promote'}" data-userid="${m.id}" title="${isAdminMember ? 'Admindan olish' : 'Admin qilish'}">
+                            <i class="fas ${isAdminMember ? 'fa-user-minus' : 'fa-user-shield'}"></i>
+                        </button>
+                    ` : ''}
+                    ${canManage && !isCreatorMember && m.id !== myUserId ? `<button class="member-action member-kick" data-action="kick" data-userid="${m.id}" title="Chiqarish"><i class="fas fa-user-xmark"></i></button>` : ''}
+                `;
+                container.appendChild(row);
+            });
+
+            container.addEventListener('click', async (e) => {
+                const btn = e.target.closest('.member-action');
                 if (!btn) return;
+                const action = btn.getAttribute('data-action');
                 const userId = btn.getAttribute('data-userid');
-                if (!confirm("Bu a'zoni chiqarmoqchimisiz?")) return;
-                const res = await fetch(`/api/communities/${communityId}/remove/${userId}`, { method: 'POST' });
-                if (res.ok) loadCommunity();
+
+                if (action === 'kick') {
+                    if (!confirm("Bu a'zoni chiqarmoqchimisiz?")) return;
+                    const res = await fetch(`/api/communities/${communityId}/remove/${userId}`, { method: 'POST' });
+                    if (res.ok) loadCommunity();
+                } else if (action === 'promote' || action === 'demote') {
+                    const res = await fetch(`/api/communities/${communityId}/admins/${userId}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action })
+                    });
+                    if (res.ok) loadCommunity();
+                    else {
+                        const data = await res.json().catch(() => ({}));
+                        alert(data.error || "Xatolik yuz berdi");
+                    }
+                }
             });
         }
+
+        function openMembersModal(community, canManage) {
+            const modal = document.getElementById('membersModal');
+            const listEl = document.getElementById('membersModalList');
+            document.getElementById('membersModalTitle').textContent = `A'zolar (${community.memberCount})`;
+            renderMembersInto(listEl, community, canManage);
+            modal.classList.add('open');
+        }
+
+        document.getElementById('closeMembersModal').addEventListener('click', () => {
+            document.getElementById('membersModal').classList.remove('open');
+        });
+        document.getElementById('membersModal').addEventListener('click', (e) => {
+            if (e.target.id === 'membersModal') document.getElementById('membersModal').classList.remove('open');
+        });
 
         function sendCurrentMessage() {
             const input = document.getElementById('messageInput');
             const content = input.value.trim();
             if (!content || !socket) return;
 
-            socket.emit('send_community_message', { communityId, content }, (response) => {
+            const sendBtn = document.getElementById('sendBtn');
+            sendBtn.disabled = true;
+            const replyToId = replyingTo ? replyingTo.id : null;
+
+            let callbackFired = false;
+            const reEnableTimeout = setTimeout(() => {
+                if (!callbackFired) {
+                    sendBtn.disabled = false;
+                    console.warn('send_community_message timed out waiting for server response');
+                }
+            }, 6000);
+
+            socket.emit('send_community_message', { communityId, content, replyToId }, (response) => {
+                callbackFired = true;
+                clearTimeout(reEnableTimeout);
+                sendBtn.disabled = false;
                 if (!response || !response.success) {
                     alert((response && response.error) || "Xabar yuborilmadi.");
                 }
             });
+
+            replyingTo = null;
+            const previewRow = document.getElementById('replyPreviewRow');
+            if (previewRow) previewRow.style.display = 'none';
+
             input.value = '';
             input.focus();
         }
