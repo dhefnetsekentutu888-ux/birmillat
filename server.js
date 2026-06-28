@@ -86,6 +86,38 @@ async function initDb() {
     `);
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_achievements_user ON achievements (user_id)`);
 
+    // Communities — open group chats, anyone can create/join, creator can remove members
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS communities (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            description TEXT,
+            category TEXT,
+            creator_id INTEGER NOT NULL,
+            created_at INTEGER NOT NULL
+        )
+    `);
+
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS community_members (
+            community_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            joined_at INTEGER NOT NULL,
+            PRIMARY KEY (community_id, user_id)
+        )
+    `);
+
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS community_messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            community_id INTEGER NOT NULL,
+            sender_id INTEGER NOT NULL,
+            content TEXT NOT NULL,
+            created_at INTEGER NOT NULL
+        )
+    `);
+    await db.execute(`CREATE INDEX IF NOT EXISTS idx_community_messages ON community_messages (community_id, created_at)`);
+
     // Email verification codes (used at registration and for password reset)
     await db.execute(`
         CREATE TABLE IF NOT EXISTS verification_codes (
@@ -514,6 +546,109 @@ async function deleteAchievement(id, userId) {
     return result.rowsAffected > 0;
 }
 
+// ---------- Communities ----------
+async function createCommunity(creatorId, { name, description, category }) {
+    const now = Date.now();
+    const result = await db.execute({
+        sql: `INSERT INTO communities (name, description, category, creator_id, created_at) VALUES (?, ?, ?, ?, ?)`,
+        args: [name, description || null, category || 'Boshqa', creatorId, now]
+    });
+    const communityId = Number(result.lastInsertRowid);
+    // Creator automatically joins their own community
+    await db.execute({
+        sql: `INSERT INTO community_members (community_id, user_id, joined_at) VALUES (?, ?, ?)`,
+        args: [communityId, creatorId, now]
+    });
+    return communityId;
+}
+
+async function getCommunityById(id) {
+    const result = await db.execute({
+        sql: `SELECT communities.*, users.username AS creator_username
+              FROM communities JOIN users ON users.id = communities.creator_id
+              WHERE communities.id = ?`,
+        args: [id]
+    });
+    return result.rows[0] || null;
+}
+
+async function listCommunities(category) {
+    const sql = category
+        ? `SELECT c.*, users.username AS creator_username,
+                  (SELECT COUNT(*) FROM community_members WHERE community_id = c.id) AS member_count
+           FROM communities c JOIN users ON users.id = c.creator_id
+           WHERE c.category = ? ORDER BY c.created_at DESC`
+        : `SELECT c.*, users.username AS creator_username,
+                  (SELECT COUNT(*) FROM community_members WHERE community_id = c.id) AS member_count
+           FROM communities c JOIN users ON users.id = c.creator_id
+           ORDER BY c.created_at DESC`;
+    const result = await db.execute(category ? { sql, args: [category] } : sql);
+    return result.rows;
+}
+
+async function joinCommunity(communityId, userId) {
+    return db.execute({
+        sql: `INSERT OR IGNORE INTO community_members (community_id, user_id, joined_at) VALUES (?, ?, ?)`,
+        args: [communityId, userId, Date.now()]
+    });
+}
+
+async function leaveCommunity(communityId, userId) {
+    return db.execute({
+        sql: `DELETE FROM community_members WHERE community_id = ? AND user_id = ?`,
+        args: [communityId, userId]
+    });
+}
+
+async function removeCommunityMember(communityId, userId) {
+    return db.execute({
+        sql: `DELETE FROM community_members WHERE community_id = ? AND user_id = ?`,
+        args: [communityId, userId]
+    });
+}
+
+async function isCommunityMember(communityId, userId) {
+    const result = await db.execute({
+        sql: `SELECT 1 FROM community_members WHERE community_id = ? AND user_id = ?`,
+        args: [communityId, userId]
+    });
+    return result.rows.length > 0;
+}
+
+async function getCommunityMembers(communityId) {
+    const result = await db.execute({
+        sql: `SELECT users.id, users.username, users.name, users.photo_url
+              FROM community_members
+              JOIN users ON users.id = community_members.user_id
+              WHERE community_members.community_id = ?
+              ORDER BY community_members.joined_at ASC`,
+        args: [communityId]
+    });
+    return result.rows;
+}
+
+async function saveCommunityMessage(communityId, senderId, content) {
+    const createdAt = Date.now();
+    const result = await db.execute({
+        sql: `INSERT INTO community_messages (community_id, sender_id, content, created_at) VALUES (?, ?, ?, ?)`,
+        args: [communityId, senderId, content, createdAt]
+    });
+    return { id: Number(result.lastInsertRowid), createdAt };
+}
+
+async function getCommunityMessages(communityId, limit = 100) {
+    const result = await db.execute({
+        sql: `SELECT community_messages.*, users.username, users.name, users.photo_url
+              FROM community_messages
+              JOIN users ON users.id = community_messages.sender_id
+              WHERE community_id = ?
+              ORDER BY created_at ASC
+              LIMIT ?`,
+        args: [communityId, limit]
+    });
+    return result.rows;
+}
+
 // ---------- Custom session store backed by Turso ----------
 // express-session expects a store with get/set/destroy (callback-style).
 const Store = session.Store;
@@ -905,6 +1040,16 @@ app.get('/events/:id', (req, res) => {
     res.sendFile(path.join(__dirname, 'event-detail.html'));
 });
 
+app.get('/communities', (req, res) => {
+    if (!req.session.userId) return res.redirect('/login');
+    res.sendFile(path.join(__dirname, 'communities.html'));
+});
+
+app.get('/communities/:id', (req, res) => {
+    if (!req.session.userId) return res.redirect('/login');
+    res.sendFile(path.join(__dirname, 'community-chat.html'));
+});
+
 app.get('/profile', (req, res) => {
     if (!req.session.userId) return res.redirect('/login');
     res.sendFile(path.join(__dirname, 'profile.html'));
@@ -1030,6 +1175,7 @@ app.get('/api/me', async (req, res) => {
         const user = await getUserById(req.session.userId);
         if (!user) return res.status(401).json({ error: 'Unauthorized' });
         res.json({
+            id: user.id,
             username: user.username,
             name: user.name,
             bio: user.bio,
@@ -1759,6 +1905,131 @@ app.get('/admin/events/:id/reject', async (req, res) => {
     res.send('❌ Tadbir rad etildi. Bu oynani yopishingiz mumkin.');
 });
 
+// ---------- Communities ----------
+app.get('/api/communities', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const category = (req.query.category || '').trim();
+        const communities = await listCommunities(category || null);
+        res.json(communities);
+    } catch (err) {
+        console.error('api/communities error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.post('/api/communities', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const { name, description, category } = req.body;
+        if (!name || !name.trim()) {
+            return res.status(400).json({ error: 'Jamoa nomi kerak' });
+        }
+        const id = await createCommunity(req.session.userId, {
+            name: name.trim(),
+            description: (description || '').trim(),
+            category: category || 'Boshqa'
+        });
+        res.json({ success: true, id });
+    } catch (err) {
+        console.error('api/communities create error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.get('/api/communities/:id', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const community = await getCommunityById(req.params.id);
+        if (!community) return res.status(404).json({ error: 'Jamoa topilmadi' });
+
+        const members = await getCommunityMembers(community.id);
+        const isMember = await isCommunityMember(community.id, req.session.userId);
+
+        res.json({
+            ...community,
+            members,
+            memberCount: members.length,
+            isMember,
+            isCreator: community.creator_id === req.session.userId
+        });
+    } catch (err) {
+        console.error('api/communities/:id error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.post('/api/communities/:id/join', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const community = await getCommunityById(req.params.id);
+        if (!community) return res.status(404).json({ error: 'Jamoa topilmadi' });
+        await joinCommunity(community.id, req.session.userId);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('api/communities/:id/join error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.post('/api/communities/:id/leave', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const community = await getCommunityById(req.params.id);
+        if (!community) return res.status(404).json({ error: 'Jamoa topilmadi' });
+        if (community.creator_id === req.session.userId) {
+            return res.status(400).json({ error: "Jamoa yaratuvchisi chiqib ketolmaydi. Jamoani o'chirishingiz mumkin." });
+        }
+        await leaveCommunity(req.params.id, req.session.userId);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('api/communities/:id/leave error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.post('/api/communities/:id/remove/:userId', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const community = await getCommunityById(req.params.id);
+        if (!community) return res.status(404).json({ error: 'Jamoa topilmadi' });
+        if (community.creator_id !== req.session.userId) {
+            return res.status(403).json({ error: "Faqat jamoa yaratuvchisi a'zolarni chiqarishi mumkin" });
+        }
+        if (Number(req.params.userId) === community.creator_id) {
+            return res.status(400).json({ error: "O'zingizni chiqarib bo'lmaydi" });
+        }
+        await removeCommunityMember(req.params.id, req.params.userId);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('api/communities/:id/remove error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.get('/api/communities/:id/messages', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const isMember = await isCommunityMember(req.params.id, req.session.userId);
+        if (!isMember) return res.status(403).json({ error: "Siz bu jamoaga a'zo emassiz" });
+
+        const messages = await getCommunityMessages(req.params.id);
+        res.json(messages.map(m => ({
+            id: m.id,
+            senderId: m.sender_id,
+            senderUsername: m.username,
+            senderName: m.name,
+            senderPhoto: m.photo_url,
+            content: m.content,
+            createdAt: m.created_at,
+            isMine: m.sender_id === req.session.userId
+        })));
+    } catch (err) {
+        console.error('api/communities/:id/messages error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 
 
 const onlineUsers = new Map(); // userId -> Set of socket ids
@@ -1813,6 +2084,66 @@ io.on('connection', (socket) => {
             if (callback) callback({ success: true, message: payload });
         } catch (err) {
             console.error('send_message error:', err);
+            if (callback) callback({ error: 'Server xatosi' });
+        }
+    });
+
+    // ---------- Community group chat (Socket.IO rooms) ----------
+    socket.on('join_community', async (data, callback) => {
+        try {
+            const communityId = data && data.communityId;
+            if (!communityId) return;
+            const isMember = await isCommunityMember(communityId, userId);
+            if (!isMember) {
+                if (callback) callback({ error: "Siz bu jamoaga a'zo emassiz" });
+                return;
+            }
+            socket.join(`community:${communityId}`);
+            if (callback) callback({ success: true });
+        } catch (err) {
+            console.error('join_community error:', err);
+            if (callback) callback({ error: 'Server xatosi' });
+        }
+    });
+
+    socket.on('leave_community_room', (data) => {
+        const communityId = data && data.communityId;
+        if (communityId) socket.leave(`community:${communityId}`);
+    });
+
+    socket.on('send_community_message', async (data, callback) => {
+        try {
+            const { communityId, content } = data || {};
+            const trimmed = (content || '').trim();
+            if (!communityId || !trimmed) {
+                if (callback) callback({ error: 'Xabar bo‘sh bo‘lishi mumkin emas' });
+                return;
+            }
+            const isMember = await isCommunityMember(communityId, userId);
+            if (!isMember) {
+                if (callback) callback({ error: "Siz bu jamoaga a'zo emassiz" });
+                return;
+            }
+
+            const sender = await getUserById(userId);
+            const saved = await saveCommunityMessage(communityId, userId, trimmed);
+            const payload = {
+                id: saved.id,
+                communityId: Number(communityId),
+                senderId: userId,
+                senderUsername: sender.username,
+                senderName: sender.name,
+                senderPhoto: sender.photo_url,
+                content: trimmed,
+                createdAt: saved.createdAt
+            };
+
+            // Broadcast to everyone currently in this community's room, including the sender
+            io.to(`community:${communityId}`).emit('new_community_message', payload);
+
+            if (callback) callback({ success: true, message: payload });
+        } catch (err) {
+            console.error('send_community_message error:', err);
             if (callback) callback({ error: 'Server xatosi' });
         }
     });
