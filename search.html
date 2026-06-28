@@ -112,7 +112,8 @@
       </g>
       <text x="95" y="53" font-size="34" font-weight="700" fill="#2D1B69" font-family="Poppins, -apple-system, sans-serif">Bir<tspan fill="#FF6B5B">Millat</tspan></text>
     </svg></a>
-        <div class="nav-links">
+        <button class="nav-toggle" id="navToggle" aria-label="Menyu"><i class="fas fa-bars"></i></button>
+        <div class="nav-links" id="navLinks">
             <a href="/home">Bosh sahifa</a>
             <a href="/recommend">Tavsiyalar</a>
             <a href="/events">Tadbirlar</a>
@@ -253,6 +254,16 @@
             await loadMe();
             runSearch();
         })();
+    </script>
+
+    <script>
+        const navToggleBtn = document.getElementById('navToggle');
+        const navLinksEl = document.getElementById('navLinks');
+        if (navToggleBtn && navLinksEl) {
+            navToggleBtn.addEventListener('click', () => {
+                navLinksEl.classList.toggle('open');
+            });
+        }
     </script>
 </body>
 </html>
