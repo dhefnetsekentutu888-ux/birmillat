@@ -409,7 +409,19 @@
             const sendBtn = document.getElementById('sendBtn');
             sendBtn.disabled = true;
 
+            // Safety net: if the server never calls back (dropped connection, lag, etc.),
+            // don't leave the button stuck disabled forever.
+            let callbackFired = false;
+            const reEnableTimeout = setTimeout(() => {
+                if (!callbackFired) {
+                    sendBtn.disabled = false;
+                    console.warn('send_message timed out waiting for server response');
+                }
+            }, 6000);
+
             socket.emit('send_message', { toUsername: activeChatWith, content }, (response) => {
+                callbackFired = true;
+                clearTimeout(reEnableTimeout);
                 sendBtn.disabled = false;
                 if (response && response.success) {
                     appendMessage(response.message.content, true, response.message.createdAt);
