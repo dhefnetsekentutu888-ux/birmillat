@@ -86,7 +86,8 @@
               <text x="95" y="53" font-size="34" font-weight="700" fill="#2D1B69" font-family="Poppins, -apple-system, sans-serif">Bir<tspan fill="#FF6B5B">Millat</tspan></text>
             </svg>
         </a>
-        <div class="nav-links">
+        <button class="nav-toggle" id="navToggle" aria-label="Menyu"><i class="fas fa-bars"></i></button>
+        <div class="nav-links" id="navLinks">
             <a href="/home">Bosh sahifa</a>
             <a href="/communities">Jamoalar</a>
             <a href="/messages">Xabarlar</a>
@@ -140,7 +141,10 @@
 
         async function loadMe() {
             const res = await fetch('/api/me');
-            if (!res.ok) { window.location.href = '/login'; return null; }
+            if (!res.ok) {
+                document.getElementById('userBadge').style.display = 'none';
+                return null;
+            }
             const me = await res.json();
             myUsername = me.username;
             document.getElementById('userBadge').innerHTML = '<img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ' + me.username;
@@ -169,6 +173,9 @@
             grid.innerHTML = `
                 <div class="chat-panel">
                     <div class="chat-head">
+                        <div style="width:38px; height:38px; border-radius:50%; background:#EFEAF8; display:flex; align-items:center; justify-content:center; color:var(--color-primary); font-size:0.95rem; flex-shrink:0; overflow:hidden;">
+                            ${communityAvatarHtml(community.imageUrl, community.name)}
+                        </div>
                         <div>
                             <h2>${community.name}</h2>
                             <div class="sub">${community.memberCount} a'zo · ${community.category}</div>
@@ -236,21 +243,48 @@
             input.focus();
         }
 
+        function communityAvatarHtml(imageUrl, name) {
+            return imageUrl
+                ? `<img src="${imageUrl}" alt="" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`
+                : `<i class="fas fa-people-group"></i>`;
+        }
+
         async function loadCommunity() {
             try {
                 const res = await fetch(`/api/communities/${communityId}`);
                 if (!res.ok) {
-                    document.getElementById('chatGrid').innerHTML = `<p style="padding:2rem; color:var(--color-text-muted);">Jamoa topilmadi yoki siz a'zo emassiz.</p>`;
+                    document.getElementById('chatGrid').innerHTML = `<p style="padding:2rem; color:var(--color-text-muted);">Jamoa topilmadi.</p>`;
                     return;
                 }
                 const community = await res.json();
                 isCreator = community.isCreator;
 
+                const previewHeader = `
+                    <div style="width:72px; height:72px; border-radius:50%; background:#EFEAF8; display:flex; align-items:center; justify-content:center; font-size:1.8rem; color:var(--color-primary); margin:0 auto 1rem;">
+                        ${communityAvatarHtml(community.imageUrl, community.name)}
+                    </div>
+                    <h2 style="margin-bottom:0.4rem;">${community.name}</h2>
+                    <p style="color:var(--color-text-muted); font-size:0.85rem; margin-bottom:0.8rem;">
+                        <i class="fas fa-tag"></i> ${community.category} · <i class="fas fa-users"></i> ${community.memberCount} a'zo
+                    </p>
+                    <p style="color:var(--color-text-muted); margin-bottom:1.4rem;">${community.description || ''}</p>
+                `;
+
+                // Logged-out visitor: show preview with a login prompt instead of a join button
+                if (community.isPreview) {
+                    document.getElementById('chatGrid').innerHTML = `
+                        <div style="padding:3rem; text-align:center; grid-column:1/-1;">
+                            ${previewHeader}
+                            <a href="/login?next=/communities/${communityId}" class="btn btn-primary"><i class="fas fa-right-to-bracket"></i> Qo'shilish uchun kiring</a>
+                        </div>
+                    `;
+                    return;
+                }
+
                 if (!community.isMember) {
                     document.getElementById('chatGrid').innerHTML = `
                         <div style="padding:3rem; text-align:center; grid-column:1/-1;">
-                            <h2 style="margin-bottom:0.8rem;">${community.name}</h2>
-                            <p style="color:var(--color-text-muted); margin-bottom:1.4rem;">${community.description || ''}</p>
+                            ${previewHeader}
                             <button class="btn btn-primary" id="joinBtn"><i class="fas fa-user-plus"></i> Qo'shilish</button>
                         </div>
                     `;
@@ -291,11 +325,20 @@
         (async () => {
             communityId = getCommunityId();
             const me = await loadMe();
-            if (!me) return;
-            myUserId = me.id;
-            setupSocket();
+            if (me) myUserId = me.id;
+            if (me) setupSocket();
             await loadCommunity();
         })();
+    </script>
+
+    <script>
+        const navToggleBtn = document.getElementById('navToggle');
+        const navLinksEl = document.getElementById('navLinks');
+        if (navToggleBtn && navLinksEl) {
+            navToggleBtn.addEventListener('click', () => {
+                navLinksEl.classList.toggle('open');
+            });
+        }
     </script>
 </body>
 </html>
