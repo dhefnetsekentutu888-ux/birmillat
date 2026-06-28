@@ -164,6 +164,32 @@ a {
   color: white;
 }
 
+.btn-outline-dark {
+  background: transparent;
+  border: 2px solid rgba(255,255,255,0.5);
+  color: #FAF7F2;
+}
+
+.btn-outline-dark:hover {
+  background: rgba(255,255,255,0.12);
+  border-color: #FAF7F2;
+}
+
+.btn-glow {
+  box-shadow: 0 0 0 0 rgba(255, 107, 91, 0.6);
+  animation: btn-pulse 2.6s ease-out infinite;
+}
+
+@keyframes btn-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(255, 107, 91, 0.55); }
+  70% { box-shadow: 0 0 0 14px rgba(255, 107, 91, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 107, 91, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-glow { animation: none; }
+}
+
 /* ---------- Cards ---------- */
 .card {
   background: var(--color-surface);
