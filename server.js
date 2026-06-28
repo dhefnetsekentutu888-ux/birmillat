@@ -97,6 +97,7 @@ async function initDb() {
             created_at INTEGER NOT NULL
         )
     `);
+    try { await db.execute(`ALTER TABLE communities ADD COLUMN image_url TEXT`); } catch (e) {}
 
     await db.execute(`
         CREATE TABLE IF NOT EXISTS community_members (
@@ -547,11 +548,11 @@ async function deleteAchievement(id, userId) {
 }
 
 // ---------- Communities ----------
-async function createCommunity(creatorId, { name, description, category }) {
+async function createCommunity(creatorId, { name, description, category, imageUrl }) {
     const now = Date.now();
     const result = await db.execute({
-        sql: `INSERT INTO communities (name, description, category, creator_id, created_at) VALUES (?, ?, ?, ?, ?)`,
-        args: [name, description || null, category || 'Boshqa', creatorId, now]
+        sql: `INSERT INTO communities (name, description, category, creator_id, created_at, image_url) VALUES (?, ?, ?, ?, ?, ?)`,
+        args: [name, description || null, category || 'Boshqa', creatorId, now, imageUrl || null]
     });
     const communityId = Number(result.lastInsertRowid);
     // Creator automatically joins their own community
@@ -560,6 +561,13 @@ async function createCommunity(creatorId, { name, description, category }) {
         args: [communityId, creatorId, now]
     });
     return communityId;
+}
+
+async function updateCommunityImage(communityId, imageUrl) {
+    return db.execute({
+        sql: 'UPDATE communities SET image_url = ? WHERE id = ?',
+        args: [imageUrl, communityId]
+    });
 }
 
 async function getCommunityById(id) {
@@ -768,8 +776,9 @@ function renderRegisterPage(message, isError = true) {
     </body></html>`;
 }
 
-function renderLoginPage(message, isError = true) {
+function renderLoginPage(message, isError = true, next = '/home') {
     const msgClass = isError ? 'error' : 'success';
+    const safeNext = safeNextPath(next);
     return `<!DOCTYPE html><html><head><title>Kirish - BirMillat</title>
     <link rel="icon" type="image/png" href="/favicon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -791,9 +800,18 @@ function renderLoginPage(message, isError = true) {
     </style>
     </head>
     <body class="auth-shell"><div class="auth-card">
-        <img src="/logo-full.svg" alt="BirMillat" class="auth-logo">        <h2>Xush kelibsiz</h2>
+        <svg width="140" height="40" viewBox="0 0 320 90" xmlns="http://www.w3.org/2000/svg" class="auth-logo" style="height:40px; width:auto;">
+          <g transform="translate(45,45)">
+            <g transform="rotate(-18)"><ellipse cx="-10" cy="0" rx="20" ry="36" fill="none" stroke="#2D1B69" stroke-width="10"/></g>
+            <g transform="rotate(18)"><ellipse cx="10" cy="0" rx="20" ry="36" fill="none" stroke="#FF6B5B" stroke-width="10"/></g>
+            <g transform="rotate(-18)"><path d="M -30 0 A 20 36 0 0 1 11 0" fill="none" stroke="#2D1B69" stroke-width="10" stroke-linecap="round"/></g>
+          </g>
+          <text x="95" y="53" font-size="34" font-weight="700" fill="#2D1B69" font-family="Poppins, -apple-system, sans-serif">Bir<tspan fill="#FF6B5B">Millat</tspan></text>
+        </svg>
+        <h2>Xush kelibsiz</h2>
         ${message ? `<div class="message ${msgClass}">${message}</div>` : ''}
         <form method=post action=/login>
+            <input type=hidden name=next value="${safeNext}">
             <input name=identifier placeholder="Email yoki foydalanuvchi nomi" required>
             <div class="pw-field">
                 <input type=password name=password id=password placeholder="Parol" required>
@@ -839,25 +857,35 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+function safeNextPath(next) {
+    // Only allow internal paths, never an absolute URL — prevents this becoming an open redirect.
+    if (typeof next === 'string' && next.startsWith('/') && !next.startsWith('//')) {
+        return next;
+    }
+    return '/home';
+}
+
 app.get('/login', (req, res) => {
-    if (req.session.userId) return res.redirect('/home');
-    res.send(renderLoginPage(''));
+    const next = safeNextPath(req.query.next);
+    if (req.session.userId) return res.redirect(next);
+    res.send(renderLoginPage('', true, next));
 });
 
 app.post('/login', async (req, res) => {
     try {
-        const { identifier, password } = req.body;
+        const { identifier, password, next } = req.body;
+        const safeNext = safeNextPath(next);
         const clean = (identifier || '').trim();
         const user = clean.includes('@')
             ? await getUserByEmail(clean.toLowerCase())
             : await getUser(clean);
 
-        if (!user) return res.send(renderLoginPage('Login noto‘g‘ri'));
+        if (!user) return res.send(renderLoginPage('Login noto‘g‘ri', true, safeNext));
         const match = await bcrypt.compare(password, user.password);
-        if (!match) return res.send(renderLoginPage('Parol noto‘g‘ri'));
+        if (!match) return res.send(renderLoginPage('Parol noto‘g‘ri', true, safeNext));
 
         if (user.is_blocked) {
-            return res.send(renderLoginPage('🚫 Hisobingiz bloklangan. Savollar bo‘yicha <a href="/support">shu yerdan</a> murojaat qiling.'));
+            return res.send(renderLoginPage('🚫 Hisobingiz bloklangan. Savollar bo‘yicha <a href="/support">shu yerdan</a> murojaat qiling.', true, safeNext));
         }
 
         if (!user.is_verified && user.email) {
@@ -866,10 +894,10 @@ app.post('/login', async (req, res) => {
 
         req.session.userId = user.id;
         req.session.username = user.username;
-        res.redirect('/home');
+        res.redirect(safeNext);
     } catch (err) {
         console.error('Login error:', err);
-        res.send(renderLoginPage('Server xatosi, qaytadan urinib ko‘ring'));
+        res.send(renderLoginPage('Server xatosi, qaytadan urinib ko‘ring', true, safeNextPath(req.body.next)));
     }
 });
 
@@ -1046,7 +1074,6 @@ app.get('/communities', (req, res) => {
 });
 
 app.get('/communities/:id', (req, res) => {
-    if (!req.session.userId) return res.redirect('/login');
     res.sendFile(path.join(__dirname, 'community-chat.html'));
 });
 
@@ -1918,17 +1945,25 @@ app.get('/api/communities', async (req, res) => {
     }
 });
 
-app.post('/api/communities', async (req, res) => {
+app.post('/api/communities', upload.single('image'), async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
     try {
         const { name, description, category } = req.body;
         if (!name || !name.trim()) {
             return res.status(400).json({ error: 'Jamoa nomi kerak' });
         }
+
+        let imageUrl = null;
+        if (req.file) {
+            const uploadResult = await uploadImageToFreeimage(req.file.buffer);
+            if (uploadResult.ok) imageUrl = uploadResult.url;
+        }
+
         const id = await createCommunity(req.session.userId, {
             name: name.trim(),
             description: (description || '').trim(),
-            category: category || 'Boshqa'
+            category: category || 'Boshqa',
+            imageUrl
         });
         res.json({ success: true, id });
     } catch (err) {
@@ -1937,21 +1972,60 @@ app.post('/api/communities', async (req, res) => {
     }
 });
 
-app.get('/api/communities/:id', async (req, res) => {
+app.post('/api/communities/:id/image', upload.single('image'), async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const community = await getCommunityById(req.params.id);
+        if (!community) return res.status(404).json({ error: 'Jamoa topilmadi' });
+        if (community.creator_id !== req.session.userId) {
+            return res.status(403).json({ error: "Faqat jamoa yaratuvchisi rasmni o'zgartirishi mumkin" });
+        }
+        if (!req.file) return res.status(400).json({ error: 'Rasm tanlanmadi' });
+
+        const uploadResult = await uploadImageToFreeimage(req.file.buffer);
+        if (!uploadResult.ok) return res.status(500).json({ error: uploadResult.error });
+
+        await updateCommunityImage(req.params.id, uploadResult.url);
+        res.json({ success: true, imageUrl: uploadResult.url });
+    } catch (err) {
+        console.error('api/communities/:id/image error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.get('/api/communities/:id', async (req, res) => {
     try {
         const community = await getCommunityById(req.params.id);
         if (!community) return res.status(404).json({ error: 'Jamoa topilmadi' });
 
         const members = await getCommunityMembers(community.id);
+
+        // Logged-out visitors get a preview only: no member list, no membership status.
+        if (!req.session.userId) {
+            return res.json({
+                id: community.id,
+                name: community.name,
+                description: community.description,
+                category: community.category,
+                imageUrl: community.image_url,
+                creatorUsername: community.creator_username,
+                memberCount: members.length,
+                isMember: false,
+                isCreator: false,
+                isPreview: true
+            });
+        }
+
         const isMember = await isCommunityMember(community.id, req.session.userId);
 
         res.json({
             ...community,
+            imageUrl: community.image_url,
             members,
             memberCount: members.length,
             isMember,
-            isCreator: community.creator_id === req.session.userId
+            isCreator: community.creator_id === req.session.userId,
+            isPreview: false
         });
     } catch (err) {
         console.error('api/communities/:id error:', err);
