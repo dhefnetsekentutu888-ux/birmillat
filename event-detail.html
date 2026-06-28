@@ -31,7 +31,20 @@
 </head>
 <body>
     <nav class="navbar">
-        <a href="/home" class="logo"><img src="/logo-full.svg" alt="BirMillat" style="height:34px; display:block;"></a>
+        <a href="/home" class="logo"><svg width="160" height="45" viewBox="0 0 320 90" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+      <g transform="translate(45,45)">
+        <g transform="rotate(-18)">
+          <ellipse cx="-10" cy="0" rx="20" ry="36" fill="none" stroke="#2D1B69" stroke-width="10"/>
+        </g>
+        <g transform="rotate(18)">
+          <ellipse cx="10" cy="0" rx="20" ry="36" fill="none" stroke="#FF6B5B" stroke-width="10"/>
+        </g>
+        <g transform="rotate(-18)">
+          <path d="M -30 0 A 20 36 0 0 1 11 0" fill="none" stroke="#2D1B69" stroke-width="10" stroke-linecap="round"/>
+        </g>
+      </g>
+      <text x="95" y="53" font-size="34" font-weight="700" fill="#2D1B69" font-family="Poppins, -apple-system, sans-serif">Bir<tspan fill="#FF6B5B">Millat</tspan></text>
+    </svg></a>
         <div class="nav-links">
             <a href="/home">Bosh sahifa</a>
             <a href="/recommend">Tavsiyalar</a>
@@ -41,7 +54,7 @@
             <a href="/profile">Profil</a>
             <a href="/logout">Chiqish</a>
         </div>
-        <div class="user-badge" id="userBadge">👤 ...</div>
+        <div class="user-badge" id="userBadge"><img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ...</div>
     </nav>
 
     <div class="detail-shell" id="detailRoot">
@@ -65,7 +78,7 @@
             const res = await fetch('/api/me');
             if (!res.ok) { window.location.href = '/login'; return null; }
             const me = await res.json();
-            document.getElementById('userBadge').textContent = '👤 ' + me.username;
+            document.getElementById('userBadge').innerHTML = '<img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ' + me.username;
             return me;
         }
 
