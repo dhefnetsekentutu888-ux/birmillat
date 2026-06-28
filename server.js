@@ -104,9 +104,11 @@ async function initDb() {
             community_id INTEGER NOT NULL,
             user_id INTEGER NOT NULL,
             joined_at INTEGER NOT NULL,
+            role TEXT NOT NULL DEFAULT 'member',
             PRIMARY KEY (community_id, user_id)
         )
     `);
+    try { await db.execute(`ALTER TABLE community_members ADD COLUMN role TEXT NOT NULL DEFAULT 'member'`); } catch (e) {}
 
     await db.execute(`
         CREATE TABLE IF NOT EXISTS community_messages (
@@ -114,9 +116,11 @@ async function initDb() {
             community_id INTEGER NOT NULL,
             sender_id INTEGER NOT NULL,
             content TEXT NOT NULL,
-            created_at INTEGER NOT NULL
+            created_at INTEGER NOT NULL,
+            reply_to_id INTEGER
         )
     `);
+    try { await db.execute(`ALTER TABLE community_messages ADD COLUMN reply_to_id INTEGER`); } catch (e) {}
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_community_messages ON community_messages (community_id, created_at)`);
 
     // Email verification codes (used at registration and for password reset)
@@ -623,9 +627,31 @@ async function isCommunityMember(communityId, userId) {
     return result.rows.length > 0;
 }
 
+async function getMemberRole(communityId, userId) {
+    const result = await db.execute({
+        sql: `SELECT role FROM community_members WHERE community_id = ? AND user_id = ?`,
+        args: [communityId, userId]
+    });
+    return result.rows[0] ? result.rows[0].role : null;
+}
+
+async function isCommunityAdminOrCreator(communityId, userId, creatorId) {
+    if (Number(userId) === Number(creatorId)) return true;
+    const role = await getMemberRole(communityId, userId);
+    return role === 'admin';
+}
+
+async function setMemberRole(communityId, userId, role) {
+    const result = await db.execute({
+        sql: `UPDATE community_members SET role = ? WHERE community_id = ? AND user_id = ?`,
+        args: [role, communityId, userId]
+    });
+    return result.rowsAffected > 0;
+}
+
 async function getCommunityMembers(communityId) {
     const result = await db.execute({
-        sql: `SELECT users.id, users.username, users.name, users.photo_url
+        sql: `SELECT users.id, users.username, users.name, users.photo_url, community_members.role
               FROM community_members
               JOIN users ON users.id = community_members.user_id
               WHERE community_members.community_id = ?
@@ -635,22 +661,38 @@ async function getCommunityMembers(communityId) {
     return result.rows;
 }
 
-async function saveCommunityMessage(communityId, senderId, content) {
+async function saveCommunityMessage(communityId, senderId, content, replyToId) {
     const createdAt = Date.now();
     const result = await db.execute({
-        sql: `INSERT INTO community_messages (community_id, sender_id, content, created_at) VALUES (?, ?, ?, ?)`,
-        args: [communityId, senderId, content, createdAt]
+        sql: `INSERT INTO community_messages (community_id, sender_id, content, created_at, reply_to_id) VALUES (?, ?, ?, ?, ?)`,
+        args: [communityId, senderId, content, createdAt, replyToId || null]
     });
     return { id: Number(result.lastInsertRowid), createdAt };
 }
 
+async function getCommunityMessageById(id) {
+    const result = await db.execute({
+        sql: `SELECT community_messages.*, users.username, users.name
+              FROM community_messages JOIN users ON users.id = community_messages.sender_id
+              WHERE community_messages.id = ?`,
+        args: [id]
+    });
+    return result.rows[0] || null;
+}
+
 async function getCommunityMessages(communityId, limit = 100) {
     const result = await db.execute({
-        sql: `SELECT community_messages.*, users.username, users.name, users.photo_url
-              FROM community_messages
-              JOIN users ON users.id = community_messages.sender_id
-              WHERE community_id = ?
-              ORDER BY created_at ASC
+        sql: `SELECT
+                  m.*, users.username, users.name, users.photo_url,
+                  reply.content AS reply_content,
+                  reply_user.username AS reply_username,
+                  reply_user.name AS reply_name
+              FROM community_messages m
+              JOIN users ON users.id = m.sender_id
+              LEFT JOIN community_messages reply ON reply.id = m.reply_to_id
+              LEFT JOIN users reply_user ON reply_user.id = reply.sender_id
+              WHERE m.community_id = ?
+              ORDER BY m.created_at ASC
               LIMIT ?`,
         args: [communityId, limit]
     });
@@ -2017,6 +2059,9 @@ app.get('/api/communities/:id', async (req, res) => {
         }
 
         const isMember = await isCommunityMember(community.id, req.session.userId);
+        const myRole = await getMemberRole(community.id, req.session.userId);
+        const isCreator = community.creator_id === req.session.userId;
+        const isAdmin = myRole === 'admin';
 
         res.json({
             ...community,
@@ -2024,7 +2069,9 @@ app.get('/api/communities/:id', async (req, res) => {
             members,
             memberCount: members.length,
             isMember,
-            isCreator: community.creator_id === req.session.userId,
+            isCreator,
+            isAdmin,
+            canManage: isCreator || isAdmin,
             isPreview: false
         });
     } catch (err) {
@@ -2067,16 +2114,44 @@ app.post('/api/communities/:id/remove/:userId', async (req, res) => {
     try {
         const community = await getCommunityById(req.params.id);
         if (!community) return res.status(404).json({ error: 'Jamoa topilmadi' });
-        if (community.creator_id !== req.session.userId) {
-            return res.status(403).json({ error: "Faqat jamoa yaratuvchisi a'zolarni chiqarishi mumkin" });
+
+        const canManage = await isCommunityAdminOrCreator(req.params.id, req.session.userId, community.creator_id);
+        if (!canManage) {
+            return res.status(403).json({ error: "Faqat jamoa yaratuvchisi yoki adminlar a'zolarni chiqarishi mumkin" });
         }
         if (Number(req.params.userId) === community.creator_id) {
-            return res.status(400).json({ error: "O'zingizni chiqarib bo'lmaydi" });
+            return res.status(400).json({ error: "Jamoa yaratuvchisini chiqarib bo'lmaydi" });
         }
         await removeCommunityMember(req.params.id, req.params.userId);
         res.json({ success: true });
     } catch (err) {
         console.error('api/communities/:id/remove error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.post('/api/communities/:id/admins/:userId', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const community = await getCommunityById(req.params.id);
+        if (!community) return res.status(404).json({ error: 'Jamoa topilmadi' });
+
+        // Only the creator can promote/demote admins — admins can't promote other admins.
+        if (community.creator_id !== req.session.userId) {
+            return res.status(403).json({ error: "Faqat jamoa yaratuvchisi adminlarni tayinlashi mumkin" });
+        }
+        if (Number(req.params.userId) === community.creator_id) {
+            return res.status(400).json({ error: "Jamoa yaratuvchisi allaqachon to'liq huquqlarga ega" });
+        }
+
+        const { action } = req.body; // 'promote' or 'demote'
+        const newRole = action === 'promote' ? 'admin' : 'member';
+        const success = await setMemberRole(req.params.id, req.params.userId, newRole);
+        if (!success) return res.status(404).json({ error: "A'zo topilmadi" });
+
+        res.json({ success: true, role: newRole });
+    } catch (err) {
+        console.error('api/communities/:id/admins error:', err);
         res.status(500).json({ error: 'Server error' });
     }
 });
@@ -2096,7 +2171,13 @@ app.get('/api/communities/:id/messages', async (req, res) => {
             senderPhoto: m.photo_url,
             content: m.content,
             createdAt: m.created_at,
-            isMine: m.sender_id === req.session.userId
+            isMine: m.sender_id === req.session.userId,
+            replyTo: m.reply_to_id ? {
+                id: m.reply_to_id,
+                content: m.reply_content,
+                senderUsername: m.reply_username,
+                senderName: m.reply_name
+            } : null
         })));
     } catch (err) {
         console.error('api/communities/:id/messages error:', err);
@@ -2187,7 +2268,7 @@ io.on('connection', (socket) => {
 
     socket.on('send_community_message', async (data, callback) => {
         try {
-            const { communityId, content } = data || {};
+            const { communityId, content, replyToId } = data || {};
             const trimmed = (content || '').trim();
             if (!communityId || !trimmed) {
                 if (callback) callback({ error: 'Xabar bo‘sh bo‘lishi mumkin emas' });
@@ -2199,8 +2280,21 @@ io.on('connection', (socket) => {
                 return;
             }
 
+            let replyToPayload = null;
+            if (replyToId) {
+                const original = await getCommunityMessageById(replyToId);
+                if (original && Number(original.community_id) === Number(communityId)) {
+                    replyToPayload = {
+                        id: original.id,
+                        content: original.content,
+                        senderUsername: original.username,
+                        senderName: original.name
+                    };
+                }
+            }
+
             const sender = await getUserById(userId);
-            const saved = await saveCommunityMessage(communityId, userId, trimmed);
+            const saved = await saveCommunityMessage(communityId, userId, trimmed, replyToPayload ? replyToId : null);
             const payload = {
                 id: saved.id,
                 communityId: Number(communityId),
@@ -2209,7 +2303,8 @@ io.on('connection', (socket) => {
                 senderName: sender.name,
                 senderPhoto: sender.photo_url,
                 content: trimmed,
-                createdAt: saved.createdAt
+                createdAt: saved.createdAt,
+                replyTo: replyToPayload
             };
 
             // Broadcast to everyone currently in this community's room, including the sender
