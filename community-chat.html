@@ -170,12 +170,15 @@
 
         function renderChat(community) {
             const grid = document.getElementById('chatGrid');
+            const avatarClickable = community.isCreator;
             grid.innerHTML = `
                 <div class="chat-panel">
                     <div class="chat-head">
-                        <div style="width:38px; height:38px; border-radius:50%; background:#EFEAF8; display:flex; align-items:center; justify-content:center; color:var(--color-primary); font-size:0.95rem; flex-shrink:0; overflow:hidden;">
-                            ${communityAvatarHtml(community.imageUrl, community.name)}
+                        <div id="commAvatarWrap" style="width:38px; height:38px; border-radius:50%; background:#EFEAF8; display:flex; align-items:center; justify-content:center; color:var(--color-primary); font-size:0.95rem; flex-shrink:0; overflow:hidden; position:relative; ${avatarClickable ? 'cursor:pointer;' : ''}">
+                            <span id="commAvatarContent">${communityAvatarHtml(community.imageUrl, community.name)}</span>
+                            ${avatarClickable ? `<div id="avatarHoverHint" style="position:absolute; inset:0; background:rgba(26,16,64,0.5); display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity 0.15s ease;"><i class="fas fa-camera" style="color:white; font-size:0.8rem;"></i></div>` : ''}
                         </div>
+                        ${avatarClickable ? `<input type="file" id="commImageInput" accept="image/*" style="display:none;">` : ''}
                         <div>
                             <h2>${community.name}</h2>
                             <div class="sub">${community.memberCount} a'zo · ${community.category}</div>
@@ -193,6 +196,32 @@
                     ${!community.isCreator ? `<button class="btn btn-cancel leave-btn" id="leaveBtn" style="border:1.5px solid var(--color-border); background:transparent; color:var(--color-text-muted);">Jamoadan chiqish</button>` : ''}
                 </div>
             `;
+
+            if (avatarClickable) {
+                const wrap = document.getElementById('commAvatarWrap');
+                const hint = document.getElementById('avatarHoverHint');
+                const fileInput = document.getElementById('commImageInput');
+
+                wrap.addEventListener('mouseenter', () => { hint.style.opacity = '1'; });
+                wrap.addEventListener('mouseleave', () => { hint.style.opacity = '0'; });
+                wrap.addEventListener('click', () => fileInput.click());
+
+                fileInput.addEventListener('change', async (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    try {
+                        const formData = new FormData();
+                        formData.append('image', file);
+                        const res = await fetch(`/api/communities/${communityId}/image`, { method: 'POST', body: formData });
+                        const data = await res.json();
+                        if (!res.ok) throw new Error(data.error || 'Server error');
+                        document.getElementById('commAvatarContent').innerHTML = communityAvatarHtml(data.imageUrl, community.name);
+                    } catch (err) {
+                        console.error('Community photo update failed:', err);
+                        alert(err.message || "Rasmni yangilashda xatolik yuz berdi");
+                    }
+                });
+            }
 
             community.members.forEach(m => {
                 const row = document.createElement('div');
