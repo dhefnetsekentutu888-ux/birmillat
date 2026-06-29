@@ -953,6 +953,7 @@ function isValidEmail(email) {
 }
 
 app.post('/register', async (req, res) => {
+    let createdUserId = null;
     try {
         const { username, email, password, confirmPassword } = req.body;
         const cleanEmail = (email || '').trim().toLowerCase();
@@ -980,14 +981,34 @@ app.post('/register', async (req, res) => {
         }
 
         const hashed = await bcrypt.hash(password, 10);
-        await createUser(username, cleanEmail, hashed);
+        createdUserId = await createUser(username, cleanEmail, hashed);
 
-        const code = await createVerificationCode(cleanEmail, 'register');
-        await sendEmail(cleanEmail, 'BirMillat — tasdiqlash kodi', verificationEmailHtml(code));
+        // From here on, the account exists. If sending the verification email fails,
+        // we do NOT want to show "Server xatosi" and strand a broken, permanently-taken
+        // account — the person can still verify later via the "resend code" button on
+        // the /verify page, so we proceed to that page regardless of email outcome.
+        try {
+            const code = await createVerificationCode(cleanEmail, 'register');
+            await sendEmail(cleanEmail, 'BirMillat — tasdiqlash kodi', verificationEmailHtml(code));
+        } catch (emailErr) {
+            console.error('Failed to send verification email during registration (account still created):', emailErr);
+        }
 
         res.redirect(`/verify?email=${encodeURIComponent(cleanEmail)}`);
     } catch (err) {
         console.error('Register error:', err);
+
+        // If the account was already created before this failure, don't leave it stranded —
+        // delete it so the username/email become available again instead of being permanently stuck.
+        if (createdUserId) {
+            try {
+                await db.execute({ sql: 'DELETE FROM users WHERE id = ?', args: [createdUserId] });
+                console.error('Rolled back partially-created account due to registration failure:', createdUserId);
+            } catch (rollbackErr) {
+                console.error('Failed to roll back partially-created account:', rollbackErr);
+            }
+        }
+
         res.send(renderRegisterPage('Server xatosi, qaytadan urinib ko‘ring', true));
     }
 });
@@ -1972,6 +1993,24 @@ app.get('/admin/events/:id/reject', async (req, res) => {
     if (req.query.token !== ADMIN_SECRET) return res.status(403).send('Forbidden');
     await setEventStatus(req.params.id, 'rejected');
     res.send('❌ Tadbir rad etildi. Bu oynani yopishingiz mumkin.');
+});
+
+// One-off cleanup tool for accounts stuck unverified (e.g. from the registration
+// bug where account creation succeeded but a later step failed). Only deletes
+// accounts that were NEVER verified, as a safety check against misuse.
+app.get('/admin/cleanup-unverified', async (req, res) => {
+    if (req.query.token !== ADMIN_SECRET) return res.status(403).send('Forbidden');
+    const username = (req.query.username || '').trim();
+    if (!username) return res.send('Usage: ?token=...&username=...');
+
+    const user = await getUser(username);
+    if (!user) return res.send(`Foydalanuvchi "${username}" topilmadi.`);
+    if (user.is_verified) {
+        return res.send(`@${username} hisobi allaqachon tasdiqlangan — bu vosita orqali o'chirib bo'lmaydi.`);
+    }
+
+    await db.execute({ sql: 'DELETE FROM users WHERE id = ?', args: [user.id] });
+    res.send(`@${username} (tasdiqlanmagan hisob) o'chirildi. Endi bu nom va email qaytadan ro'yxatdan o'tish uchun bo'sh.`);
 });
 
 // ---------- Communities ----------
