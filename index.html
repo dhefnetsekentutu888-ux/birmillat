@@ -10,9 +10,18 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="/style.css">
 <style>
+    .navbar {
+        background: transparent;
+        border-bottom: none;
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        z-index: 10;
+    }
+    .navbar .logo .logo-text { fill: #FAF7F2 !important; }
+    .navbar .logo .logo-text tspan { fill: var(--color-accent) !important; }
     .hero {
         text-align: center;
-        padding: 3.5rem 1.5rem 6rem;
+        padding: 5rem 1.5rem 6rem;
         background: radial-gradient(circle at 30% 20%, #4A2F9E 0%, #2D1B69 45%, #1A1040 100%);
         position: relative;
         overflow: hidden;
@@ -27,13 +36,6 @@
         transform: translate(-50%, -50%);
         z-index: 0;
         opacity: 0.35;
-    }
-    .hero::after {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background: radial-gradient(circle at 50% 100%, rgba(26,16,64,0.9) 0%, transparent 60%);
-        z-index: 0;
     }
     .hero-fade-bottom {
         position: absolute;
