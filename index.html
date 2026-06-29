@@ -12,7 +12,7 @@
 <style>
     .hero {
         text-align: center;
-        padding: 6rem 1.5rem 5rem;
+        padding: 3.5rem 1.5rem 6rem;
         background: radial-gradient(circle at 30% 20%, #4A2F9E 0%, #2D1B69 45%, #1A1040 100%);
         position: relative;
         overflow: hidden;
@@ -22,11 +22,11 @@
         position: absolute;
         top: 50%;
         left: 50%;
-        width: 1100px;
-        height: 1100px;
+        width: 760px;
+        height: 760px;
         transform: translate(-50%, -50%);
         z-index: 0;
-        opacity: 0.5;
+        opacity: 0.35;
     }
     .hero::after {
         content: '';
@@ -35,7 +35,17 @@
         background: radial-gradient(circle at 50% 100%, rgba(26,16,64,0.9) 0%, transparent 60%);
         z-index: 0;
     }
-    .hero > * { position: relative; z-index: 1; }
+    .hero-fade-bottom {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 80px;
+        background: linear-gradient(to bottom, transparent, #FAF7F2);
+        z-index: 1;
+        pointer-events: none;
+    }
+    .hero > * { position: relative; z-index: 2; }
     .hero .eyebrow {
         display: inline-block;
         background: rgba(255,255,255,0.1);
@@ -283,10 +293,6 @@
       <text x="95" y="53" font-size="34" font-weight="700" fill="#2D1B69" font-family="Poppins, -apple-system, sans-serif" class="logo-text">Bir<tspan fill="#FF6B5B">Millat</tspan></text>
     </svg>
 </a>
-    <div class="nav-links">
-        <a href="/login" style="display:inline-flex; align-items:center; padding:0.5rem 0;">Kirish</a>
-        <a href="/register" class="btn btn-primary" style="padding:0.5rem 1.3rem;">Ro'yxatdan o'tish</a>
-    </div>
 </nav>
 
 <div class="hero">
@@ -312,6 +318,7 @@
         <span class="tag accent"><img src="/icons/icon-cloud.svg" alt="" class="tag-icon"> Cloud</span>
         <span class="tag"><img src="/icons/icon-mobile.svg" alt="" class="tag-icon"> Mobil dasturlash</span>
     </div>
+    <div class="hero-fade-bottom"></div>
 </div>
 
 <div class="section how-it-works">
