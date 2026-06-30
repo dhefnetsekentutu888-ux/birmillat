@@ -10,42 +10,37 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="/style.css">
 <style>
+    body {
+        background: linear-gradient(180deg, #4A2F9E 0%, #2D1B69 35%, #1A1040 100%) !important;
+        background-attachment: fixed !important;
+        min-height: 100vh;
+    }
     .navbar {
         background: transparent;
         border-bottom: none;
-        position: absolute;
-        top: 0; left: 0; right: 0;
+        position: relative;
         z-index: 10;
     }
+    .navbar .logo .ring-1, .navbar .logo .ring-3 { stroke: #FAF7F2 !important; }
+    .navbar .logo .ring-2 { stroke: var(--color-accent) !important; }
     .navbar .logo .logo-text { fill: #FAF7F2 !important; }
     .navbar .logo .logo-text tspan { fill: var(--color-accent) !important; }
     .hero {
         text-align: center;
-        padding: 5rem 1.5rem 6rem;
-        background: radial-gradient(circle at 30% 20%, #4A2F9E 0%, #2D1B69 45%, #1A1040 100%);
+        padding: 2.5rem 1.5rem 4rem;
         position: relative;
         overflow: hidden;
         color: #FAF7F2;
     }
     .hero-bg-rings {
         position: absolute;
-        top: 50%;
+        top: 30%;
         left: 50%;
         width: 760px;
         height: 760px;
         transform: translate(-50%, -50%);
         z-index: 0;
-        opacity: 0.35;
-    }
-    .hero-fade-bottom {
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        height: 80px;
-        background: linear-gradient(to bottom, transparent, #FAF7F2);
-        z-index: 1;
-        pointer-events: none;
+        opacity: 0.25;
     }
     .hero > * { position: relative; z-index: 2; }
     .hero .eyebrow {
@@ -117,9 +112,10 @@
     .section-head h2 {
         font-size: 1.8rem;
         margin-bottom: 0.6rem;
+        color: #FAF7F2;
     }
     .section-head p {
-        color: var(--color-text-muted);
+        color: #B8AEDB;
     }
 
     .how-it-works { padding-top: 2.5rem; padding-bottom: 2.5rem; }
@@ -137,7 +133,11 @@
         min-width: 200px;
         max-width: 260px;
         text-align: center;
-        padding: 0 1rem;
+        padding: 1.8rem 1.2rem;
+        background: rgba(255,255,255,0.06);
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: var(--radius-md);
     }
     .step-ring-icon {
         width: 56px;
@@ -147,23 +147,23 @@
     .step h3 {
         font-size: 1.05rem;
         margin-bottom: 0.5rem;
-        color: var(--color-primary);
+        color: #FAF7F2;
     }
     .step p {
         font-size: 0.88rem;
-        color: var(--color-text-muted);
+        color: #C9C0E8;
         line-height: 1.5;
     }
     .step-connector {
         flex: 0 0 auto;
         width: 60px;
         height: 2px;
-        background: repeating-linear-gradient(90deg, var(--color-border) 0, var(--color-border) 6px, transparent 6px, transparent 12px);
+        background: repeating-linear-gradient(90deg, rgba(255,255,255,0.25) 0, rgba(255,255,255,0.25) 6px, transparent 6px, transparent 12px);
         margin-top: 28px;
     }
     @media (max-width: 760px) {
         .steps-row { flex-direction: column; align-items: center; }
-        .step-connector { width: 2px; height: 32px; margin: 0; background: repeating-linear-gradient(180deg, var(--color-border) 0, var(--color-border) 6px, transparent 6px, transparent 12px); }
+        .step-connector { width: 2px; height: 32px; margin: 0; background: repeating-linear-gradient(180deg, rgba(255,255,255,0.25) 0, rgba(255,255,255,0.25) 6px, transparent 6px, transparent 12px); }
     }
 
     .cat-grid {
@@ -274,6 +274,11 @@
             to { opacity: 1; transform: translateY(0); }
         }
     }
+    footer {
+        color: #B8AEDB;
+        border-top: 1px solid rgba(255,255,255,0.12);
+    }
+    footer a { color: #FAF7F2; }
 </style>
 </head>
 <body>
@@ -320,7 +325,6 @@
         <span class="tag accent"><img src="/icons/icon-cloud.svg" alt="" class="tag-icon"> Cloud</span>
         <span class="tag"><img src="/icons/icon-mobile.svg" alt="" class="tag-icon"> Mobil dasturlash</span>
     </div>
-    <div class="hero-fade-bottom"></div>
 </div>
 
 <div class="section how-it-works">
@@ -333,7 +337,7 @@
             <div class="step-ring-icon">
                 <svg viewBox="0 0 60 60" width="56" height="56">
                     <g transform="translate(30,30) rotate(-18)">
-                        <ellipse cx="-5" cy="0" rx="11" ry="20" fill="none" stroke="#2D1B69" stroke-width="6"/>
+                        <ellipse cx="-5" cy="0" rx="11" ry="20" fill="none" stroke="#FAF7F2" stroke-width="6"/>
                     </g>
                     <g transform="translate(30,30) rotate(18)">
                         <ellipse cx="5" cy="0" rx="11" ry="20" fill="none" stroke="#FF6B5B" stroke-width="6"/>
@@ -348,12 +352,12 @@
             <div class="step-ring-icon">
                 <svg viewBox="0 0 60 60" width="56" height="56">
                     <g transform="translate(30,30) rotate(-18)">
-                        <ellipse cx="-5" cy="0" rx="11" ry="20" fill="none" stroke="#2D1B69" stroke-width="6"/>
+                        <ellipse cx="-5" cy="0" rx="11" ry="20" fill="none" stroke="#FAF7F2" stroke-width="6"/>
                     </g>
                     <g transform="translate(30,30) rotate(18)">
                         <ellipse cx="5" cy="0" rx="11" ry="20" fill="none" stroke="#FF6B5B" stroke-width="6"/>
                     </g>
-                    <path d="M19 30 A11 20 0 0 1 30 11" fill="none" stroke="#2D1B69" stroke-width="6" stroke-linecap="round" transform="translate(0,0) rotate(-18 30 30)"/>
+                    <path d="M19 30 A11 20 0 0 1 30 11" fill="none" stroke="#FAF7F2" stroke-width="6" stroke-linecap="round" transform="translate(0,0) rotate(-18 30 30)"/>
                 </svg>
             </div>
             <h3>Mos kelganlarni toping</h3>
@@ -364,7 +368,7 @@
             <div class="step-ring-icon">
                 <svg viewBox="0 0 60 60" width="56" height="56">
                     <g transform="translate(30,30) rotate(-18)">
-                        <ellipse cx="-5" cy="0" rx="11" ry="20" fill="#2D1B69" stroke="#2D1B69" stroke-width="6"/>
+                        <ellipse cx="-5" cy="0" rx="11" ry="20" fill="#FAF7F2" stroke="#FAF7F2" stroke-width="6"/>
                     </g>
                     <g transform="translate(30,30) rotate(18)">
                         <ellipse cx="5" cy="0" rx="11" ry="20" fill="#FF6B5B" stroke="#FF6B5B" stroke-width="6"/>
