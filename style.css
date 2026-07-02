@@ -58,7 +58,11 @@ body {
   min-height: 100vh;
 }
 
-
+/* iOS Safari renders `background-attachment: fixed` with an initial paint offset
+   on page load (the fixed layer assumes the address bar is already collapsed),
+   which shows up as a white gap above all content until the first scroll forces
+   a repaint. Feature-detect iOS Safari via -webkit-touch-callout (iOS-only) and
+   fall back to a normal scrolling background there. */
 @supports (-webkit-touch-callout: none) {
   body {
     background-attachment: scroll, scroll, scroll;
