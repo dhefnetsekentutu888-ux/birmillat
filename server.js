@@ -235,6 +235,26 @@ async function createUser(username, email, passwordHash, isVerified = 0) {
     return Number(result.lastInsertRowid);
 }
 
+// Wraps createUser to survive a duplicate-submission race: if two verify
+// requests for the same pending registration land close together (e.g. a
+// double-tap on a slow connection), both can pass the pre-check and one will
+// hit a UNIQUE constraint violation on insert. Rather than surfacing that as
+// "Server xatosi" to someone whose account was actually just created a moment
+// earlier by their own other request, we detect that case and log them into
+// the account that already exists instead of failing.
+async function createUserSafely(username, email, passwordHash) {
+    try {
+        return await createUser(username, email, passwordHash, 1);
+    } catch (err) {
+        const existing = email ? await getUserByEmail(email) : await getUser(username);
+        if (existing) {
+            console.warn('createUserSafely: insert conflict, reusing existing account (likely a double-submit race):', username, email);
+            return existing.id;
+        }
+        throw err; // genuinely something else went wrong
+    }
+}
+
 async function markUserVerified(email) {
     return db.execute({
         sql: 'UPDATE users SET is_verified = 1 WHERE email = ?',
@@ -1095,16 +1115,27 @@ function renderVerifyPage(email, message, isError = true) {
             <strong>${email}</strong> manziliga 6 xonali kod yubordik.
         </p>
         ${message ? `<div class="message ${msgClass}">${message}</div>` : ''}
-        <form method=post action=/verify>
+        <form method=post action=/verify id="verifyForm">
             <input type=hidden name=email value="${email}">
             <input name=code class="code-input" placeholder="000000" maxlength=6 inputmode="numeric" required>
-            <button type=submit>Tasdiqlash</button>
+            <button type=submit id="verifySubmitBtn">Tasdiqlash</button>
         </form>
         <form method=post action=/verify/resend>
             <input type=hidden name=email value="${email}">
             <button type=submit class="resend-link" style="background:none; border:none; color:var(--color-accent); cursor:pointer; width:auto; padding:0;">Kodni qayta yuborish</button>
         </form>
-    </div></body></html>`;
+    </div>
+    <script>
+        // Prevent double-tap/double-click from submitting the same code twice —
+        // a slow connection plus an impatient second tap could otherwise fire
+        // two account-creation attempts for the same pending registration.
+        document.getElementById('verifyForm').addEventListener('submit', function () {
+            const btn = document.getElementById('verifySubmitBtn');
+            btn.disabled = true;
+            btn.textContent = 'Tekshirilmoqda...';
+        });
+    </script>
+    </body></html>`;
 }
 
 app.get('/verify', (req, res) => {
@@ -1138,7 +1169,7 @@ app.post('/verify', async (req, res) => {
             return res.send(renderVerifyPage(email, 'Bu foydalanuvchi nomi yoki email allaqachon band. Qaytadan ro‘yxatdan o‘ting.', true));
         }
 
-        const userId = await createUser(pending.username, email, pending.password_hash, 1);
+        const userId = await createUserSafely(pending.username, email, pending.password_hash);
         await deletePendingRegistration(email);
 
         req.session.userId = userId;
