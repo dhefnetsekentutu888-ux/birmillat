@@ -137,6 +137,20 @@ async function initDb() {
     `);
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_verification_email ON verification_codes (email, purpose)`);
 
+    // Pending registrations: holds username/password while an email verification
+    // code is outstanding. The real `users` row is only created once the code is
+    // confirmed — this is what stops half-finished signups from permanently
+    // occupying a username/email if the person never receives or enters the code.
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS pending_registrations (
+            email TEXT PRIMARY KEY,
+            username TEXT NOT NULL,
+            password_hash TEXT NOT NULL,
+            created_at INTEGER NOT NULL
+        )
+    `);
+    await db.execute(`CREATE INDEX IF NOT EXISTS idx_pending_username ON pending_registrations (username)`);
+
     // Community events — submitted by users, require approval before going public
     await db.execute(`
         CREATE TABLE IF NOT EXISTS events (
@@ -213,10 +227,10 @@ async function getUserById(id) {
     return result.rows[0] || null;
 }
 
-async function createUser(username, email, passwordHash) {
+async function createUser(username, email, passwordHash, isVerified = 0) {
     const result = await db.execute({
-        sql: 'INSERT INTO users (username, email, password, name, is_verified) VALUES (?, ?, ?, ?, 0)',
-        args: [username, email, passwordHash, username]
+        sql: 'INSERT INTO users (username, email, password, name, is_verified) VALUES (?, ?, ?, ?, ?)',
+        args: [username, email, passwordHash, username, isVerified]
     });
     return Number(result.lastInsertRowid);
 }
@@ -264,6 +278,50 @@ async function verifyCode(email, code, purpose) {
 
     await db.execute({ sql: 'UPDATE verification_codes SET used = 1 WHERE id = ?', args: [row.id] });
     return { valid: true };
+}
+
+// ---------- Pending registration helpers ----------
+// A pending registration reserves a username/email + hashed password while a
+// verification code is outstanding. It expires after 30 minutes: past that, it
+// no longer blocks the username/email from being used by someone else, and a
+// stale code tied to it simply won't verify (verifyCode already checks expiry
+// on the code itself too).
+const PENDING_REGISTRATION_TTL_MS = 30 * 60 * 1000;
+
+async function createPendingRegistration(email, username, passwordHash) {
+    const now = Date.now();
+    await db.execute({
+        sql: `INSERT INTO pending_registrations (email, username, password_hash, created_at)
+              VALUES (?, ?, ?, ?)
+              ON CONFLICT(email) DO UPDATE SET username = excluded.username, password_hash = excluded.password_hash, created_at = excluded.created_at`,
+        args: [email, username, passwordHash, now]
+    });
+}
+
+async function getPendingRegistration(email) {
+    const result = await db.execute({ sql: 'SELECT * FROM pending_registrations WHERE email = ?', args: [email] });
+    const row = result.rows[0];
+    if (!row) return null;
+    if (Date.now() - row.created_at > PENDING_REGISTRATION_TTL_MS) return null; // treat as expired
+    return row;
+}
+
+async function deletePendingRegistration(email) {
+    return db.execute({ sql: 'DELETE FROM pending_registrations WHERE email = ?', args: [email] });
+}
+
+// Username is considered taken if a real account has it, OR if someone else has
+// a *fresh* (non-expired) pending registration holding it.
+async function isUsernameTaken(username, excludeEmail = null) {
+    const existing = await getUser(username);
+    if (existing) return true;
+
+    const result = await db.execute({ sql: 'SELECT email, created_at FROM pending_registrations WHERE username = ?', args: [username] });
+    for (const row of result.rows) {
+        if (excludeEmail && row.email === excludeEmail) continue; // a person re-submitting their own pending signup is fine
+        if (Date.now() - row.created_at <= PENDING_REGISTRATION_TTL_MS) return true;
+    }
+    return false;
 }
 
 async function updateUserProfile(username, { name, bio, interests, birthdate, region }) {
@@ -774,6 +832,7 @@ function renderRegisterPage(message, isError = true) {
         .auth-card .pw-toggle:hover { color: var(--color-text); background: none !important; }
         .field-error { color: var(--color-error); font-size: 0.8rem; text-align: left; margin: -0.3rem 0 0.6rem; min-height: 1em; }
         .auth-logo { height: 40px; margin-bottom: 1rem; }
+        .field-hint { font-size: 0.78rem; color: var(--color-text-muted); text-align: left; margin: -0.3rem 0 0.6rem; }
     </style>
     </head>
     <body class="auth-shell"><div class="auth-card">
@@ -781,7 +840,8 @@ function renderRegisterPage(message, isError = true) {
         <h2>Hisob yaratish</h2>
         ${message ? `<div class="message ${msgClass}">${message}</div>` : ''}
         <form method=post action=/register id="registerForm">
-            <input type=email name=email placeholder="Email manzilingiz" required>
+            <input type=email name=email placeholder="Email manzilingiz (ixtiyoriy)">
+            <div class="field-hint">Email qoldirsangiz, hisobingizni tasdiqlash kodi yuboriladi. Qoldirmasangiz ham ro'yxatdan o'tishingiz mumkin.</div>
             <input name=username placeholder="Foydalanuvchi nomi" required>
 
             <div class="pw-field">
@@ -953,16 +1013,13 @@ function isValidEmail(email) {
 }
 
 app.post('/register', async (req, res) => {
-    let createdUserId = null;
     try {
         const { username, email, password, confirmPassword } = req.body;
+        const cleanUsername = (username || '').trim();
         const cleanEmail = (email || '').trim().toLowerCase();
 
-        if (!username || !cleanEmail || !password) {
-            return res.send(renderRegisterPage('Barcha maydonlarni to‘ldiring', true));
-        }
-        if (!isValidEmail(cleanEmail)) {
-            return res.send(renderRegisterPage('Email manzili noto‘g‘ri', true));
+        if (!cleanUsername || !password) {
+            return res.send(renderRegisterPage('Foydalanuvchi nomi va parol kerak', true));
         }
         if (password.length < 8) {
             return res.send(renderRegisterPage('Parol kamida 8 belgi bo‘lishi kerak', true));
@@ -970,45 +1027,46 @@ app.post('/register', async (req, res) => {
         if (password !== confirmPassword) {
             return res.send(renderRegisterPage('Parollar mos kelmadi', true));
         }
+        if (cleanEmail && !isValidEmail(cleanEmail)) {
+            return res.send(renderRegisterPage('Email manzili noto‘g‘ri', true));
+        }
 
-        const existingUsername = await getUser(username);
-        if (existingUsername) {
+        if (await isUsernameTaken(cleanUsername, cleanEmail || null)) {
             return res.send(renderRegisterPage('Bunday foydalanuvchi nomi band', true));
         }
+
+        // ---------- No email given: create the account immediately, no verification needed ----------
+        if (!cleanEmail) {
+            const hashed = await bcrypt.hash(password, 10);
+            const userId = await createUser(cleanUsername, null, hashed, 1);
+            req.session.userId = userId;
+            req.session.username = cleanUsername;
+            return res.redirect('/home');
+        }
+
+        // ---------- Email given: nothing is written to the real `users` table yet ----------
+        // The account is only created once the verification code is confirmed
+        // (see POST /verify below). This is what stops half-finished signups
+        // from permanently occupying a username/email if the code never arrives
+        // or is never entered.
         const existingEmail = await getUserByEmail(cleanEmail);
         if (existingEmail) {
             return res.send(renderRegisterPage('Bu email allaqachon ro‘yxatdan o‘tgan', true));
         }
 
         const hashed = await bcrypt.hash(password, 10);
-        createdUserId = await createUser(username, cleanEmail, hashed);
+        await createPendingRegistration(cleanEmail, cleanUsername, hashed);
 
-        // From here on, the account exists. If sending the verification email fails,
-        // we do NOT want to show "Server xatosi" and strand a broken, permanently-taken
-        // account — the person can still verify later via the "resend code" button on
-        // the /verify page, so we proceed to that page regardless of email outcome.
         try {
             const code = await createVerificationCode(cleanEmail, 'register');
             await sendEmail(cleanEmail, 'BirMillat — tasdiqlash kodi', verificationEmailHtml(code));
         } catch (emailErr) {
-            console.error('Failed to send verification email during registration (account still created):', emailErr);
+            console.error('Failed to send verification email during registration (pending registration still saved, resend available):', emailErr);
         }
 
         res.redirect(`/verify?email=${encodeURIComponent(cleanEmail)}`);
     } catch (err) {
         console.error('Register error:', err);
-
-        // If the account was already created before this failure, don't leave it stranded —
-        // delete it so the username/email become available again instead of being permanently stuck.
-        if (createdUserId) {
-            try {
-                await db.execute({ sql: 'DELETE FROM users WHERE id = ?', args: [createdUserId] });
-                console.error('Rolled back partially-created account due to registration failure:', createdUserId);
-            } catch (rollbackErr) {
-                console.error('Failed to roll back partially-created account:', rollbackErr);
-            }
-        }
-
         res.send(renderRegisterPage('Server xatosi, qaytadan urinib ko‘ring', true));
     }
 });
@@ -1065,10 +1123,26 @@ app.post('/verify', async (req, res) => {
             return res.send(renderVerifyPage(email, result.reason, true));
         }
 
-        await markUserVerified(email);
-        const user = await getUserByEmail(email);
-        req.session.userId = user.id;
-        req.session.username = user.username;
+        // Code confirmed — this is the moment the real account gets created.
+        const pending = await getPendingRegistration(email);
+        if (!pending) {
+            return res.send(renderVerifyPage(email, 'So‘rov muddati tugagan. Iltimos, qaytadan ro‘yxatdan o‘ting.', true));
+        }
+
+        // Re-check uniqueness right before creating — another user could have
+        // taken this username/email in the meantime.
+        const existingUsername = await getUser(pending.username);
+        const existingEmailAcct = await getUserByEmail(email);
+        if (existingUsername || existingEmailAcct) {
+            await deletePendingRegistration(email);
+            return res.send(renderVerifyPage(email, 'Bu foydalanuvchi nomi yoki email allaqachon band. Qaytadan ro‘yxatdan o‘ting.', true));
+        }
+
+        const userId = await createUser(pending.username, email, pending.password_hash, 1);
+        await deletePendingRegistration(email);
+
+        req.session.userId = userId;
+        req.session.username = pending.username;
         res.redirect('/home');
     } catch (err) {
         console.error('Verify error:', err);
@@ -1079,6 +1153,10 @@ app.post('/verify', async (req, res) => {
 app.post('/verify/resend', async (req, res) => {
     try {
         const email = (req.body.email || '').trim().toLowerCase();
+        const pending = await getPendingRegistration(email);
+        if (!pending) {
+            return res.send(renderVerifyPage(email, 'So‘rov muddati tugagan. Iltimos, qaytadan ro‘yxatdan o‘ting.', true));
+        }
         const code = await createVerificationCode(email, 'register');
         await sendEmail(email, 'BirMillat — tasdiqlash kodi', verificationEmailHtml(code));
         res.send(renderVerifyPage(email, 'Yangi kod yuborildi', false));
@@ -1995,9 +2073,10 @@ app.get('/admin/events/:id/reject', async (req, res) => {
     res.send('❌ Tadbir rad etildi. Bu oynani yopishingiz mumkin.');
 });
 
-// One-off cleanup tool for accounts stuck unverified (e.g. from the registration
-// bug where account creation succeeded but a later step failed). Only deletes
-// accounts that were NEVER verified, as a safety check against misuse.
+// One-off cleanup tool for accounts stuck unverified from BEFORE this fix
+// shipped (the old flow created a real `users` row immediately on submit).
+// New registrations no longer create a users row until verification succeeds,
+// so this tool mainly matters for pre-existing stuck test accounts.
 app.get('/admin/cleanup-unverified', async (req, res) => {
     if (req.query.token !== ADMIN_SECRET) return res.status(403).send('Forbidden');
     const username = (req.query.username || '').trim();
