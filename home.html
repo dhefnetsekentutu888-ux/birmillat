@@ -129,6 +129,29 @@
         padding: 3rem 1rem;
         color: var(--color-text-muted);
     }
+    .dash-section { margin-top: 2.5rem; }
+    .mini-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 1.2rem;
+    }
+    .mini-card {
+        text-decoration: none;
+        color: inherit;
+        display: block;
+        padding: 1.3rem;
+    }
+    .mini-card h3 { font-size: 0.98rem; margin-bottom: 0.4rem; line-height: 1.35; }
+    .mini-card p { font-size: 0.82rem; color: var(--color-text-muted); line-height: 1.5; }
+    .mini-card .mini-meta { display: flex; align-items: center; gap: 0.5rem; font-size: 0.78rem; color: var(--color-text-muted); margin-top: 0.7rem; }
+    .empty-mini {
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 2rem 1.5rem;
+        color: var(--color-text-muted);
+        font-size: 0.9rem;
+    }
+    .empty-mini a { color: var(--color-accent); font-weight: 600; }
 </style>
 </head>
 <body>
@@ -193,6 +216,45 @@
 
         <div class="users-grid" id="recommendGrid">
             <p style="color:var(--color-text-muted)">Yuklanmoqda...</p>
+        </div>
+
+        <div class="dash-section">
+            <div class="rec-header">
+                <div>
+                    <h2><i class="fas fa-newspaper"></i> So'nggi maqolalar</h2>
+                    <p>Jamoa a'zolari yozgan eng yangi maqolalar</p>
+                </div>
+                <a href="/articles" style="font-size:0.85rem; font-weight:600;">Barchasi →</a>
+            </div>
+            <div class="mini-grid" id="articlesMiniGrid">
+                <p style="color:var(--color-text-muted)">Yuklanmoqda...</p>
+            </div>
+        </div>
+
+        <div class="dash-section">
+            <div class="rec-header">
+                <div>
+                    <h2><i class="fas fa-calendar-star"></i> Yaqinlashib kelayotgan tadbirlar</h2>
+                    <p>Yaqin orada bo'lib o'tadigan tadbirlar</p>
+                </div>
+                <a href="/events" style="font-size:0.85rem; font-weight:600;">Barchasi →</a>
+            </div>
+            <div class="mini-grid" id="eventsMiniGrid">
+                <p style="color:var(--color-text-muted)">Yuklanmoqda...</p>
+            </div>
+        </div>
+
+        <div class="dash-section">
+            <div class="rec-header">
+                <div>
+                    <h2><i class="fas fa-people-group"></i> Ommabop jamoalar</h2>
+                    <p>Eng ko'p a'zoli jamoalar</p>
+                </div>
+                <a href="/communities" style="font-size:0.85rem; font-weight:600;">Barchasi →</a>
+            </div>
+            <div class="mini-grid" id="communitiesMiniGrid">
+                <p style="color:var(--color-text-muted)">Yuklanmoqda...</p>
+            </div>
         </div>
     </div>
 
@@ -305,9 +367,106 @@
             }
         }
 
+        async function loadArticlesMini() {
+            const grid = document.getElementById('articlesMiniGrid');
+            try {
+                const res = await fetch('/api/articles');
+                if (!res.ok) { grid.innerHTML = ''; return; }
+                const articles = await res.json();
+
+                if (articles.length === 0) {
+                    grid.innerHTML = `<div class="empty-mini">Hozircha maqolalar yo'q. <a href="/articles/create">Birinchi maqolani siz yozing!</a></div>`;
+                    return;
+                }
+
+                grid.innerHTML = '';
+                articles.slice(0, 3).forEach(a => {
+                    const card = document.createElement('a');
+                    card.className = 'mini-card card';
+                    card.href = `/articles/${a.id}`;
+                    card.innerHTML = `
+                        <h3>${a.title}</h3>
+                        <p>${a.excerpt}</p>
+                        <div class="mini-meta"><i class="fas fa-heart"></i> ${a.likeCount} <span>·</span> @${a.author.username}</div>
+                    `;
+                    grid.appendChild(card);
+                });
+            } catch (e) {
+                console.error('Failed to load articles:', e);
+                grid.innerHTML = '';
+            }
+        }
+
+        async function loadEventsMini() {
+            const grid = document.getElementById('eventsMiniGrid');
+            try {
+                const res = await fetch('/api/events');
+                if (!res.ok) { grid.innerHTML = ''; return; }
+                const events = await res.json();
+
+                if (events.length === 0) {
+                    grid.innerHTML = `<div class="empty-mini">Hozircha tadbirlar yo'q. <a href="/events/create">Birinchi tadbirni siz qo'shing!</a></div>`;
+                    return;
+                }
+
+                grid.innerHTML = '';
+                events.slice(0, 3).forEach(ev => {
+                    const d = new Date(ev.event_date);
+                    const dateStr = d.toLocaleDateString('uz-UZ', { day: 'numeric', month: 'long' });
+                    const card = document.createElement('a');
+                    card.className = 'mini-card card';
+                    card.href = `/events/${ev.id}`;
+                    card.innerHTML = `
+                        <h3>${ev.title}</h3>
+                        <p>${ev.category || ''}</p>
+                        <div class="mini-meta"><i class="fas fa-calendar"></i> ${dateStr} <span>·</span> <i class="fas fa-users"></i> ${ev.attendee_count}</div>
+                    `;
+                    grid.appendChild(card);
+                });
+            } catch (e) {
+                console.error('Failed to load events:', e);
+                grid.innerHTML = '';
+            }
+        }
+
+        async function loadCommunitiesMini() {
+            const grid = document.getElementById('communitiesMiniGrid');
+            try {
+                const res = await fetch('/api/communities');
+                if (!res.ok) { grid.innerHTML = ''; return; }
+                let communities = await res.json();
+
+                if (communities.length === 0) {
+                    grid.innerHTML = `<div class="empty-mini">Hozircha jamoalar yo'q. <a href="/communities">Birinchi jamoani siz yarating!</a></div>`;
+                    return;
+                }
+
+                communities = communities.sort((a, b) => b.member_count - a.member_count);
+
+                grid.innerHTML = '';
+                communities.slice(0, 3).forEach(c => {
+                    const card = document.createElement('a');
+                    card.className = 'mini-card card';
+                    card.href = `/communities/${c.id}`;
+                    card.innerHTML = `
+                        <h3>${c.name}</h3>
+                        <p>${c.description || "Tavsif qo'shilmagan"}</p>
+                        <div class="mini-meta"><i class="fas fa-tag"></i> ${c.category} <span>·</span> <i class="fas fa-users"></i> ${c.member_count}</div>
+                    `;
+                    grid.appendChild(card);
+                });
+            } catch (e) {
+                console.error('Failed to load communities:', e);
+                grid.innerHTML = '';
+            }
+        }
+
         loadMe();
         loadRecommendations();
         loadEventsTicker();
+        loadArticlesMini();
+        loadEventsMini();
+        loadCommunitiesMini();
     </script>
 
     <script>
