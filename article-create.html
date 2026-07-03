@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/png" href="/favicon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BirMillat – Maqola yozish</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="/style.css">
+<style>
+    .form-shell { max-width: 720px; margin: 2rem auto; padding: 0 1.5rem; }
+    .form-card { padding: 2.2rem; }
+    .form-card h1 { font-size: 1.5rem; margin-bottom: 0.4rem; }
+    .form-card > p { color: var(--color-text-muted); margin-bottom: 1.6rem; font-size: 0.9rem; }
+    .form-field { margin-bottom: 1.1rem; }
+    .form-field label {
+        display: block; font-size: 0.82rem; font-weight: 600; color: var(--color-text-muted);
+        margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.4px;
+    }
+    .form-field input, .form-field textarea {
+        width: 100%; padding: 0.75rem 1rem; border-radius: var(--radius-sm);
+        border: 1px solid var(--color-border); font-family: var(--font-body); font-size: 0.95rem; resize: vertical;
+    }
+    .form-field textarea { min-height: 320px; line-height: 1.6; }
+    .rules-note {
+        background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+        padding: 0.8rem 1rem; font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: 1.4rem;
+        display: flex; gap: 0.6rem; align-items: flex-start;
+    }
+    .submit-status { font-size: 0.88rem; margin-top: 0.8rem; min-height: 1.2em; }
+    .submit-status.success { color: var(--color-success); }
+    .submit-status.error { color: var(--color-error); }
+</style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/home" class="logo">
+            <svg width="160" height="45" viewBox="0 0 320 90" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+              <g transform="translate(45,45)">
+                <g transform="rotate(-18)"><ellipse cx="-10" cy="0" rx="20" ry="36" fill="none" stroke="#2D1B69" stroke-width="10"/></g>
+                <g transform="rotate(18)"><ellipse cx="10" cy="0" rx="20" ry="36" fill="none" stroke="#FF6B5B" stroke-width="10"/></g>
+                <g transform="rotate(-18)"><path d="M -30 0 A 20 36 0 0 1 11 0" fill="none" stroke="#2D1B69" stroke-width="10" stroke-linecap="round"/></g>
+              </g>
+              <text x="95" y="53" font-size="34" font-weight="700" fill="#2D1B69" font-family="Poppins, -apple-system, sans-serif">Bir<tspan fill="#FF6B5B">Millat</tspan></text>
+            </svg>
+        </a>
+        <button class="nav-toggle" id="navToggle" aria-label="Menyu"><i class="fas fa-bars"></i></button>
+        <div class="nav-links" id="navLinks">
+            <a href="/home">Bosh sahifa</a>
+            <a href="/recommend">Tavsiyalar</a>
+            <a href="/events">Tadbirlar</a>
+            <a href="/communities">Jamoalar</a>
+            <a href="/articles" class="active">Maqolalar</a>
+            <a href="/search">Qidiruv</a>
+            <a href="/messages">Xabarlar</a>
+            <a href="/profile">Profil</a>
+            <a href="/logout">Chiqish</a>
+        </div>
+        <div class="user-badge" id="userBadge"><img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ...</div>
+    </nav>
+
+    <div class="form-shell">
+        <div class="form-card card">
+            <h1><i class="fas fa-pen-nib"></i> Yangi maqola</h1>
+            <p>Tadqiqotingiz yoki maqolangizni ulashing — darhol e'lon qilinadi.</p>
+
+            <div class="rules-note">
+                <i class="fas fa-circle-info" style="margin-top:0.15rem;"></i>
+                <span>Nusxa ko'chirilgan yoki noqonuniy kontent shikoyat qilinishi mumkin. Qoidabuzarlik uchun ogohlantirish beriladi — 3 marta ogohlantirilgan hisoblar bloklanadi.</span>
+            </div>
+
+            <form id="articleForm">
+                <div class="form-field">
+                    <label for="titleInput">Sarlavha</label>
+                    <input type="text" id="titleInput" placeholder="Maqolangiz nomi" required>
+                </div>
+                <div class="form-field">
+                    <label for="contentInput">Matn</label>
+                    <textarea id="contentInput" placeholder="Maqolangizni shu yerga yozing..." required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">
+                    <i class="fas fa-paper-plane"></i> E'lon qilish
+                </button>
+                <div class="submit-status" id="submitStatus"></div>
+            </form>
+        </div>
+    </div>
+
+    <footer>BirMillat – qiziqishlar asosida do'stlar toping.<br><span style="opacity:0.8;">Founder — Bekhruz Ravshanov</span></footer>
+
+    <script>
+        async function loadMe() {
+            try {
+                const res = await fetch('/api/me');
+                if (!res.ok) { window.location.href = '/login'; return; }
+                const me = await res.json();
+                document.getElementById('userBadge').innerHTML = '<img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ' + me.username;
+            } catch (e) { console.error(e); }
+        }
+
+        document.getElementById('articleForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const statusEl = document.getElementById('submitStatus');
+            const title = document.getElementById('titleInput').value.trim();
+            const content = document.getElementById('contentInput').value.trim();
+
+            if (!title || !content) return;
+
+            statusEl.textContent = 'Yuborilmoqda...';
+            statusEl.className = 'submit-status';
+
+            try {
+                const res = await fetch('/api/articles', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, content })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Server error');
+
+                window.location.href = `/articles/${data.id}`;
+            } catch (err) {
+                console.error('Article submit failed:', err);
+                statusEl.textContent = err.message || "Xatolik yuz berdi. Qaytadan urinib ko'ring.";
+                statusEl.className = 'submit-status error';
+            }
+        });
+
+        loadMe();
+    </script>
+
+    <script>
+        const navToggleBtn = document.getElementById('navToggle');
+        const navLinksEl = document.getElementById('navLinks');
+        if (navToggleBtn && navLinksEl) {
+            navToggleBtn.addEventListener('click', () => {
+                navLinksEl.classList.toggle('open');
+            });
+        }
+    </script>
+</body>
+</html>
