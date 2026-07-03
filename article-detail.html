@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/png" href="/favicon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BirMillat – Maqola</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="/style.css">
+<style>
+    .detail-shell { max-width: 720px; margin: 2rem auto; padding: 0 1.5rem; }
+    .detail-card { padding: 2.2rem; margin-bottom: 1.5rem; }
+    .detail-card h1 { font-size: 1.7rem; margin-bottom: 1rem; line-height: 1.3; }
+
+    .author-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.8rem; margin-bottom: 1.6rem; padding-bottom: 1.2rem; border-bottom: 1px solid var(--color-border); }
+    .author-link { display: flex; align-items: center; gap: 0.6rem; text-decoration: none; color: inherit; }
+    .author-link .avatar {
+        width: 38px; height: 38px; border-radius: 50%; background: #EFEAF8;
+        display: flex; align-items: center; justify-content: center; font-size: 0.85rem; color: var(--color-primary); overflow: hidden;
+        font-family: var(--font-display); font-weight: 700;
+    }
+    .author-link .avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .author-link .author-name { font-weight: 600; color: var(--color-text); font-size: 0.95rem; }
+    .author-link .author-date { font-size: 0.8rem; color: var(--color-text-muted); }
+
+    .article-body { line-height: 1.8; color: var(--color-text); white-space: pre-wrap; margin-bottom: 2rem; font-size: 1rem; }
+
+    .action-row { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; }
+    .like-btn {
+        display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1.2rem;
+        border-radius: var(--radius-pill); border: 1.5px solid var(--color-border); background: var(--color-surface);
+        color: var(--color-text); font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: all 0.15s ease;
+    }
+    .like-btn:hover { border-color: var(--color-accent); }
+    .like-btn.liked { background: #FFEAE6; border-color: var(--color-accent); color: var(--color-accent); }
+    .like-btn.liked i { color: var(--color-accent); }
+    .report-btn, .delete-btn {
+        display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1.2rem;
+        border-radius: var(--radius-pill); border: 1.5px solid var(--color-border); background: transparent;
+        color: var(--color-text-muted); font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: all 0.15s ease;
+    }
+    .report-btn:hover { border-color: var(--color-error); color: var(--color-error); }
+    .delete-btn:hover { border-color: var(--color-error); color: var(--color-error); }
+
+    .report-modal {
+        display: none; position: fixed; inset: 0; background: rgba(26,22,37,0.5);
+        z-index: 100; align-items: center; justify-content: center; padding: 1.5rem;
+    }
+    .report-modal.open { display: flex; }
+    .report-modal-card { max-width: 420px; width: 100%; }
+    .report-modal-card textarea {
+        width: 100%; padding: 0.75rem 1rem; border-radius: var(--radius-sm); margin-top: 0.8rem;
+        border: 1px solid var(--color-border); font-family: var(--font-body); font-size: 0.9rem; resize: vertical; min-height: 90px;
+    }
+    .not-found { text-align: center; padding: 4rem 1.5rem; color: var(--color-text-muted); }
+</style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/home" class="logo">
+            <svg width="160" height="45" viewBox="0 0 320 90" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+              <g transform="translate(45,45)">
+                <g transform="rotate(-18)"><ellipse cx="-10" cy="0" rx="20" ry="36" fill="none" stroke="#2D1B69" stroke-width="10"/></g>
+                <g transform="rotate(18)"><ellipse cx="10" cy="0" rx="20" ry="36" fill="none" stroke="#FF6B5B" stroke-width="10"/></g>
+                <g transform="rotate(-18)"><path d="M -30 0 A 20 36 0 0 1 11 0" fill="none" stroke="#2D1B69" stroke-width="10" stroke-linecap="round"/></g>
+              </g>
+              <text x="95" y="53" font-size="34" font-weight="700" fill="#2D1B69" font-family="Poppins, -apple-system, sans-serif">Bir<tspan fill="#FF6B5B">Millat</tspan></text>
+            </svg>
+        </a>
+        <button class="nav-toggle" id="navToggle" aria-label="Menyu"><i class="fas fa-bars"></i></button>
+        <div class="nav-links" id="navLinks">
+            <a href="/home">Bosh sahifa</a>
+            <a href="/recommend">Tavsiyalar</a>
+            <a href="/events">Tadbirlar</a>
+            <a href="/communities">Jamoalar</a>
+            <a href="/articles" class="active">Maqolalar</a>
+            <a href="/search">Qidiruv</a>
+            <a href="/messages">Xabarlar</a>
+            <a href="/profile">Profil</a>
+            <a href="/logout">Chiqish</a>
+        </div>
+        <div class="user-badge" id="userBadge"><img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ...</div>
+    </nav>
+
+    <div class="detail-shell" id="detailRoot">
+        <p style="color:var(--color-text-muted); text-align:center; padding:3rem 0;">Yuklanmoqda...</p>
+    </div>
+
+    <footer>BirMillat – qiziqishlar asosida do'stlar toping.<br><span style="opacity:0.8;">Founder — Bekhruz Ravshanov</span></footer>
+
+    <div class="report-modal" id="reportModal">
+        <div class="card report-modal-card">
+            <h2 style="font-size:1.15rem; margin-bottom:0.4rem;"><i class="fas fa-flag"></i> Maqolani shikoyat qilish</h2>
+            <p style="font-size:0.85rem; color:var(--color-text-muted);">Nima uchun bu maqola qoidalarga zid deb o'ylaysiz?</p>
+            <textarea id="reportReason" placeholder="Sabab (ixtiyoriy)"></textarea>
+            <div style="display:flex; gap:0.8rem; margin-top:1rem;">
+                <button class="btn btn-primary" id="submitReport" style="flex:1; justify-content:center;">Yuborish</button>
+                <button class="btn btn-cancel" id="closeReportModal" style="border:1.5px solid var(--color-border); background:transparent; color:var(--color-text-muted);">Bekor qilish</button>
+            </div>
+            <div class="submit-status" id="reportStatus" style="font-size:0.85rem; margin-top:0.6rem;"></div>
+        </div>
+    </div>
+
+    <script>
+        function getArticleId() {
+            const parts = window.location.pathname.split('/').filter(Boolean);
+            return parts[parts.length - 1];
+        }
+
+        function initials(name) {
+            if (!name) return '?';
+            const parts = name.trim().split(/\s+/);
+            return parts.length > 1 ? (parts[0][0] + parts[1][0]).toUpperCase() : parts[0].slice(0, 2).toUpperCase();
+        }
+
+        function formatDate(ts) {
+            const d = new Date(ts);
+            return d.toLocaleDateString('uz-UZ', { day: 'numeric', month: 'long', year: 'numeric' });
+        }
+
+        async function loadMe() {
+            const res = await fetch('/api/me');
+            if (!res.ok) { window.location.href = '/login'; return null; }
+            const me = await res.json();
+            document.getElementById('userBadge').innerHTML = '<img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ' + me.username;
+            return me;
+        }
+
+        async function toggleLike(articleId) {
+            try {
+                const res = await fetch(`/api/articles/${articleId}/like`, { method: 'POST' });
+                if (!res.ok) throw new Error();
+                const data = await res.json();
+                const btn = document.getElementById('likeBtn');
+                btn.classList.toggle('liked', data.isLiked);
+                btn.innerHTML = `<i class="fas fa-heart"></i> ${data.likeCount}`;
+            } catch (e) {
+                console.error('Like failed:', e);
+            }
+        }
+
+        async function deleteOwnArticle(articleId) {
+            if (!confirm("Maqolani o'chirishni tasdiqlaysizmi?")) return;
+            try {
+                const res = await fetch(`/api/articles/${articleId}`, { method: 'DELETE' });
+                if (!res.ok) throw new Error();
+                window.location.href = '/articles';
+            } catch (e) {
+                alert("Xatolik yuz berdi. Qaytadan urinib ko'ring.");
+            }
+        }
+
+        async function loadArticle() {
+            const articleId = getArticleId();
+            const root = document.getElementById('detailRoot');
+
+            try {
+                const res = await fetch(`/api/articles/${articleId}`);
+                if (!res.ok) {
+                    root.innerHTML = `<div class="not-found"><i class="fas fa-file-circle-xmark" style="font-size:2.4rem; color:var(--color-border); display:block; margin-bottom:1rem;"></i><p>Bu maqola topilmadi yoki o'chirilgan.</p></div>`;
+                    return;
+                }
+                const article = await res.json();
+
+                root.innerHTML = `
+                    <div class="detail-card card">
+                        <h1>${article.title}</h1>
+                        <div class="author-row">
+                            <a href="/u/${article.author.username}" class="author-link">
+                                <span class="avatar">${article.author.photoUrl ? `<img src="${article.author.photoUrl}" alt="">` : initials(article.author.name || article.author.username)}</span>
+                                <span>
+                                    <div class="author-name">@${article.author.username}</div>
+                                    <div class="author-date">${formatDate(article.createdAt)}</div>
+                                </span>
+                            </a>
+                        </div>
+                        <div class="article-body">${article.content}</div>
+                        <div class="action-row">
+                            <button class="like-btn ${article.isLiked ? 'liked' : ''}" id="likeBtn">
+                                <i class="fas fa-heart"></i> ${article.likeCount}
+                            </button>
+                            ${article.isAuthor
+                                ? `<button class="delete-btn" id="deleteBtn"><i class="fas fa-trash"></i> O'chirish</button>`
+                                : `<button class="report-btn" id="reportBtn"><i class="fas fa-flag"></i> Shikoyat qilish</button>`
+                            }
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('likeBtn').addEventListener('click', () => toggleLike(article.id));
+
+                const deleteBtn = document.getElementById('deleteBtn');
+                if (deleteBtn) deleteBtn.addEventListener('click', () => deleteOwnArticle(article.id));
+
+                const reportBtn = document.getElementById('reportBtn');
+                if (reportBtn) {
+                    reportBtn.addEventListener('click', () => {
+                        document.getElementById('reportModal').classList.add('open');
+                    });
+                }
+
+                document.getElementById('submitReport').onclick = async () => {
+                    const statusEl = document.getElementById('reportStatus');
+                    statusEl.textContent = 'Yuborilmoqda...';
+                    statusEl.className = 'submit-status';
+                    try {
+                        const res = await fetch(`/api/articles/${article.id}/report`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ reason: document.getElementById('reportReason').value.trim() })
+                        });
+                        if (!res.ok) throw new Error();
+                        statusEl.textContent = 'Shikoyat yuborildi. Rahmat!';
+                        statusEl.className = 'submit-status success';
+                        setTimeout(() => document.getElementById('reportModal').classList.remove('open'), 1200);
+                    } catch (e) {
+                        statusEl.textContent = "Xatolik yuz berdi. Qaytadan urinib ko'ring.";
+                        statusEl.className = 'submit-status error';
+                    }
+                };
+            } catch (e) {
+                console.error('Failed to load article:', e);
+                root.innerHTML = `<div class="not-found">Yuklab bo'lmadi. Sahifani qaytadan yuklang.</div>`;
+            }
+        }
+
+        document.getElementById('closeReportModal').addEventListener('click', () => {
+            document.getElementById('reportModal').classList.remove('open');
+        });
+
+        (async () => {
+            await loadMe();
+            loadArticle();
+        })();
+    </script>
+
+    <script>
+        const navToggleBtn = document.getElementById('navToggle');
+        const navLinksEl = document.getElementById('navLinks');
+        if (navToggleBtn && navLinksEl) {
+            navToggleBtn.addEventListener('click', () => {
+                navLinksEl.classList.toggle('open');
+            });
+        }
+    </script>
+</body>
+</html>
