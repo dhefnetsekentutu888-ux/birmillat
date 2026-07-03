@@ -860,8 +860,7 @@ function renderRegisterPage(message, isError = true) {
         <h2>Hisob yaratish</h2>
         ${message ? `<div class="message ${msgClass}">${message}</div>` : ''}
         <form method=post action=/register id="registerForm">
-            <input type=email name=email placeholder="Email manzilingiz (ixtiyoriy)">
-            <div class="field-hint">Email qoldirsangiz, hisobingizni tasdiqlash kodi yuboriladi. Qoldirmasangiz ham ro'yxatdan o'tishingiz mumkin.</div>
+            <input type=email name=email placeholder="Email manzilingiz" required>
             <input name=username placeholder="Foydalanuvchi nomi" required>
 
             <div class="pw-field">
@@ -1038,8 +1037,11 @@ app.post('/register', async (req, res) => {
         const cleanUsername = (username || '').trim();
         const cleanEmail = (email || '').trim().toLowerCase();
 
-        if (!cleanUsername || !password) {
-            return res.send(renderRegisterPage('Foydalanuvchi nomi va parol kerak', true));
+        if (!cleanUsername || !cleanEmail || !password) {
+            return res.send(renderRegisterPage('Barcha maydonlarni to‘ldiring', true));
+        }
+        if (!isValidEmail(cleanEmail)) {
+            return res.send(renderRegisterPage('Email manzili noto‘g‘ri', true));
         }
         if (password.length < 8) {
             return res.send(renderRegisterPage('Parol kamida 8 belgi bo‘lishi kerak', true));
@@ -1047,28 +1049,17 @@ app.post('/register', async (req, res) => {
         if (password !== confirmPassword) {
             return res.send(renderRegisterPage('Parollar mos kelmadi', true));
         }
-        if (cleanEmail && !isValidEmail(cleanEmail)) {
-            return res.send(renderRegisterPage('Email manzili noto‘g‘ri', true));
-        }
 
-        if (await isUsernameTaken(cleanUsername, cleanEmail || null)) {
+        if (await isUsernameTaken(cleanUsername, cleanEmail)) {
             return res.send(renderRegisterPage('Bunday foydalanuvchi nomi band', true));
         }
 
-        // ---------- No email given: create the account immediately, no verification needed ----------
-        if (!cleanEmail) {
-            const hashed = await bcrypt.hash(password, 10);
-            const userId = await createUser(cleanUsername, null, hashed, 1);
-            req.session.userId = userId;
-            req.session.username = cleanUsername;
-            return res.redirect('/home');
-        }
-
-        // ---------- Email given: nothing is written to the real `users` table yet ----------
-        // The account is only created once the verification code is confirmed
-        // (see POST /verify below). This is what stops half-finished signups
-        // from permanently occupying a username/email if the code never arrives
-        // or is never entered.
+        // Nothing is written to the real `users` table yet. The account is only
+        // created once the verification code is confirmed (see POST /verify
+        // below). This is the guarantee: if anything goes wrong here — a typo,
+        // a dropped connection, a "Server xatosi" — no row exists under this
+        // username or email, so nothing is left stuck or unusable. Only a
+        // successful code confirmation ever creates the real account.
         const existingEmail = await getUserByEmail(cleanEmail);
         if (existingEmail) {
             return res.send(renderRegisterPage('Bu email allaqachon ro‘yxatdan o‘tgan', true));
