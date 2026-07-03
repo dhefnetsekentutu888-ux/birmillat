@@ -200,6 +200,49 @@ async function initDb() {
     `);
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_messages_pair ON messages (sender_id, receiver_id)`);
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_messages_pair2 ON messages (receiver_id, sender_id)`);
+
+    // Moderation: counts how many articles this user has had removed for
+    // violating rules. Reaching 3 auto-bans the account (reuses setUserBlocked,
+    // same mechanism as the existing Telegram /block command).
+    try { await db.execute(`ALTER TABLE users ADD COLUMN warning_count INTEGER DEFAULT 0`); } catch (e) {}
+
+    // Articles ("Maqolalar") — publish immediately, no pre-review. Quality is
+    // enforced after the fact via reports: anyone can report an article, you
+    // review the report on Telegram, and can delete it with one command,
+    // which automatically issues a warning to the author.
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS articles (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            author_id INTEGER NOT NULL,
+            title TEXT NOT NULL,
+            content TEXT NOT NULL,
+            created_at INTEGER NOT NULL
+        )
+    `);
+    await db.execute(`CREATE INDEX IF NOT EXISTS idx_articles_created ON articles (created_at)`);
+    await db.execute(`CREATE INDEX IF NOT EXISTS idx_articles_author ON articles (author_id)`);
+
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS article_likes (
+            article_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            created_at INTEGER NOT NULL,
+            PRIMARY KEY (article_id, user_id)
+        )
+    `);
+
+    // One report per user per article — prevents someone spamming reports to
+    // pressure a takedown; you still see every distinct reporter's reason.
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS article_reports (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            article_id INTEGER NOT NULL,
+            reporter_id INTEGER NOT NULL,
+            reason TEXT,
+            created_at INTEGER NOT NULL,
+            UNIQUE(article_id, reporter_id)
+        )
+    `);
 }
 
 // ---------- Data access helpers (all async now) ----------
@@ -504,6 +547,104 @@ async function markMessagesRead(senderId, receiverId) {
         sql: `UPDATE messages SET is_read = 1 WHERE sender_id = ? AND receiver_id = ? AND is_read = 0`,
         args: [senderId, receiverId]
     });
+}
+
+// ---------- Articles ("Maqolalar") ----------
+async function createArticle(authorId, title, content) {
+    const result = await db.execute({
+        sql: `INSERT INTO articles (author_id, title, content, created_at) VALUES (?, ?, ?, ?)`,
+        args: [authorId, title, content, Date.now()]
+    });
+    return Number(result.lastInsertRowid);
+}
+
+async function listArticles() {
+    const result = await db.execute(`
+        SELECT articles.*, users.username AS author_username, users.name AS author_name, users.photo_url AS author_photo,
+               (SELECT COUNT(*) FROM article_likes WHERE article_likes.article_id = articles.id) AS like_count
+        FROM articles JOIN users ON users.id = articles.author_id
+        ORDER BY articles.created_at DESC
+    `);
+    return result.rows;
+}
+
+async function getArticleById(id) {
+    const result = await db.execute({
+        sql: `
+            SELECT articles.*, users.username AS author_username, users.name AS author_name, users.photo_url AS author_photo,
+                   (SELECT COUNT(*) FROM article_likes WHERE article_likes.article_id = articles.id) AS like_count
+            FROM articles JOIN users ON users.id = articles.author_id
+            WHERE articles.id = ?
+        `,
+        args: [id]
+    });
+    return result.rows[0] || null;
+}
+
+async function deleteArticle(id) {
+    return db.execute({ sql: 'DELETE FROM articles WHERE id = ?', args: [id] });
+}
+
+async function isArticleLiked(articleId, userId) {
+    const result = await db.execute({
+        sql: 'SELECT 1 FROM article_likes WHERE article_id = ? AND user_id = ?',
+        args: [articleId, userId]
+    });
+    return result.rows.length > 0;
+}
+
+async function likeArticle(articleId, userId) {
+    return db.execute({
+        sql: `INSERT OR IGNORE INTO article_likes (article_id, user_id, created_at) VALUES (?, ?, ?)`,
+        args: [articleId, userId, Date.now()]
+    });
+}
+
+async function unlikeArticle(articleId, userId) {
+    return db.execute({
+        sql: 'DELETE FROM article_likes WHERE article_id = ? AND user_id = ?',
+        args: [articleId, userId]
+    });
+}
+
+async function createArticleReport(articleId, reporterId, reason) {
+    try {
+        await db.execute({
+            sql: `INSERT INTO article_reports (article_id, reporter_id, reason, created_at) VALUES (?, ?, ?, ?)`,
+            args: [articleId, reporterId, reason || null, Date.now()]
+        });
+        return true;
+    } catch (e) {
+        return false; // already reported by this user — treated as a harmless no-op, not an error
+    }
+}
+
+// Deletes the article and issues one warning to its author. At 3 warnings,
+// the author is auto-banned via the same setUserBlocked() used by the
+// existing Telegram /block command (destroys their active sessions too).
+async function deleteArticleAndWarnAuthor(articleId) {
+    const article = await getArticleById(articleId);
+    if (!article) return { ok: false, reason: 'not_found' };
+
+    await deleteArticle(articleId);
+
+    await db.execute({
+        sql: 'UPDATE users SET warning_count = warning_count + 1 WHERE id = ?',
+        args: [article.author_id]
+    });
+    const warningResult = await db.execute({
+        sql: 'SELECT warning_count FROM users WHERE id = ?',
+        args: [article.author_id]
+    });
+    const newWarningCount = warningResult.rows[0] ? warningResult.rows[0].warning_count : 0;
+
+    let banned = false;
+    if (newWarningCount >= 3) {
+        await setUserBlocked(article.author_username, true);
+        banned = true;
+    }
+
+    return { ok: true, article, newWarningCount, banned };
 }
 
 // ---------- Events ----------
@@ -1240,6 +1381,21 @@ app.get('/communities/:id', (req, res) => {
     res.sendFile(path.join(__dirname, 'community-chat.html'));
 });
 
+app.get('/articles', (req, res) => {
+    if (!req.session.userId) return res.redirect('/login');
+    res.sendFile(path.join(__dirname, 'articles.html'));
+});
+
+app.get('/articles/create', (req, res) => {
+    if (!req.session.userId) return res.redirect('/login');
+    res.sendFile(path.join(__dirname, 'article-create.html'));
+});
+
+app.get('/articles/:id', (req, res) => {
+    if (!req.session.userId) return res.redirect('/login');
+    res.sendFile(path.join(__dirname, 'article-detail.html'));
+});
+
 app.get('/profile', (req, res) => {
     if (!req.session.userId) return res.redirect('/login');
     res.sendFile(path.join(__dirname, 'profile.html'));
@@ -1790,6 +1946,7 @@ app.post(`/telegram/webhook/${TELEGRAM_BOT_TOKEN}`, async (req, res) => {
             const text = (message.text || '').trim();
             const blockMatch = text.match(/^\/block\s+@?(\S+)/i);
             const unblockMatch = text.match(/^\/unblock\s+@?(\S+)/i);
+            const deleteArticleMatch = text.match(/^\/delete_article\s+(\d+)/i);
 
             if (blockMatch) {
                 const username = blockMatch[1];
@@ -1803,11 +1960,25 @@ app.post(`/telegram/webhook/${TELEGRAM_BOT_TOKEN}`, async (req, res) => {
                 await sendTelegramMessage(success
                     ? `✅ @${escapeHtmlForTelegram(username)} blokdan chiqarildi.`
                     : `❌ @${escapeHtmlForTelegram(username)} topilmadi.`);
+            } else if (deleteArticleMatch) {
+                const articleId = deleteArticleMatch[1];
+                const result = await deleteArticleAndWarnAuthor(articleId);
+                if (!result.ok) {
+                    await sendTelegramMessage(`❌ Maqola (ID: ${escapeHtmlForTelegram(articleId)}) topilmadi — ehtimol allaqachon o'chirilgan.`);
+                } else {
+                    let msg = `🗑 Maqola o'chirildi: "${escapeHtmlForTelegram(result.article.title)}"\n` +
+                        `⚠️ @${escapeHtmlForTelegram(result.article.author_username)} ga ogohlantirish berildi (${result.newWarningCount}/3).`;
+                    if (result.banned) {
+                        msg += `\n\n🚫 3-ogohlantirishga yetdi — @${escapeHtmlForTelegram(result.article.author_username)} avtomatik bloklandi.`;
+                    }
+                    await sendTelegramMessage(msg);
+                }
             } else if (text === '/start' || text === '/help') {
                 await sendTelegramMessage(
                     `<b>BirMillat admin buyruqlari</b>\n\n` +
                     `/block foydalanuvchi_nomi — hisobni bloklash\n` +
-                    `/unblock foydalanuvchi_nomi — blokdan chiqarish\n\n` +
+                    `/unblock foydalanuvchi_nomi — blokdan chiqarish\n` +
+                    `/delete_article ID — maqolani o'chirish va muallifga ogohlantirish berish (3-ogohlantirish = avtomatik blok)\n\n` +
                     `Foydalanuvchiga javob berish uchun, uning xabariga Telegram'ning "Reply" funksiyasidan foydalaning.`
                 );
             }
@@ -1969,6 +2140,129 @@ app.post('/api/contact', async (req, res) => {
         res.json({ success: true });
     } catch (err) {
         console.error('api/contact error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// ---------- Articles ("Maqolalar") ----------
+app.get('/api/articles', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const rows = await listArticles();
+        res.json(rows.map(a => ({
+            id: a.id,
+            title: a.title,
+            excerpt: a.content.length > 220 ? a.content.slice(0, 220).trim() + '…' : a.content,
+            createdAt: a.created_at,
+            likeCount: a.like_count,
+            author: { username: a.author_username, name: a.author_name, photoUrl: a.author_photo }
+        })));
+    } catch (err) {
+        console.error('api/articles error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.post('/api/articles', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const { title, content } = req.body;
+        if (!title || !title.trim()) {
+            return res.status(400).json({ error: 'Sarlavha kerak' });
+        }
+        if (!content || !content.trim()) {
+            return res.status(400).json({ error: 'Maqola matni kerak' });
+        }
+        const id = await createArticle(req.session.userId, title.trim(), content.trim());
+        res.json({ success: true, id });
+    } catch (err) {
+        console.error('api/articles create error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.get('/api/articles/:id', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const article = await getArticleById(req.params.id);
+        if (!article) return res.status(404).json({ error: 'Maqola topilmadi' });
+        const isLiked = await isArticleLiked(article.id, req.session.userId);
+        res.json({
+            id: article.id,
+            title: article.title,
+            content: article.content,
+            createdAt: article.created_at,
+            likeCount: article.like_count,
+            isLiked,
+            isAuthor: article.author_id === req.session.userId,
+            author: { username: article.author_username, name: article.author_name, photoUrl: article.author_photo }
+        });
+    } catch (err) {
+        console.error('api/articles/:id error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.delete('/api/articles/:id', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const article = await getArticleById(req.params.id);
+        if (!article) return res.status(404).json({ error: 'Maqola topilmadi' });
+        if (article.author_id !== req.session.userId) {
+            return res.status(403).json({ error: "Faqat muallif o'z maqolasini o'chirishi mumkin" });
+        }
+        await deleteArticle(req.params.id);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('api/articles delete error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.post('/api/articles/:id/like', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const article = await getArticleById(req.params.id);
+        if (!article) return res.status(404).json({ error: 'Maqola topilmadi' });
+
+        const alreadyLiked = await isArticleLiked(article.id, req.session.userId);
+        if (alreadyLiked) {
+            await unlikeArticle(article.id, req.session.userId);
+        } else {
+            await likeArticle(article.id, req.session.userId);
+        }
+        const updated = await getArticleById(article.id);
+        res.json({ success: true, isLiked: !alreadyLiked, likeCount: updated.like_count });
+    } catch (err) {
+        console.error('api/articles/:id/like error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.post('/api/articles/:id/report', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const article = await getArticleById(req.params.id);
+        if (!article) return res.status(404).json({ error: 'Maqola topilmadi' });
+
+        const reporter = await getUserById(req.session.userId);
+        const { reason } = req.body;
+        const wasNew = await createArticleReport(article.id, req.session.userId, (reason || '').trim());
+
+        if (wasNew) {
+            const text =
+                `🚩 <b>Maqola shikoyati</b>\n\n` +
+                `<b>Maqola:</b> ${escapeHtmlForTelegram(article.title)} (ID: ${article.id})\n` +
+                `<b>Muallif:</b> @${escapeHtmlForTelegram(article.author_username)}\n` +
+                `<b>Shikoyat qildi:</b> @${escapeHtmlForTelegram(reporter.username)}\n` +
+                (reason ? `<b>Sabab:</b> ${escapeHtmlForTelegram(reason)}\n` : '') +
+                `\nO'chirish va muallifga ogohlantirish berish uchun: <code>/delete_article ${article.id}</code>`;
+            await sendTelegramMessage(text);
+        }
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error('api/articles/:id/report error:', err);
         res.status(500).json({ error: 'Server error' });
     }
 });
