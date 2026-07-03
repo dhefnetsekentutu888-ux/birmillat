@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/png" href="/favicon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BirMillat – Maqolalar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="/style.css">
+<style>
+    .page-container { max-width: 900px; margin: 2rem auto; padding: 0 1.5rem; }
+    .page-head { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; }
+    .page-head h1 { font-size: 1.6rem; margin-bottom: 0.3rem; }
+    .page-head p { color: var(--color-text-muted); }
+
+    .articles-list { display: flex; flex-direction: column; gap: 1.2rem; }
+    .article-card { text-decoration: none; color: inherit; display: block; }
+    .article-card h3 { font-size: 1.2rem; margin-bottom: 0.5rem; }
+    .article-excerpt { font-size: 0.92rem; color: var(--color-text-muted); line-height: 1.6; margin-bottom: 0.9rem; }
+    .article-meta { display: flex; align-items: center; gap: 0.9rem; font-size: 0.82rem; color: var(--color-text-muted); }
+    .article-author { display: flex; align-items: center; gap: 0.5rem; }
+    .article-author .avatar {
+        width: 22px; height: 22px; border-radius: 50%; background: #EFEAF8;
+        display: flex; align-items: center; justify-content: center; font-size: 0.65rem; color: var(--color-primary);
+        overflow: hidden;
+    }
+    .article-author .avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .article-likes { display: flex; align-items: center; gap: 0.3rem; }
+    .empty-state { text-align: center; padding: 3rem 1rem; color: var(--color-text-muted); }
+</style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/home" class="logo">
+            <svg width="160" height="45" viewBox="0 0 320 90" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+              <g transform="translate(45,45)">
+                <g transform="rotate(-18)"><ellipse cx="-10" cy="0" rx="20" ry="36" fill="none" stroke="#2D1B69" stroke-width="10"/></g>
+                <g transform="rotate(18)"><ellipse cx="10" cy="0" rx="20" ry="36" fill="none" stroke="#FF6B5B" stroke-width="10"/></g>
+                <g transform="rotate(-18)"><path d="M -30 0 A 20 36 0 0 1 11 0" fill="none" stroke="#2D1B69" stroke-width="10" stroke-linecap="round"/></g>
+              </g>
+              <text x="95" y="53" font-size="34" font-weight="700" fill="#2D1B69" font-family="Poppins, -apple-system, sans-serif">Bir<tspan fill="#FF6B5B">Millat</tspan></text>
+            </svg>
+        </a>
+        <button class="nav-toggle" id="navToggle" aria-label="Menyu"><i class="fas fa-bars"></i></button>
+        <div class="nav-links" id="navLinks">
+            <a href="/home">Bosh sahifa</a>
+            <a href="/recommend">Tavsiyalar</a>
+            <a href="/events">Tadbirlar</a>
+            <a href="/communities">Jamoalar</a>
+            <a href="/articles" class="active">Maqolalar</a>
+            <a href="/search">Qidiruv</a>
+            <a href="/messages">Xabarlar</a>
+            <a href="/profile">Profil</a>
+            <a href="/logout">Chiqish</a>
+        </div>
+        <div class="user-badge" id="userBadge"><img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ...</div>
+    </nav>
+
+    <div class="page-container">
+        <div class="page-head">
+            <div>
+                <h1><i class="fas fa-newspaper"></i> Maqolalar</h1>
+                <p>Tadqiqotlaringiz va fikrlaringizni ulashing</p>
+            </div>
+            <a href="/articles/create" class="btn btn-primary"><i class="fas fa-plus"></i> Maqola yozish</a>
+        </div>
+
+        <div class="articles-list" id="articlesList">
+            <p style="color:var(--color-text-muted)">Yuklanmoqda...</p>
+        </div>
+    </div>
+
+    <footer>BirMillat – qiziqishlar asosida do'stlar toping. · <a href="/support" style="color:inherit;">Yordam</a><br><span style="opacity:0.8;">Founder — Bekhruz Ravshanov</span></footer>
+
+    <script>
+        function initials(name) {
+            if (!name) return '?';
+            const parts = name.trim().split(/\s+/);
+            return parts.length > 1 ? (parts[0][0] + parts[1][0]).toUpperCase() : parts[0].slice(0, 2).toUpperCase();
+        }
+
+        function formatDate(ts) {
+            const d = new Date(ts);
+            return d.toLocaleDateString('uz-UZ', { day: 'numeric', month: 'long', year: 'numeric' });
+        }
+
+        async function loadMe() {
+            try {
+                const res = await fetch('/api/me');
+                if (!res.ok) { window.location.href = '/login'; return; }
+                const me = await res.json();
+                document.getElementById('userBadge').innerHTML = '<img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ' + me.username;
+            } catch (e) { console.error(e); }
+        }
+
+        async function loadArticles() {
+            const list = document.getElementById('articlesList');
+            try {
+                const res = await fetch('/api/articles');
+                if (!res.ok) { list.innerHTML = ''; return; }
+                const articles = await res.json();
+
+                if (articles.length === 0) {
+                    list.innerHTML = `<div class="empty-state">Hozircha maqolalar yo'q. Birinchi bo'lib yozing!</div>`;
+                    return;
+                }
+
+                list.innerHTML = '';
+                articles.forEach(a => {
+                    const card = document.createElement('a');
+                    card.className = 'article-card card';
+                    card.href = `/articles/${a.id}`;
+                    card.innerHTML = `
+                        <h3>${a.title}</h3>
+                        <div class="article-excerpt">${a.excerpt}</div>
+                        <div class="article-meta">
+                            <span class="article-author">
+                                <span class="avatar">${a.author.photoUrl ? `<img src="${a.author.photoUrl}" alt="">` : initials(a.author.name || a.author.username)}</span>
+                                @${a.author.username}
+                            </span>
+                            <span>·</span>
+                            <span>${formatDate(a.createdAt)}</span>
+                            <span>·</span>
+                            <span class="article-likes"><i class="fas fa-heart"></i> ${a.likeCount}</span>
+                        </div>
+                    `;
+                    list.appendChild(card);
+                });
+            } catch (e) {
+                console.error('Failed to load articles:', e);
+                list.innerHTML = `<div class="empty-state">Yuklab bo'lmadi. Sahifani qaytadan yuklang.</div>`;
+            }
+        }
+
+        (async () => {
+            await loadMe();
+            loadArticles();
+        })();
+    </script>
+
+    <script>
+        const navToggleBtn = document.getElementById('navToggle');
+        const navLinksEl = document.getElementById('navLinks');
+        if (navToggleBtn && navLinksEl) {
+            navToggleBtn.addEventListener('click', () => {
+                navLinksEl.classList.toggle('open');
+            });
+        }
+    </script>
+</body>
+</html>
