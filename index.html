@@ -48,7 +48,7 @@
     position: relative;
     overflow: hidden;
     background: linear-gradient(160deg, #4A2F9E 0%, #2D1B69 55%, #1C1148 100%);
-    padding: 7rem 1.5rem 4.5rem;
+    padding: 5rem 1.5rem 3rem;
     text-align: center;
 }
 
@@ -81,7 +81,7 @@
     border-radius: 999px;
     font-size: 0.85rem;
     font-weight: 600;
-    margin-bottom: 1.4rem;
+    margin-bottom: 1.1rem;
 }
 
 .hero h1 {
@@ -90,17 +90,17 @@
     font-size: clamp(2rem, 6vw, 3.2rem);
     line-height: 1.2;
     color: #FAF7F2;
-    margin-bottom: 1.3rem;
+    margin-bottom: 1rem;
 }
 
 .hero h1 .accent { color: var(--color-accent); }
 
 .hero-sub {
     font-size: 1.05rem;
-    line-height: 1.65;
+    line-height: 1.6;
     color: #C9C0E8;
     max-width: 560px;
-    margin: 0 auto 2.2rem;
+    margin: 0 auto 1.6rem;
 }
 
 .hero-actions {
@@ -108,7 +108,7 @@
     gap: 1rem;
     justify-content: center;
     flex-wrap: wrap;
-    margin-bottom: 2.5rem;
+    margin-bottom: 1.8rem;
 }
 
 .hero-btn {
@@ -135,6 +135,7 @@
 .hero-btn-primary:hover {
     background: var(--color-accent-light);
     box-shadow: 0 8px 20px rgba(255, 107, 91, 0.35);
+    transform: scale(1.03);
 }
 
 .hero-btn-outline {
@@ -146,6 +147,7 @@
 .hero-btn-outline:hover {
     background: rgba(255,255,255,0.08);
     border-color: rgba(255,255,255,0.7);
+    transform: scale(1.03);
 }
 
 .hero-tags {
@@ -174,12 +176,12 @@
 
 /* ---------- Below-the-fold sections keep the site's normal light theme ---------- */
 .section {
-    padding: 4rem 1.5rem;
+    padding: 2.75rem 1.5rem;
     max-width: 1100px;
     margin: 0 auto;
 }
-.section-head { text-align: center; margin-bottom: 2.5rem; }
-.section-head h2 { font-size: 1.8rem; margin-bottom: 0.6rem; }
+.section-head { text-align: center; margin-bottom: 1.8rem; }
+.section-head h2 { font-size: 1.7rem; margin-bottom: 0.5rem; }
 .section-head p { color: var(--color-text-muted); }
 
 .steps-row {
@@ -210,7 +212,8 @@
 }
 
 .cat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; }
-.cat-card { text-align: center; padding: 2rem 1.5rem; }
+.cat-card { text-align: center; padding: 2rem 1.5rem; transition: transform 0.18s ease; }
+.cat-card:hover { transform: translateY(-4px); }
 .cat-card .icon {
     width: 56px; height: 56px; border-radius: var(--radius-md); background: #EFEAF8;
     display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;
