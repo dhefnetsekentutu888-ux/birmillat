@@ -195,7 +195,7 @@
 }
 .step { flex: 1; min-width: 200px; max-width: 260px; text-align: center; padding: 0 1rem; }
 .step-icon {
-    width: 56px; height: 56px; margin: 0 auto 1rem;
+    width: 64px; height: 64px; margin: 0 auto 1rem;
     border-radius: 50%; background: #EFEAF8;
     display: flex; align-items: center; justify-content: center;
     color: var(--color-primary); font-size: 1.4rem;
@@ -317,19 +317,39 @@
     </div>
     <div class="steps-row">
         <div class="step">
-            <div class="step-icon"><i class="fas fa-user-plus"></i></div>
+            <div class="step-icon">
+                <svg viewBox="0 0 64 64" width="34" height="34">
+                    <circle cx="32" cy="18" r="9" fill="#2D1B69"/>
+                    <path d="M16 52c0-10 7-18 16-18s16 8 16 18" fill="none" stroke="#2D1B69" stroke-width="4" stroke-linecap="round"/>
+                    <rect x="20" y="40" width="24" height="14" rx="2" fill="#FF6B5B"/>
+                    <line x1="32" y1="40" x2="32" y2="54" stroke="#FAF7F2" stroke-width="1.5"/>
+                </svg>
+            </div>
             <h3>Profil yarating</h3>
             <p>Ism, rasm, qiziqishlaringizni qo'shing — bir necha daqiqa ichida</p>
         </div>
         <div class="step-connector"></div>
         <div class="step">
-            <div class="step-icon"><i class="fas fa-magnifying-glass"></i></div>
+            <div class="step-icon">
+                <svg viewBox="0 0 64 64" width="34" height="34">
+                    <circle cx="24" cy="24" r="10" fill="none" stroke="#2D1B69" stroke-width="4"/>
+                    <circle cx="40" cy="24" r="10" fill="none" stroke="#FF6B5B" stroke-width="4"/>
+                    <path d="M14 52c0-8 6-14 14-14M50 52c0-8-6-14-14-14" fill="none" stroke="#2D1B69" stroke-width="4" stroke-linecap="round"/>
+                </svg>
+            </div>
             <h3>Mos kelganlarni toping</h3>
             <p>Qiziqishlaringiz asosida tavsiyalar va qidiruv orqali odamlarni kashf eting</p>
         </div>
         <div class="step-connector"></div>
         <div class="step">
-            <div class="step-icon"><i class="fas fa-comments"></i></div>
+            <div class="step-icon">
+                <svg viewBox="0 0 64 64" width="34" height="34">
+                    <rect x="8" y="14" width="30" height="20" rx="6" fill="#2D1B69"/>
+                    <path d="M14 34l0 8 8-8z" fill="#2D1B69"/>
+                    <rect x="26" y="30" width="30" height="20" rx="6" fill="#FF6B5B"/>
+                    <path d="M50 50l0 8-8-8z" fill="#FF6B5B"/>
+                </svg>
+            </div>
             <h3>Suhbatlashing va birga o'sing</h3>
             <p>Real vaqtda xabar yozing, tadbirlarga qatnashing, do'stlar orttiring</p>
         </div>
