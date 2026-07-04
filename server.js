@@ -994,13 +994,123 @@ function renderRegisterPage(message, isError = true) {
         .field-error { color: var(--color-error); font-size: 0.8rem; text-align: left; margin: -0.3rem 0 0.6rem; min-height: 1em; }
         .auth-logo { height: 40px; margin-bottom: 1rem; }
         .field-hint { font-size: 0.78rem; color: var(--color-text-muted); text-align: left; margin: -0.3rem 0 0.6rem; }
+
+        .register-form-wrap {
+            opacity: 0.3;
+            filter: blur(2px);
+            pointer-events: none;
+            transition: opacity 0.3s ease, filter 0.3s ease;
+        }
+        .register-form-wrap.unlocked {
+            opacity: 1;
+            filter: none;
+            pointer-events: auto;
+        }
+
+        .consent-overlay {
+            position: fixed; inset: 0; background: rgba(26,22,37,0.55);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 200; padding: 1.2rem;
+        }
+        .consent-card {
+            background: var(--color-surface); border-radius: var(--radius-md);
+            max-width: 480px; width: 100%;
+            box-shadow: var(--shadow-hover); text-align: left;
+            max-height: 82vh; display: flex; flex-direction: column;
+            overflow: hidden;
+        }
+        .consent-header { padding: 1.6rem 1.6rem 0.8rem; }
+        .consent-header h2 { font-size: 1.15rem; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem; }
+        .consent-header p { font-size: 0.85rem; color: var(--color-text-muted); }
+        .consent-body {
+            flex: 1; overflow-y: auto; padding: 0 1.6rem;
+            border-top: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border);
+        }
+        .consent-body h3 { font-size: 0.92rem; color: var(--color-primary); margin: 1.1rem 0 0.4rem; }
+        .consent-body p, .consent-body li { font-size: 0.85rem; color: var(--color-text); line-height: 1.6; }
+        .consent-body ul { padding-left: 1.2rem; margin: 0.3rem 0; }
+        .consent-missing-note {
+            background: var(--color-bg); border: 1px dashed var(--color-border); border-radius: var(--radius-sm);
+            padding: 0.7rem 0.9rem; font-size: 0.78rem; color: var(--color-text-muted); margin: 1rem 0;
+        }
+        .consent-actions { display: flex; gap: 0.7rem; padding: 1.2rem 1.6rem; }
+        .consent-accept, .consent-decline {
+            flex: 1; padding: 0.75rem; border-radius: var(--radius-pill);
+            font-weight: 600; font-size: 0.9rem; cursor: pointer; text-align: center;
+            transition: transform 0.15s ease, background 0.15s ease;
+            border: none;
+        }
+        .consent-accept { background: var(--color-accent); color: white; }
+        .consent-accept:hover { background: var(--color-accent-light); }
+        .consent-decline { background: var(--color-error-bg); color: var(--color-error); border: 1.5px solid var(--color-error); }
+        .consent-decline:hover { background: var(--color-error); color: white; }
     </style>
     </head>
-    <body class="auth-shell"><div class="auth-card">
+    <body class="auth-shell">
+    <div class="consent-overlay" id="consentOverlay">
+        <div class="consent-card">
+            <div class="consent-header">
+                <h2><i class="fas fa-shield-halved"></i> Maxfiylik siyosati</h2>
+                <p>Davom etishdan oldin, quyidagi shartlar bilan tanishib chiqing.</p>
+            </div>
+            <div class="consent-body">
+                <div class="consent-missing-note">
+                    <i class="fas fa-circle-info"></i> 1–8-bo'limlar tez orada qo'shiladi.
+                </div>
+
+                <h3>9. Ma'lumotlarni saqlash</h3>
+                <p>Ma'lumotlar quyidagi hollarda saqlanadi:</p>
+                <ul>
+                    <li>Hisob faol bo'lgan davr mobaynida;</li>
+                    <li>Xizmatlarni ko'rsatish uchun zarur muddat davomida;</li>
+                    <li>Qonuniy talablar asosida;</li>
+                    <li>Zaxira nusxalarida ma'lum vaqt davomida saqlanishi mumkin.</li>
+                </ul>
+
+                <h3>10. Hisobni o'chirish</h3>
+                <p>Foydalanuvchi istalgan vaqtda o'z hisobini o'chirishni so'rashi mumkin. Hisob o'chirilgandan so'ng profil ma'lumotlari o'chiriladi yoki anonimlashtiriladi; ba'zi maqolalar va izohlar anonim holatda saqlanishi mumkin; qonuniy majburiyatlar sabab ayrim ma'lumotlar ma'lum muddat saqlanishi mumkin.</p>
+
+                <h3>11. Foydalanuvchi huquqlari</h3>
+                <p>Siz quyidagi huquqlarga egasiz:</p>
+                <ul>
+                    <li>O'zingiz haqingizdagi ma'lumotlarni ko'rish;</li>
+                    <li>Ma'lumotlarni yangilash va tahrirlash;</li>
+                    <li>Ma'lumotlarni o'chirishni talab qilish;</li>
+                    <li>Rozilikni bekor qilish;</li>
+                    <li>Hisobni yopish;</li>
+                    <li>Ma'lumotlaringiz nusxasini so'rash.</li>
+                </ul>
+
+                <h3>12. Xavfsizlik</h3>
+                <p>Biz HTTPS shifrlash, xavfsiz autentifikatsiya, shifrlangan parollar va server xavfsizligi choralaridan foydalanamiz. Shunga qaramay, internet orqali uzatiladigan ma'lumotlarning mutlaq xavfsizligini kafolatlab bo'lmaydi.</p>
+
+                <h3>13. Voyaga yetmagan foydalanuvchilar</h3>
+                <p>BirMillat yoshlar uchun mo'ljallangan platforma hisoblanadi. 13 yoshdan kichik foydalanuvchilar ota-ona yoki qonuniy vakilining ruxsati bilan platformadan foydalanishlari tavsiya etiladi.</p>
+
+                <h3>14. Uchinchi tomon havolalari</h3>
+                <p>Platformada boshqa veb-saytlar yoki xizmatlarga havolalar bo'lishi mumkin. Biz ushbu uchinchi tomon xizmatlarining maxfiylik siyosati yoki amaliyoti uchun javobgar emasmiz.</p>
+
+                <h3>15. Maxfiylik siyosatiga o'zgartirishlar</h3>
+                <p>Biz ushbu Maxfiylik siyosatini istalgan vaqtda o'zgartirish yoki yangilash huquqini saqlab qolamiz. Muhim o'zgartirishlar platformada e'lon qilinadi va yangi sana ko'rsatiladi.</p>
+
+                <h3>16. Biz bilan bog'lanish</h3>
+                <p>Savol yoki murojaatlaringiz bo'lsa: <a href="https://t.me/BirMillat_support_bot" target="_blank" rel="noopener">@BirMillat_support_bot</a> (Telegram).</p>
+
+                <p style="font-weight:600; color:var(--color-primary); margin:1.2rem 0 1rem;">BirMillat.uz'dan foydalanish orqali siz ushbu shartlarga rozilik bildirganingizni tasdiqlaysiz.</p>
+            </div>
+            <div class="consent-actions">
+                <button class="consent-decline" id="consentDecline">Rad etaman</button>
+                <button class="consent-accept" id="consentAccept">Qabul qilaman</button>
+            </div>
+        </div>
+    </div>
+    <div class="auth-card">
         <img src="/logo-full.svg" alt="BirMillat" class="auth-logo">
         <h2>Hisob yaratish</h2>
         ${message ? `<div class="message ${msgClass}">${message}</div>` : ''}
+        <div class="register-form-wrap" id="registerFormWrap">
         <form method=post action=/register id="registerForm">
+            <input type="hidden" name="privacyAccepted" id="privacyAcceptedInput" value="">
             <input type=email name=email placeholder="Email manzilingiz" required>
             <input name=username placeholder="Foydalanuvchi nomi" required>
 
@@ -1017,6 +1127,7 @@ function renderRegisterPage(message, isError = true) {
 
             <button type=submit>Ro'yxatdan o'tish</button>
         </form>
+        </div>
         <p>Hisobingiz bormi? <a href=/login>Kirish</a></p>
     </div>
     <script>${passwordToggleScript()}
@@ -1033,6 +1144,18 @@ function renderRegisterPage(message, isError = true) {
         });
         confirmPw.addEventListener('input', () => {
             matchError.textContent = (pw.value && confirmPw.value && pw.value !== confirmPw.value) ? 'Parollar mos kelmadi' : '';
+        });
+
+        // Mandatory privacy policy consent — the form stays dimmed and
+        // non-interactive until Accept is clicked. Server also re-checks
+        // this field, so it can't be bypassed by skipping this script.
+        document.getElementById('consentAccept').addEventListener('click', () => {
+            document.getElementById('privacyAcceptedInput').value = '1';
+            document.getElementById('registerFormWrap').classList.add('unlocked');
+            document.getElementById('consentOverlay').remove();
+        });
+        document.getElementById('consentDecline').addEventListener('click', () => {
+            window.location.href = '/';
         });
     </script>
     </body></html>`;
@@ -1174,10 +1297,13 @@ function isValidEmail(email) {
 
 app.post('/register', async (req, res) => {
     try {
-        const { username, email, password, confirmPassword } = req.body;
+        const { username, email, password, confirmPassword, privacyAccepted } = req.body;
         const cleanUsername = (username || '').trim();
         const cleanEmail = (email || '').trim().toLowerCase();
 
+        if (privacyAccepted !== '1') {
+            return res.send(renderRegisterPage('Davom etish uchun Maxfiylik siyosatiga rozilik bildirishingiz kerak', true));
+        }
         if (!cleanUsername || !cleanEmail || !password) {
             return res.send(renderRegisterPage('Barcha maydonlarni to‘ldiring', true));
         }
@@ -1355,6 +1481,10 @@ app.get('/contact', (req, res) => {
 
 app.get('/support', (req, res) => {
     res.sendFile(path.join(__dirname, 'support.html'));
+});
+
+app.get('/privacy', (req, res) => {
+    res.sendFile(path.join(__dirname, 'privacy-policy.html'));
 });
 
 app.get('/events', (req, res) => {
