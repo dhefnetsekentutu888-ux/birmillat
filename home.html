@@ -61,14 +61,36 @@
     .rec-header h2 { font-size: 1.3rem; }
     .rec-header p { color: var(--color-text-muted); font-size: 0.85rem; }
     .users-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-        gap: 1.5rem;
+        display: flex;
+        gap: 1.2rem;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        padding-bottom: 0.6rem;
+        -webkit-overflow-scrolling: touch;
     }
+    .users-grid::-webkit-scrollbar { height: 6px; }
+    .users-grid::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
     .user-card {
+        flex: 0 0 240px;
+        scroll-snap-align: start;
         transition: transform 0.18s ease, box-shadow 0.18s ease;
     }
     .user-card:hover { transform: translateY(-3px); }
+    .more-users-card {
+        flex: 0 0 140px;
+        scroll-snap-align: start;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        text-decoration: none;
+        gap: 0.5rem;
+        color: var(--color-primary);
+        font-weight: 700;
+        font-size: 0.9rem;
+    }
+    .more-users-card i { font-size: 1.3rem; }
     .card-top {
         display: flex;
         align-items: center;
@@ -303,7 +325,7 @@
                 }
 
                 grid.innerHTML = '';
-                users.forEach(user => {
+                users.slice(0, 9).forEach(user => {
                     const card = document.createElement('a');
                     card.className = 'user-card card';
                     card.href = `/u/${encodeURIComponent(user.username)}`;
@@ -328,6 +350,14 @@
                     `;
                     grid.appendChild(card);
                 });
+
+                if (users.length > 9) {
+                    const moreCard = document.createElement('a');
+                    moreCard.className = 'more-users-card card';
+                    moreCard.href = '/recommend';
+                    moreCard.innerHTML = `<i class="fas fa-arrow-right"></i><span>Yana ${users.length - 9}</span>`;
+                    grid.appendChild(moreCard);
+                }
             } catch (e) {
                 console.error('Failed to load recommendations:', e);
                 grid.innerHTML = `<div class="empty-state">Tavsiyalarni yuklab bo'lmadi. Sahifani qaytadan yuklang.</div>`;
