@@ -117,14 +117,16 @@
     .user-info .username { font-size: 0.75rem; color: var(--color-text-muted); }
     .common-interests {
         display: flex;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
         gap: 0.4rem;
         margin: 0.6rem 0;
         overflow: hidden;
-        max-height: 2.6rem;
+        height: 1.6rem;
         flex: 1;
     }
     .interest-badge {
+        white-space: nowrap;
+        flex-shrink: 0;
         background: var(--color-bg);
         font-size: 0.7rem;
         padding: 0.25rem 0.7rem;
@@ -379,8 +381,8 @@
                             </div>
                         </div>
                         <div class="common-interests">
-                            ${interests.slice(0, 3).map(t => `<span class="interest-badge">#${t}</span>`).join('')}
-                            ${interests.length > 3 ? `<span class="interest-badge">+${interests.length - 3}</span>` : ''}
+                            ${interests.slice(0, 2).map(t => `<span class="interest-badge">#${t}</span>`).join('')}
+                            ${interests.length > 2 ? `<span class="interest-badge">+${interests.length - 2}</span>` : ''}
                             ${interests.length === 0 ? `<span class="interest-badge" style="opacity:0.6">Qiziqish ko'rsatilmagan</span>` : ''}
                         </div>
                         <button class="follow-btn" data-name="${user.name || user.username}"><i class="fas fa-user-plus"></i> Kuzatish</button>
