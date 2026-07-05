@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="uz">
 <head>
+<script src="/theme.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BirMillat – Qidiruv</title>
@@ -125,7 +126,8 @@
             <a href="/logout">Chiqish</a>
         </div>
         <div class="user-badge" id="userBadge"><img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ...</div>
-    </nav>
+        <button class="theme-toggle" id="themeToggle" aria-label="Mavzuni almashtirish"><i class="fas fa-moon"></i></button>
+</nav>
 
     <div class="page-container">
         <div class="page-head">
@@ -154,7 +156,7 @@
         <div class="users-grid" id="usersGrid"></div>
     </div>
 
-    <footer>BirMillat – qiziqishlar asosida do'stlar toping.<br><span style="opacity:0.8;">Founder — Bekhruz Ravshanov</span></footer>
+    <footer>BirMillat – qiziqishlar asosida do'stlar toping. · <a href="/privacy" style="color:inherit;">Maxfiylik siyosati</a><br><span style="opacity:0.8;">Founder — Bekhruz Ravshanov</span></footer>
 
     <script>
         let activeCategory = '';
