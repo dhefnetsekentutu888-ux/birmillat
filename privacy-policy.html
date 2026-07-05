@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/png" href="/favicon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BirMillat – Maxfiylik siyosati</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="/style.css">
+<style>
+    .policy-shell { max-width: 760px; margin: 2rem auto; padding: 0 1.5rem; }
+    .policy-card { padding: 2.5rem; }
+    .policy-card h1 { font-size: 1.6rem; margin-bottom: 0.4rem; }
+    .policy-updated { color: var(--color-text-muted); font-size: 0.85rem; margin-bottom: 2rem; }
+    .policy-card h2 { font-size: 1.1rem; margin: 2rem 0 0.7rem; }
+    .policy-card p, .policy-card li { color: var(--color-text); line-height: 1.7; font-size: 0.95rem; }
+    .policy-card ul { padding-left: 1.3rem; margin: 0.5rem 0; }
+    .policy-missing {
+        background: var(--color-bg); border: 1px dashed var(--color-border); border-radius: var(--radius-sm);
+        padding: 1rem 1.2rem; color: var(--color-text-muted); font-size: 0.88rem; margin-bottom: 1.5rem;
+    }
+    .policy-contact {
+        background: #EFEAF8; border-radius: var(--radius-sm); padding: 1.2rem; margin-top: 1.5rem;
+    }
+    .policy-contact a { color: var(--color-primary); font-weight: 600; }
+</style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="logo"><svg width="160" height="45" viewBox="0 0 320 90" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+      <g transform="translate(45,45)">
+        <g transform="rotate(-18)"><ellipse cx="-10" cy="0" rx="20" ry="36" fill="none" stroke="#2D1B69" stroke-width="10"/></g>
+        <g transform="rotate(18)"><ellipse cx="10" cy="0" rx="20" ry="36" fill="none" stroke="#FF6B5B" stroke-width="10"/></g>
+        <g transform="rotate(-18)"><path d="M -30 0 A 20 36 0 0 1 11 0" fill="none" stroke="#2D1B69" stroke-width="10" stroke-linecap="round"/></g>
+      </g>
+      <text x="95" y="53" font-size="34" font-weight="700" fill="#2D1B69" font-family="Poppins, -apple-system, sans-serif">Bir<tspan fill="#FF6B5B">Millat</tspan></text>
+    </svg></a>
+        <button class="nav-toggle" id="navToggle" aria-label="Menyu"><i class="fas fa-bars"></i></button>
+        <div class="nav-links" id="navLinks">
+            <a href="/login">Kirish</a>
+        </div>
+    </nav>
+
+    <div class="policy-shell">
+        <div class="policy-card card">
+            <h1><i class="fas fa-shield-halved"></i> Maxfiylik siyosati</h1>
+            <div class="policy-updated">Oxirgi yangilanish: 2026</div>
+
+            <p>BirMillat ("biz", "bizning", "platforma") foydalanuvchilarning shaxsiy ma'lumotlarini himoya qilishga katta ahamiyat beradi. Ushbu Maxfiylik siyosati BirMillat platformasidan foydalanish jarayonida qanday ma'lumotlar yig'ilishi, qanday maqsadlarda ishlatilishi, saqlanishi va himoya qilinishini tushuntiradi.</p>
+            <p>BirMillat.uz'dan foydalanish orqali siz ushbu Maxfiylik siyosati shartlariga rozilik bildirasiz.</p>
+
+            <h2>1. Biz haqimizda</h2>
+            <p>
+                Platforma nomi: BirMillat<br>
+                Veb-sayt: <a href="https://birmillat.uz">https://birmillat.uz</a><br>
+                Asoschi: Behruzbek Ravshanov<br>
+                Qo'llab-quvvatlash: <a href="https://t.me/BirMillat_support_bot">@BirMillat_support_bot</a>
+            </p>
+            <p>BirMillat — umumiy qiziqishlarga ega insonlarni birlashtirish, yangi do'stlar topish, jamoalar tuzish, tadbirlarda ishtirok etish va maqolalar hamda tadqiqotlar ulashish imkonini beruvchi ijtimoiy platformadir.</p>
+
+            <h2>2. Qanday ma'lumotlarni yig'amiz?</h2>
+            <p><strong>2.1. Hisob yaratishda</strong> — quyidagi ma'lumotlarni yig'ishimiz mumkin:</p>
+            <ul>
+                <li>Ism va familiya (ixtiyoriy);</li>
+                <li>Foydalanuvchi nomi (username);</li>
+                <li>Elektron pochta manzili;</li>
+                <li>Parol (shifrlangan holda saqlanadi);</li>
+                <li>Profil rasmi (ixtiyoriy).</li>
+            </ul>
+            <p><strong>2.2. Profil ma'lumotlari</strong> — foydalanuvchi ixtiyoriy ravishda quyidagilarni qo'shishi mumkin:</p>
+            <ul>
+                <li>Bio (qisqacha tavsif);</li>
+                <li>Qiziqishlar;</li>
+                <li>Ta'lim ma'lumotlari;</li>
+                <li>Ijtimoiy tarmoq havolalari;</li>
+                <li>Yashash shahri yoki davlati;</li>
+                <li>Boshqa profil ma'lumotlari.</li>
+            </ul>
+            <p><strong>2.3. Platformadan foydalanish ma'lumotlari</strong> — quyidagi texnik ma'lumotlarni avtomatik ravishda yig'ishimiz mumkin:</p>
+            <ul>
+                <li>IP manzil;</li>
+                <li>Brauzer turi;</li>
+                <li>Qurilma turi;</li>
+                <li>Operatsion tizim;</li>
+                <li>Saytga kirish vaqti;</li>
+                <li>Ko'rilgan sahifalar;</li>
+                <li>Sessiya ma'lumotlari;</li>
+                <li>Faollik statistikasi.</li>
+            </ul>
+            <p><strong>2.4. Foydalanuvchi yaratgan kontent</strong> — quyidagi ma'lumotlar platformada saqlanishi mumkin:</p>
+            <ul>
+                <li>Maqolalar;</li>
+                <li>Tadqiqotlar;</li>
+                <li>Izohlar;</li>
+                <li>Jamoalardagi postlar;</li>
+                <li>Yoqtirishlar (likes);</li>
+                <li>Saqlangan postlar;</li>
+                <li>Tadbirlardagi ishtirok.</li>
+            </ul>
+
+            <h2>3. Cookies (Kuki fayllari)</h2>
+            <p>BirMillat quyidagi maqsadlarda cookies va o'xshash texnologiyalardan foydalanishi mumkin:</p>
+            <ul>
+                <li>Hisobga kirilgan holatni saqlash;</li>
+                <li>Foydalanuvchi sozlamalarini eslab qolish;</li>
+                <li>Sayt ishlashini yaxshilash;</li>
+                <li>Xavfsizlikni ta'minlash;</li>
+                <li>Statistika va tahlil ma'lumotlarini yig'ish.</li>
+            </ul>
+            <p>Brauzeringiz orqali cookies fayllarini o'chirishingiz yoki cheklashingiz mumkin.</p>
+
+            <h2>4. Ma'lumotlardan qanday foydalanamiz?</h2>
+            <p>Biz foydalanuvchi ma'lumotlaridan quyidagi maqsadlarda foydalanamiz:</p>
+            <ul>
+                <li>Hisob yaratish va boshqarish;</li>
+                <li>Platforma xizmatlarini ko'rsatish;</li>
+                <li>Foydalanuvchilarga tavsiyalar berish;</li>
+                <li>Yangi funksiyalarni ishlab chiqish;</li>
+                <li>Kontentni shaxsiylashtirish;</li>
+                <li>Xavfsizlikni ta'minlash;</li>
+                <li>Spam va firibgarlikni oldini olish;</li>
+                <li>Platforma faoliyatini tahlil qilish;</li>
+                <li>Qonuniy talablarni bajarish.</li>
+            </ul>
+
+            <h2>5. Tavsiyalar tizimi</h2>
+            <p>BirMillat foydalanuvchilarga quyidagilarni tavsiya qilish uchun profil va faoliyat ma'lumotlaridan foydalanishi mumkin: yangi do'stlar, jamoalar, tadbirlar, maqolalar, tadqiqotlar, qiziqishlarga mos foydalanuvchilar.</p>
+
+            <h2>6. Ochiq ma'lumotlar</h2>
+            <p>Quyidagi ma'lumotlar boshqa foydalanuvchilarga ko'rinishi mumkin: foydalanuvchi nomi, profil rasmi, bio, qiziqishlar, ochiq maqolalar, izohlar, jamoalardagi faoliyat.</p>
+            <p>Foydalanuvchi tomonidan ommaga e'lon qilingan ma'lumotlar boshqa foydalanuvchilar tomonidan ko'rilishi, ulashilishi yoki iqtibos qilinishi mumkin.</p>
+
+            <h2>7. Shaxsiy xabarlar</h2>
+            <p>Agar BirMillat shaxsiy xabar almashish funksiyasini taqdim etsa: xabarlar xizmatni taqdim etish maqsadida serverlarda saqlanishi mumkin. Biz foydalanuvchilarning shaxsiy xabarlarini muntazam ravishda kuzatmaymiz. Biroq, spam, noqonuniy faoliyat, zo'ravonlik yoki platforma qoidalari buzilishi bo'yicha shikoyatlar kelib tushgan taqdirda xabarlar tekshirilishi mumkin.</p>
+
+            <h2>8. Ma'lumotlarni kim bilan ulashamiz?</h2>
+            <p>Biz foydalanuvchilarning shaxsiy ma'lumotlarini sotmaymiz.</p>
+            <p>Ma'lumotlar quyidagi hollarda uchinchi tomonlarga taqdim etilishi mumkin:</p>
+            <p><strong>Texnik xizmat ko'rsatuvchilar:</strong></p>
+            <ul>
+                <li>Hosting provayderlari;</li>
+                <li>Analitika xizmatlari;</li>
+                <li>Elektron pochta xizmatlari;</li>
+                <li>Bulutli xizmatlar.</li>
+            </ul>
+            <p><strong>Qonuniy talablar:</strong></p>
+            <ul>
+                <li>Sud qarori;</li>
+                <li>Davlat organlarining qonuniy talabi;</li>
+                <li>Jinoyat yoki firibgarlikni tergov qilish.</li>
+            </ul>
+            <p><strong>Platforma xavfsizligi:</strong> spam va firibgarlikka qarshi kurash, foydalanuvchilarga tahdid soluvchi faoliyatlarni oldini olish.</p>
+
+            <h2>9. Ma'lumotlarni saqlash</h2>
+            <p>Ma'lumotlar:</p>
+            <ul>
+                <li>Hisob faol bo'lgan davr mobaynida;</li>
+                <li>Xizmatlarni ko'rsatish uchun zarur muddat davomida;</li>
+                <li>Qonuniy talablar asosida;</li>
+                <li>Zaxira nusxalarida ma'lum vaqt davomida saqlanishi mumkin.</li>
+            </ul>
+
+            <h2>10. Hisobni o'chirish</h2>
+            <p>Foydalanuvchi istalgan vaqtda o'z hisobini o'chirishni so'rashi mumkin. Hisob o'chirilgandan so'ng:</p>
+            <ul>
+                <li>Profil ma'lumotlari o'chiriladi yoki anonimlashtiriladi;</li>
+                <li>Ba'zi maqolalar va izohlar anonim holatda saqlanishi mumkin;</li>
+                <li>Qonuniy majburiyatlar sabab ayrim ma'lumotlar ma'lum muddat saqlanishi mumkin.</li>
+            </ul>
+
+            <h2>11. Foydalanuvchi huquqlari</h2>
+            <p>Siz quyidagi huquqlarga egasiz:</p>
+            <ul>
+                <li>✅ O'zingiz haqingizdagi ma'lumotlarni ko'rish;</li>
+                <li>✅ Ma'lumotlarni yangilash va tahrirlash;</li>
+                <li>✅ Ma'lumotlarni o'chirishni talab qilish;</li>
+                <li>✅ Rozilikni bekor qilish;</li>
+                <li>✅ Hisobni yopish;</li>
+                <li>✅ Ma'lumotlaringiz nusxasini so'rash.</li>
+            </ul>
+
+            <h2>12. Xavfsizlik</h2>
+            <p>Biz foydalanuvchi ma'lumotlarini himoya qilish uchun:</p>
+            <ul>
+                <li>HTTPS shifrlash;</li>
+                <li>Xavfsiz autentifikatsiya;</li>
+                <li>Shifrlangan parollar;</li>
+                <li>Server xavfsizligi choralaridan foydalanamiz.</li>
+            </ul>
+            <p>Shunga qaramay, internet orqali uzatiladigan ma'lumotlarning mutlaq xavfsizligini kafolatlab bo'lmaydi.</p>
+
+            <h2>13. Voyaga yetmagan foydalanuvchilar</h2>
+            <p>BirMillat yoshlar uchun mo'ljallangan platforma hisoblanadi. 13 yoshdan kichik foydalanuvchilar ota-ona yoki qonuniy vakilining ruxsati bilan platformadan foydalanishlari tavsiya etiladi.</p>
+
+            <h2>14. Uchinchi tomon havolalari</h2>
+            <p>Platformada boshqa veb-saytlar yoki xizmatlarga havolalar bo'lishi mumkin. Biz ushbu uchinchi tomon xizmatlarining maxfiylik siyosati yoki amaliyoti uchun javobgar emasmiz.</p>
+
+            <h2>15. Maxfiylik siyosatiga o'zgartirishlar</h2>
+            <p>Biz ushbu Maxfiylik siyosatini istalgan vaqtda o'zgartirish yoki yangilash huquqini saqlab qolamiz. Muhim o'zgartirishlar platformada e'lon qilinadi va yangi sana ko'rsatiladi.</p>
+
+            <h2>16. Biz bilan bog'lanish</h2>
+            <p>Agar ushbu Maxfiylik siyosati yoki shaxsiy ma'lumotlaringiz bo'yicha savollaringiz, takliflaringiz yoki murojaatlaringiz bo'lsa, biz bilan bog'lanishingiz mumkin:</p>
+            <div class="policy-contact">
+                🤖 Telegram qo'llab-quvvatlash boti: <a href="https://t.me/BirMillat_support_bot">@BirMillat_support_bot</a><br>
+                🔗 <a href="https://t.me/BirMillat_support_bot">https://t.me/BirMillat_support_bot</a>
+            </div>
+            <p style="margin-top:1rem;">Biz foydalanuvchilarning murojaatlarini imkon qadar tez ko'rib chiqishga harakat qilamiz.</p>
+
+            <p style="margin-top:2rem; font-weight:600; color:var(--color-primary);">BirMillat.uz'dan foydalanish orqali siz ushbu Maxfiylik siyosati bilan tanishganingizni va uning barcha shartlariga rozilik bildirganingizni tasdiqlaysiz.</p>
+        </div>
+    </div>
+
+    <footer>BirMillat – qiziqishlar asosida do'stlar toping.<br><span style="opacity:0.8;">Founder — Bekhruz Ravshanov</span></footer>
+
+    <script>
+        const navToggleBtn = document.getElementById('navToggle');
+        const navLinksEl = document.getElementById('navLinks');
+        if (navToggleBtn && navLinksEl) {
+            navToggleBtn.addEventListener('click', () => {
+                navLinksEl.classList.toggle('open');
+            });
+        }
+    </script>
+</body>
+</html>
