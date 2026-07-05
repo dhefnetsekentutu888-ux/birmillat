@@ -974,7 +974,7 @@ app.use(express.static(path.join(__dirname)));
 // ---------- Helper: render pages ----------
 function renderRegisterPage(message, isError = true) {
     const msgClass = isError ? 'error' : 'success';
-    return `<!DOCTYPE html><html><head><title>Ro'yxatdan o'tish - BirMillat</title>
+    return `<!DOCTYPE html><html><head><script src="/theme.js"></script><title>Ro'yxatdan o'tish - BirMillat</title>
     <link rel="icon" type="image/png" href="/favicon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1186,7 +1186,7 @@ function renderRegisterPage(message, isError = true) {
 function renderLoginPage(message, isError = true, next = '/home') {
     const msgClass = isError ? 'error' : 'success';
     const safeNext = safeNextPath(next);
-    return `<!DOCTYPE html><html><head><title>Kirish - BirMillat</title>
+    return `<!DOCTYPE html><html><head><script src="/theme.js"></script><title>Kirish - BirMillat</title>
     <link rel="icon" type="image/png" href="/favicon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1373,7 +1373,7 @@ app.post('/register', async (req, res) => {
 
 function renderVerifyPage(email, message, isError = true) {
     const msgClass = isError ? 'error' : 'success';
-    return `<!DOCTYPE html><html><head><title>Emailni tasdiqlash - BirMillat</title>
+    return `<!DOCTYPE html><html><head><script src="/theme.js"></script><title>Emailni tasdiqlash - BirMillat</title>
     <link rel="icon" type="image/png" href="/favicon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1567,7 +1567,7 @@ app.get('/logout', (req, res) => {
 // ---------- Forgot password flow ----------
 function renderForgotPasswordPage(message, isError = true) {
     const msgClass = isError ? 'error' : 'success';
-    return `<!DOCTYPE html><html><head><title>Parolni tiklash - BirMillat</title>
+    return `<!DOCTYPE html><html><head><script src="/theme.js"></script><title>Parolni tiklash - BirMillat</title>
     <link rel="icon" type="image/png" href="/favicon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1590,7 +1590,7 @@ function renderForgotPasswordPage(message, isError = true) {
 
 function renderResetPasswordPage(email, message, isError = true) {
     const msgClass = isError ? 'error' : 'success';
-    return `<!DOCTYPE html><html><head><title>Yangi parol - BirMillat</title>
+    return `<!DOCTYPE html><html><head><script src="/theme.js"></script><title>Yangi parol - BirMillat</title>
     <link rel="icon" type="image/png" href="/favicon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="preconnect" href="https://fonts.googleapis.com">
