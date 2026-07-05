@@ -131,6 +131,11 @@
                     <textarea id="descInput" rows="4" placeholder="Tadbir haqida qisqacha ma'lumot"></textarea>
                 </div>
 
+                <div class="form-field">
+                    <label for="socialLinkInput">Ijtimoiy tarmoq havolasi (ixtiyoriy)</label>
+                    <input type="url" id="socialLinkInput" placeholder="https://t.me/... yoki https://instagram.com/...">
+                </div>
+
                 <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">
                     <i class="fas fa-paper-plane"></i> Ko'rib chiqishga yuborish
                 </button>
@@ -193,7 +198,8 @@
                         mode: selectedMode,
                         location: document.getElementById('locationInput').value.trim(),
                         eventDate: new Date(dateVal).toISOString(),
-                        capacity: document.getElementById('capacityInput').value || null
+                        capacity: document.getElementById('capacityInput').value || null,
+                        socialLink: document.getElementById('socialLinkInput').value.trim()
                     })
                 });
                 const data = await res.json();
