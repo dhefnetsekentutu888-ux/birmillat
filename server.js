@@ -168,6 +168,7 @@ async function initDb() {
         )
     `);
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_events_status ON events (status, event_date)`);
+    try { await db.execute(`ALTER TABLE events ADD COLUMN social_link TEXT`); } catch (e) {}
 
     await db.execute(`
         CREATE TABLE IF NOT EXISTS event_attendees (
@@ -648,18 +649,18 @@ async function deleteArticleAndWarnAuthor(articleId) {
 }
 
 // ---------- Events ----------
-async function createEvent({ creatorId, title, description, category, mode, location, eventDate, capacity }) {
+async function createEvent({ creatorId, title, description, category, mode, location, eventDate, capacity, socialLink }) {
     const result = await db.execute({
-        sql: `INSERT INTO events (creator_id, title, description, category, mode, location, event_date, capacity, status, created_at)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)`,
-        args: [creatorId, title, description, category, mode, location, eventDate, capacity || null, Date.now()]
+        sql: `INSERT INTO events (creator_id, title, description, category, mode, location, event_date, capacity, social_link, status, created_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)`,
+        args: [creatorId, title, description, category, mode, location, eventDate, capacity || null, socialLink || null, Date.now()]
     });
     return Number(result.lastInsertRowid);
 }
 
 async function getEventById(id) {
     const result = await db.execute({
-        sql: `SELECT events.*, users.username AS creator_username, users.name AS creator_name
+        sql: `SELECT events.*, users.username AS creator_username, users.name AS creator_name, users.photo_url AS creator_photo
               FROM events JOIN users ON users.id = events.creator_id
               WHERE events.id = ?`,
         args: [id]
@@ -711,7 +712,7 @@ async function leaveEvent(eventId, userId) {
 
 async function getEventAttendees(eventId) {
     const result = await db.execute({
-        sql: `SELECT users.username, users.name FROM event_attendees
+        sql: `SELECT users.username, users.name, users.photo_url FROM event_attendees
               JOIN users ON users.id = event_attendees.user_id
               WHERE event_attendees.event_id = ?
               ORDER BY event_attendees.joined_at ASC`,
@@ -2454,7 +2455,7 @@ app.get('/api/events/:id', async (req, res) => {
 app.post('/api/events', async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
     try {
-        const { title, description, category, mode, location, eventDate, capacity } = req.body;
+        const { title, description, category, mode, location, eventDate, capacity, socialLink } = req.body;
         if (!title || !title.trim()) {
             return res.status(400).json({ error: 'Tadbir nomi kerak' });
         }
@@ -2464,6 +2465,10 @@ app.post('/api/events', async (req, res) => {
         const parsedDate = new Date(eventDate).getTime();
         if (isNaN(parsedDate)) {
             return res.status(400).json({ error: 'Sana noto‘g‘ri' });
+        }
+        const cleanSocialLink = (socialLink || '').trim();
+        if (cleanSocialLink && !/^https?:\/\//i.test(cleanSocialLink)) {
+            return res.status(400).json({ error: "Ijtimoiy tarmoq havolasi http:// yoki https:// bilan boshlanishi kerak" });
         }
 
         const creator = await getUserById(req.session.userId);
@@ -2475,7 +2480,8 @@ app.post('/api/events', async (req, res) => {
             mode: mode === 'online' ? 'online' : 'in_person',
             location: (location || '').trim(),
             eventDate: parsedDate,
-            capacity: capacity ? parseInt(capacity, 10) : null
+            capacity: capacity ? parseInt(capacity, 10) : null,
+            socialLink: cleanSocialLink || null
         });
 
         const approveUrl = `${SITE_URL}/admin/events/${eventId}/approve?token=${ADMIN_SECRET}`;
