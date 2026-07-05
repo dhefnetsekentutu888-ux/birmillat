@@ -11,22 +11,111 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="/style.css">
 <style>
-    .detail-shell { max-width: 680px; margin: 2rem auto; padding: 0 1.5rem; }
-    .detail-card { padding: 2.2rem; margin-bottom: 1.5rem; }
-    .event-date-badge {
-        display: inline-flex; align-items: center; gap: 0.4rem; background: #EFEAF8; color: var(--color-primary);
-        font-weight: 700; font-size: 0.8rem; padding: 0.35rem 0.9rem; border-radius: var(--radius-pill); margin-bottom: 1rem;
+    .detail-shell { max-width: 720px; margin: 2rem auto; padding: 0 1.5rem; }
+
+    .event-hero {
+        border-radius: var(--radius-md);
+        padding: 2rem;
+        margin-bottom: 1.2rem;
+        background: linear-gradient(145deg, var(--color-primary) 0%, #4A2F9E 100%);
+        color: #FAF7F2;
+        position: relative;
+        overflow: hidden;
     }
-    .detail-card h1 { font-size: 1.6rem; margin-bottom: 1rem; }
-    .meta-row { display: flex; align-items: center; gap: 0.6rem; color: var(--color-text-muted); font-size: 0.92rem; margin-bottom: 0.6rem; }
-    .meta-row i { width: 18px; color: var(--color-primary); }
-    .description { margin: 1.2rem 0; line-height: 1.6; color: var(--color-text); }
-    .join-row { display: flex; gap: 0.8rem; align-items: center; margin-top: 1.4rem; }
-    .attendee-list { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 0.8rem; }
+    .event-hero-rings {
+        position: absolute; top: -20%; right: -10%;
+        width: 220px; height: 220px; opacity: 0.18; pointer-events: none;
+    }
+    .event-hero > * { position: relative; z-index: 1; }
+    .event-badges { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .event-badge {
+        display: inline-flex; align-items: center; gap: 0.4rem;
+        background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.2);
+        padding: 0.35rem 0.9rem; border-radius: var(--radius-pill);
+        font-size: 0.78rem; font-weight: 600;
+    }
+    .event-hero h1 { color: #FAF7F2; font-size: 1.6rem; margin-bottom: 0.3rem; }
+    .event-hero .organizer-line { font-size: 0.88rem; color: rgba(250,247,242,0.8); display: flex; align-items: center; gap: 0.5rem; }
+    .event-hero .organizer-line a { color: #FAF7F2; font-weight: 600; text-decoration: underline; }
+
+    .stat-strip {
+        display: flex; gap: 1rem; padding: 1.2rem; margin-bottom: 1.2rem;
+    }
+    .stat-block { flex: 1; text-align: center; }
+    .stat-block .stat-icon {
+        width: 40px; height: 40px; border-radius: 50%; background: #EFEAF8;
+        display: flex; align-items: center; justify-content: center; margin: 0 auto 0.5rem;
+        color: var(--color-primary); font-size: 1.05rem;
+    }
+    .stat-block .stat-num { font-family: var(--font-display); font-weight: 700; font-size: 1.3rem; color: var(--color-primary); }
+    .stat-block .stat-label { font-size: 0.75rem; color: var(--color-text-muted); }
+    .stat-divider { width: 1px; background: var(--color-border); }
+
+    .info-card { padding: 1.6rem; margin-bottom: 1.2rem; }
+    .info-row { display: flex; align-items: flex-start; gap: 0.9rem; padding: 0.7rem 0; }
+    .info-row + .info-row { border-top: 1px solid var(--color-border); }
+    .info-icon {
+        width: 36px; height: 36px; border-radius: 50%; background: #EFEAF8;
+        display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        color: var(--color-primary); font-size: 0.95rem;
+    }
+    .info-row-text .info-label { font-size: 0.75rem; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 0.15rem; }
+    .info-row-text .info-value { font-size: 0.95rem; color: var(--color-text); font-weight: 500; }
+
+    .description-card { padding: 1.6rem; margin-bottom: 1.2rem; line-height: 1.7; color: var(--color-text); }
+    .description-card .section-label { margin-bottom: 0.8rem; }
+
+    .action-row { display: flex; gap: 0.8rem; flex-wrap: wrap; margin-bottom: 1.2rem; }
+    .join-btn {
+        flex: 1; min-width: 180px;
+        display: inline-flex; align-items: center; justify-content: center; gap: 0.6rem;
+        padding: 0.9rem 1.4rem; border-radius: var(--radius-pill);
+        font-weight: 700; font-size: 0.95rem; cursor: pointer; border: none;
+        background: var(--color-accent); color: white;
+        transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+    }
+    .join-btn:hover { background: var(--color-accent-light); transform: translateY(-1px); box-shadow: 0 8px 20px rgba(255,107,91,0.3); }
+    .join-btn.joined {
+        background: var(--color-success-bg); color: var(--color-success);
+        border: 1.5px solid var(--color-success);
+    }
+    .join-btn.joined:hover { background: var(--color-error-bg); color: var(--color-error); border-color: var(--color-error); }
+    .join-btn.joined:hover .join-btn-label::after { content: " (bekor qilish)"; }
+    .join-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+    .creator-note {
+        flex: 1; min-width: 180px; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+        padding: 0.9rem 1.4rem; border-radius: var(--radius-pill);
+        background: #EFEAF8; color: var(--color-primary); font-weight: 600; font-size: 0.9rem;
+    }
+    .social-btn {
+        display: inline-flex; align-items: center; justify-content: center; gap: 0.6rem;
+        padding: 0.9rem 1.4rem; border-radius: var(--radius-pill);
+        font-weight: 700; font-size: 0.95rem; text-decoration: none;
+        border: 1.5px solid var(--color-border); color: var(--color-text);
+        transition: all 0.15s ease;
+    }
+    .social-btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-card); }
+    .social-btn.telegram { border-color: #29A9EA; color: #29A9EA; }
+    .social-btn.telegram:hover { background: #29A9EA; color: white; }
+    .social-btn.instagram { border-color: #E1306C; color: #E1306C; }
+    .social-btn.instagram:hover { background: linear-gradient(45deg, #F58529, #DD2A7B, #8134AF, #515BD4); color: white; border-color: transparent; }
+
+    .attendees-card { padding: 1.6rem; }
+    .attendee-chip-row { display: flex; flex-wrap: wrap; gap: 0.7rem; margin-top: 0.9rem; }
     .attendee-chip {
-        background: var(--color-bg); padding: 0.35rem 0.9rem; border-radius: var(--radius-pill);
-        font-size: 0.82rem; font-weight: 600; color: var(--color-primary);
+        display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none;
+        background: var(--color-bg); padding: 0.4rem 0.9rem 0.4rem 0.4rem; border-radius: var(--radius-pill);
+        font-size: 0.85rem; font-weight: 600; color: var(--color-primary);
+        transition: transform 0.15s ease;
     }
+    .attendee-chip:hover { transform: translateY(-2px); }
+    .attendee-chip .mini-avatar {
+        width: 26px; height: 26px; border-radius: 50%; background: #EFEAF8;
+        display: flex; align-items: center; justify-content: center; overflow: hidden;
+        font-size: 0.7rem; color: var(--color-primary); font-weight: 700;
+    }
+    .attendee-chip .mini-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
     .not-found { text-align: center; padding: 4rem 1.5rem; color: var(--color-text-muted); }
 </style>
 </head>
@@ -52,13 +141,14 @@
             <a href="/recommend">Tavsiyalar</a>
             <a href="/events" class="active">Tadbirlar</a>
             <a href="/communities">Jamoalar</a>
+            <a href="/articles">Maqolalar</a>
             <a href="/search">Qidiruv</a>
             <a href="/messages">Xabarlar</a>
             <a href="/profile">Profil</a>
             <a href="/logout">Chiqish</a>
         </div>
         <div class="user-badge" id="userBadge"><img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ...</div>
-        <button class="theme-toggle" id="themeToggle" aria-label="Mavzuni almashtirish"><i class="fas fa-moon"></i></button>
+    <button class="theme-toggle" id="themeToggle" aria-label="Mavzuni almashtirish"><i class="fas fa-moon"></i></button>
 </nav>
 
     <div class="detail-shell" id="detailRoot">
@@ -78,6 +168,25 @@
             return d.toLocaleString('uz-UZ', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
         }
 
+        function initials(name) {
+            if (!name) return '?';
+            const parts = name.trim().split(/\s+/);
+            return parts.length > 1 ? (parts[0][0] + parts[1][0]).toUpperCase() : parts[0].slice(0, 2).toUpperCase();
+        }
+
+        // Detects the platform from a URL so the social button gets the right
+        // icon, label, and brand color instead of a generic link button.
+        function detectSocialPlatform(url) {
+            const lower = url.toLowerCase();
+            if (lower.includes('t.me') || lower.includes('telegram')) {
+                return { cls: 'telegram', icon: 'fab fa-telegram', label: 'Telegram' };
+            }
+            if (lower.includes('instagram.com')) {
+                return { cls: 'instagram', icon: 'fab fa-instagram', label: 'Instagram' };
+            }
+            return { cls: '', icon: 'fas fa-link', label: 'Havola' };
+        }
+
         async function loadMe() {
             const res = await fetch('/api/me');
             if (!res.ok) { window.location.href = '/login'; return null; }
@@ -87,6 +196,8 @@
         }
 
         async function toggleJoin(eventId, isAttending) {
+            const btn = document.getElementById('joinBtn');
+            if (btn) btn.disabled = true;
             const url = `/api/events/${eventId}/${isAttending ? 'leave' : 'join'}`;
             try {
                 const res = await fetch(url, { method: 'POST' });
@@ -95,6 +206,7 @@
             } catch (e) {
                 console.error('Join/leave failed:', e);
                 alert("Xatolik yuz berdi. Qaytadan urinib ko'ring.");
+                if (btn) btn.disabled = false;
             }
         }
 
@@ -110,34 +222,103 @@
                 }
                 const ev = await res.json();
                 const isFull = ev.capacity && ev.attendees.length >= ev.capacity;
+                const isOnline = ev.mode === 'online';
+
+                let socialBtnHtml = '';
+                if (ev.social_link) {
+                    const platform = detectSocialPlatform(ev.social_link);
+                    socialBtnHtml = `
+                        <a href="${ev.social_link}" target="_blank" rel="noopener" class="social-btn ${platform.cls}">
+                            <i class="${platform.icon}"></i> ${platform.label}
+                        </a>
+                    `;
+                }
 
                 root.innerHTML = `
-                    <div class="detail-card card">
-                        <div class="event-date-badge"><i class="fas fa-calendar"></i> ${formatEventDate(ev.event_date)}</div>
-                        <h1>${ev.title}</h1>
-                        <div class="meta-row"><i class="fas fa-tag"></i> ${ev.category}</div>
-                        <div class="meta-row"><i class="fas ${ev.mode === 'online' ? 'fa-video' : 'fa-location-dot'}"></i> ${ev.mode === 'online' ? (ev.location || 'Onlayn havola tez orada qo\'shiladi') : (ev.location || 'Joylashuv ko\'rsatilmagan')}</div>
-                        <div class="meta-row"><i class="fas fa-user"></i> Tashkilotchi: <a href="/u/${ev.creator_username}">@${ev.creator_username}</a></div>
-                        <div class="meta-row"><i class="fas fa-users"></i> ${ev.attendees.length}${ev.capacity ? ' / ' + ev.capacity : ''} qatnashuvchi</div>
-                        ${ev.description ? `<p class="description">${ev.description}</p>` : ''}
-
-                        <div class="join-row">
-                            ${ev.isCreator
-                                ? `<span style="color:var(--color-text-muted); font-size:0.9rem;"><i class="fas fa-star"></i> Siz bu tadbirni yaratdingiz</span>`
-                                : `<button class="btn ${ev.isAttending ? 'btn-cancel' : 'btn-primary'}" id="joinBtn" ${isFull && !ev.isAttending ? 'disabled' : ''} style="${ev.isAttending ? 'border:1.5px solid var(--color-border); background:transparent; color:var(--color-text-muted);' : ''}">
-                                    <i class="fas ${ev.isAttending ? 'fa-circle-check' : 'fa-calendar-plus'}"></i>
-                                    ${ev.isAttending ? "Qatnashasiz \u2014 bekor qilish" : (isFull ? "To'lgan" : "Qatnashish")}
-                                  </button>`
-                            }
+                    <div class="event-hero">
+                        <svg class="event-hero-rings" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                            <g transform="translate(100,100) rotate(-18)"><ellipse cx="-14" cy="0" rx="32" ry="58" fill="none" stroke="#FAF7F2" stroke-width="2"/></g>
+                            <g transform="translate(100,100) rotate(18)"><ellipse cx="14" cy="0" rx="32" ry="58" fill="none" stroke="#FF6B5B" stroke-width="2"/></g>
+                        </svg>
+                        <div class="event-badges">
+                            <span class="event-badge"><i class="fas fa-calendar"></i> ${formatEventDate(ev.event_date)}</span>
+                            <span class="event-badge"><i class="fas fa-tag"></i> ${ev.category}</span>
+                            <span class="event-badge"><i class="fas ${isOnline ? 'fa-video' : 'fa-location-dot'}"></i> ${isOnline ? 'Onlayn' : "Yuzma-yuz"}</span>
                         </div>
-
-                        ${ev.attendees.length > 0 ? `
-                            <div class="section-label" style="margin-top:1.6rem;">Qatnashuvchilar</div>
-                            <div class="attendee-list">
-                                ${ev.attendees.map(a => `<a href="/u/${a.username}" class="attendee-chip">@${a.username}</a>`).join('')}
-                            </div>
-                        ` : ''}
+                        <h1>${ev.title}</h1>
+                        <div class="organizer-line">
+                            <i class="fas fa-user"></i> Tashkilotchi: <a href="/u/${ev.creator_username}">@${ev.creator_username}</a>
+                        </div>
                     </div>
+
+                    <div class="stat-strip card">
+                        <div class="stat-block">
+                            <div class="stat-icon"><i class="fas fa-users"></i></div>
+                            <div class="stat-num">${ev.attendees.length}</div>
+                            <div class="stat-label">Qatnashuvchi</div>
+                        </div>
+                        <div class="stat-divider"></div>
+                        <div class="stat-block">
+                            <div class="stat-icon"><i class="fas fa-chair"></i></div>
+                            <div class="stat-num">${ev.capacity ? ev.capacity : '∞'}</div>
+                            <div class="stat-label">O'rinlar soni</div>
+                        </div>
+                        <div class="stat-divider"></div>
+                        <div class="stat-block">
+                            <div class="stat-icon"><i class="fas ${isOnline ? 'fa-globe' : 'fa-map-pin'}"></i></div>
+                            <div class="stat-num" style="font-size:0.95rem;">${isOnline ? 'Onlayn' : "Yuzma-yuz"}</div>
+                            <div class="stat-label">Format</div>
+                        </div>
+                    </div>
+
+                    <div class="info-card card">
+                        <div class="info-row">
+                            <div class="info-icon"><i class="fas ${isOnline ? 'fa-video' : 'fa-location-dot'}"></i></div>
+                            <div class="info-row-text">
+                                <div class="info-label">${isOnline ? 'Onlayn havola' : 'Manzil'}</div>
+                                <div class="info-value">${ev.location || (isOnline ? "Havola tez orada qo'shiladi" : "Joylashuv ko'rsatilmagan")}</div>
+                            </div>
+                        </div>
+                        <div class="info-row">
+                            <div class="info-icon"><i class="fas fa-clock"></i></div>
+                            <div class="info-row-text">
+                                <div class="info-label">Sana va vaqt</div>
+                                <div class="info-value">${formatEventDate(ev.event_date)}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    ${ev.description ? `
+                        <div class="description-card card">
+                            <div class="section-label"><i class="fas fa-align-left"></i> Tavsif</div>
+                            <p>${ev.description}</p>
+                        </div>
+                    ` : ''}
+
+                    <div class="action-row">
+                        ${ev.isCreator
+                            ? `<span class="creator-note"><i class="fas fa-star"></i> Siz bu tadbirni yaratdingiz</span>`
+                            : `<button class="join-btn ${ev.isAttending ? 'joined' : ''}" id="joinBtn" ${isFull && !ev.isAttending ? 'disabled' : ''}>
+                                <i class="fas ${ev.isAttending ? 'fa-circle-check' : 'fa-calendar-plus'}"></i>
+                                <span class="join-btn-label">${ev.isAttending ? "Qatnashasiz" : (isFull ? "To'lgan" : "Tadbirga qo'shilish")}</span>
+                              </button>`
+                        }
+                        ${socialBtnHtml}
+                    </div>
+
+                    ${ev.attendees.length > 0 ? `
+                        <div class="attendees-card card">
+                            <div class="section-label"><i class="fas fa-users"></i> Qatnashuvchilar (${ev.attendees.length})</div>
+                            <div class="attendee-chip-row">
+                                ${ev.attendees.map(a => `
+                                    <a href="/u/${a.username}" class="attendee-chip">
+                                        <span class="mini-avatar">${a.photo_url ? `<img src="${a.photo_url}" alt="">` : initials(a.name || a.username)}</span>
+                                        @${a.username}
+                                    </a>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
                 `;
 
                 const joinBtn = document.getElementById('joinBtn');
