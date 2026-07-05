@@ -1054,9 +1054,31 @@ function renderRegisterPage(message, isError = true) {
                 <p>Davom etishdan oldin, quyidagi shartlar bilan tanishib chiqing.</p>
             </div>
             <div class="consent-body">
-                <div class="consent-missing-note">
-                    <i class="fas fa-circle-info"></i> 1–8-bo'limlar tez orada qo'shiladi.
-                </div>
+                <p>BirMillat foydalanuvchilarning shaxsiy ma'lumotlarini himoya qilishga katta ahamiyat beradi. BirMillat.uz'dan foydalanish orqali siz ushbu shartlarga rozilik bildirasiz.</p>
+
+                <h3>1. Biz haqimizda</h3>
+                <p>BirMillat — umumiy qiziqishlarga ega insonlarni birlashtirish, yangi do'stlar topish, jamoalar tuzish, tadbirlarda ishtirok etish va maqolalar ulashish imkonini beruvchi ijtimoiy platforma. Asoschi: Behruzbek Ravshanov. Qo'llab-quvvatlash: <a href="https://t.me/BirMillat_support_bot" target="_blank" rel="noopener">@BirMillat_support_bot</a>.</p>
+
+                <h3>2. Qanday ma'lumotlarni yig'amiz?</h3>
+                <p>Hisob yaratishda: ism (ixtiyoriy), username, email, parol (shifrlangan), profil rasmi (ixtiyoriy). Profilda ixtiyoriy ravishda: bio, qiziqishlar, ta'lim, ijtimoiy tarmoq havolalari, shahar/davlat. Avtomatik: IP manzil, brauzer/qurilma turi, sessiya va faollik statistikasi. Shuningdek: yozgan maqolalar, izohlar, yoqtirishlar, tadbirlardagi ishtirok.</p>
+
+                <h3>3. Cookies</h3>
+                <p>Hisobga kirilgan holatni saqlash, sozlamalarni eslab qolish, xavfsizlik va statistika maqsadida cookies ishlatiladi. Brauzeringiz orqali ularni o'chirishingiz mumkin.</p>
+
+                <h3>4. Ma'lumotlardan qanday foydalanamiz?</h3>
+                <p>Hisobni boshqarish, xizmat ko'rsatish, tavsiyalar berish, xavfsizlikni ta'minlash, spam/firibgarlikni oldini olish va qonuniy talablarni bajarish uchun.</p>
+
+                <h3>5. Tavsiyalar tizimi</h3>
+                <p>Profil va faoliyat ma'lumotlaringiz asosida sizga mos do'stlar, jamoalar, tadbirlar va maqolalar tavsiya qilinadi.</p>
+
+                <h3>6. Ochiq ma'lumotlar</h3>
+                <p>Username, profil rasmi, bio, qiziqishlar, ochiq maqolalar va izohlar boshqa foydalanuvchilarga ko'rinadi.</p>
+
+                <h3>7. Shaxsiy xabarlar</h3>
+                <p>Xabarlar xizmatni ta'minlash uchun serverda saqlanadi. Odatda kuzatilmaydi, lekin qoidabuzarlik shikoyati bo'lsa tekshirilishi mumkin.</p>
+
+                <h3>8. Ma'lumotlarni kim bilan ulashamiz?</h3>
+                <p>Ma'lumotlaringizni sotmaymiz. Faqat texnik xizmat ko'rsatuvchilar (hosting, email), qonuniy talab (sud qarori) yoki platforma xavfsizligi (spam/firibgarlikka qarshi) uchun uchinchi tomonlarga taqdim etilishi mumkin.</p>
 
                 <h3>9. Ma'lumotlarni saqlash</h3>
                 <p>Ma'lumotlar quyidagi hollarda saqlanadi:</p>
