@@ -38,6 +38,71 @@
   --shadow-hover: 0 10px 28px rgba(45, 27, 105, 0.12);
 }
 
+/* ---------- Dark mode ----------
+   Two mechanisms, working together:
+   1. @media (prefers-color-scheme: dark) — automatic fallback that applies
+      before theme.js runs (or if JS is disabled), matching the OS/browser setting.
+   2. :root[data-theme="dark"/"light"] — set by theme.js once the page loads,
+      reflecting either the user's saved manual choice or the same auto-detected
+      value. Attribute selectors have higher specificity than the plain :root
+      inside the media query, so once JS runs, an explicit user choice always
+      wins over the system setting. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-primary: #C4B5FD;
+    --color-primary-light: #A78BFA;
+    --color-accent: #FF8A73;
+    --color-accent-light: #FFAA98;
+    --color-bg: #15111F;
+    --color-surface: #201A2E;
+    --color-text: #F1ECFB;
+    --color-text-muted: #A79FC0;
+    --color-border: #34293F;
+    --color-success: #6FCB78;
+    --color-success-bg: rgba(111, 203, 120, 0.14);
+    --color-error: #FF6B6B;
+    --color-error-bg: rgba(255, 107, 107, 0.14);
+    --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.25);
+    --shadow-hover: 0 10px 28px rgba(0, 0, 0, 0.4);
+  }
+}
+
+:root[data-theme="dark"] {
+  --color-primary: #C4B5FD;
+  --color-primary-light: #A78BFA;
+  --color-accent: #FF8A73;
+  --color-accent-light: #FFAA98;
+  --color-bg: #15111F;
+  --color-surface: #201A2E;
+  --color-text: #F1ECFB;
+  --color-text-muted: #A79FC0;
+  --color-border: #34293F;
+  --color-success: #6FCB78;
+  --color-success-bg: rgba(111, 203, 120, 0.14);
+  --color-error: #FF6B6B;
+  --color-error-bg: rgba(255, 107, 107, 0.14);
+  --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.25);
+  --shadow-hover: 0 10px 28px rgba(0, 0, 0, 0.4);
+}
+
+:root[data-theme="light"] {
+  --color-primary: #2D1B69;
+  --color-primary-light: #4A2F9E;
+  --color-accent: #FF6B5B;
+  --color-accent-light: #FF8B7D;
+  --color-bg: #FAF7F2;
+  --color-surface: #FFFFFF;
+  --color-text: #1A1625;
+  --color-text-muted: #6B6478;
+  --color-border: #E8E2F0;
+  --color-success: #2E7D32;
+  --color-success-bg: #E6F4E6;
+  --color-error: #C0392B;
+  --color-error-bg: #FCEAE8;
+  --shadow-card: 0 2px 12px rgba(45, 27, 105, 0.07);
+  --shadow-hover: 0 10px 28px rgba(45, 27, 105, 0.12);
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -67,6 +132,29 @@ body {
   body {
     background-attachment: scroll, scroll, scroll;
   }
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background-image:
+      radial-gradient(circle at 8% 12%, rgba(196, 181, 253, 0.06) 0, transparent 45%),
+      radial-gradient(circle at 92% 88%, rgba(255, 138, 115, 0.06) 0, transparent 45%),
+      radial-gradient(rgba(196, 181, 253, 0.07) 1px, transparent 1px);
+  }
+}
+
+:root[data-theme="dark"] body {
+  background-image:
+    radial-gradient(circle at 8% 12%, rgba(196, 181, 253, 0.06) 0, transparent 45%),
+    radial-gradient(circle at 92% 88%, rgba(255, 138, 115, 0.06) 0, transparent 45%),
+    radial-gradient(rgba(196, 181, 253, 0.07) 1px, transparent 1px);
+}
+
+:root[data-theme="light"] body {
+  background-image:
+    radial-gradient(circle at 8% 12%, rgba(45, 27, 105, 0.05) 0, transparent 45%),
+    radial-gradient(circle at 92% 88%, rgba(255, 107, 91, 0.05) 0, transparent 45%),
+    radial-gradient(rgba(45, 27, 105, 0.06) 1px, transparent 1px);
 }
 
 h1, h2, h3 {
@@ -437,4 +525,67 @@ footer {
 
 @media (prefers-reduced-motion: reduce) {
   .marquee-track { animation: none; }
+}
+
+/* ---------- Dark mode: component-level overrides ----------
+   Placed at the end of the file on purpose: these need to win the cascade
+   over the plain .tag / .card::before rules defined earlier, and since both
+   have equal specificity, source order is what decides. */
+@media (prefers-color-scheme: dark) {
+  .card::before {
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+  }
+
+  .tag {
+    background: rgba(196, 181, 253, 0.14);
+  }
+
+  .tag.accent {
+    background: rgba(255, 138, 115, 0.14);
+  }
+
+  .btn-outline-dark {
+    color: #F1ECFB;
+  }
+
+  .btn-outline-dark:hover {
+    border-color: #F1ECFB;
+  }
+}
+
+/* data-theme attribute versions of the same overrides — higher specificity
+   than plain .tag/.card::before, so these win regardless of source order
+   once theme.js sets the attribute (manual choice overriding system setting). */
+:root[data-theme="dark"] .card::before {
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+}
+:root[data-theme="dark"] .tag {
+  background: rgba(196, 181, 253, 0.14);
+}
+:root[data-theme="dark"] .tag.accent {
+  background: rgba(255, 138, 115, 0.14);
+}
+:root[data-theme="dark"] .btn-outline-dark {
+  color: #F1ECFB;
+}
+:root[data-theme="dark"] .btn-outline-dark:hover {
+  border-color: #F1ECFB;
+}
+
+/* ---------- Theme toggle button (navbar) ---------- */
+.theme-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.4rem;
+  color: var(--color-primary);
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.15s ease;
+}
+.theme-toggle:hover {
+  background: var(--color-bg);
 }
