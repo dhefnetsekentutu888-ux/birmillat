@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<script src="/theme.js"></script>
+<meta charset="UTF-8">
+<link rel="icon" type="image/png" href="/favicon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BirMillat – Tadbirni tahrirlash</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="/style.css">
+<style>
+    .form-shell { max-width: 560px; margin: 2rem auto; padding: 0 1.5rem; }
+    .form-card { padding: 2.2rem; }
+    .form-card h1 { font-size: 1.5rem; margin-bottom: 0.4rem; }
+    .form-card > p { color: var(--color-text-muted); margin-bottom: 1.6rem; font-size: 0.9rem; }
+    .form-field { margin-bottom: 1.1rem; }
+    .form-field label {
+        display: block; font-size: 0.82rem; font-weight: 600; color: var(--color-text-muted);
+        margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.4px;
+    }
+    .form-field input, .form-field textarea, .form-field select {
+        width: 100%; padding: 0.75rem 1rem; border-radius: var(--radius-sm);
+        border: 1px solid var(--color-border); font-family: var(--font-body); font-size: 0.95rem; resize: vertical;
+    }
+    .form-field input:focus, .form-field textarea:focus, .form-field select:focus {
+        outline: 2px solid var(--color-accent); outline-offset: 1px;
+    }
+    .mode-toggle { display: flex; gap: 0.6rem; margin-bottom: 1.1rem; }
+    .mode-btn {
+        flex: 1; padding: 0.75rem; border-radius: var(--radius-sm); border: 1.5px solid var(--color-border);
+        background: var(--color-surface); color: var(--color-text); font-weight: 600; cursor: pointer;
+        display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: all 0.15s ease;
+    }
+    .mode-btn.active { border-color: var(--color-primary); background: #EFEAF8; color: var(--color-primary); }
+    .submit-status { font-size: 0.88rem; margin-top: 0.8rem; min-height: 1.2em; }
+    .submit-status.success { color: var(--color-success); }
+    .submit-status.error { color: var(--color-error); }
+    .edit-note {
+        background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+        padding: 0.8rem 1rem; font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: 1.4rem;
+        display: flex; gap: 0.6rem; align-items: flex-start;
+    }
+</style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/home" class="logo"><svg width="160" height="45" viewBox="0 0 320 90" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+      <g transform="translate(45,45)">
+        <g transform="rotate(-18)">
+          <ellipse cx="-10" cy="0" rx="20" ry="36" fill="none" stroke="#2D1B69" stroke-width="10"/>
+        </g>
+        <g transform="rotate(18)">
+          <ellipse cx="10" cy="0" rx="20" ry="36" fill="none" stroke="#FF6B5B" stroke-width="10"/>
+        </g>
+        <g transform="rotate(-18)">
+          <path d="M -30 0 A 20 36 0 0 1 11 0" fill="none" stroke="#2D1B69" stroke-width="10" stroke-linecap="round"/>
+        </g>
+      </g>
+      <text x="95" y="53" font-size="34" font-weight="700" fill="#2D1B69" font-family="Poppins, -apple-system, sans-serif">Bir<tspan fill="#FF6B5B">Millat</tspan></text>
+    </svg></a>
+        <button class="nav-toggle" id="navToggle" aria-label="Menyu"><i class="fas fa-bars"></i></button>
+        <div class="nav-links" id="navLinks">
+            <a href="/home">Bosh sahifa</a>
+            <a href="/recommend">Tavsiyalar</a>
+            <a href="/events" class="active">Tadbirlar</a>
+            <a href="/communities">Jamoalar</a>
+            <a href="/articles">Maqolalar</a>
+            <a href="/search">Qidiruv</a>
+            <a href="/messages">Xabarlar</a>
+            <a href="/profile">Profil</a>
+            <a href="/logout">Chiqish</a>
+        </div>
+        <div class="user-badge" id="userBadge"><img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ...</div>
+    <button class="theme-toggle" id="themeToggle" aria-label="Mavzuni almashtirish"><i class="fas fa-moon"></i></button>
+</nav>
+
+    <div class="form-shell">
+        <div class="form-card card">
+            <h1><i class="fas fa-pen-to-square"></i> Tadbirni tahrirlash</h1>
+            <p id="formSubtitle">Yuklanmoqda...</p>
+
+            <div class="edit-note">
+                <i class="fas fa-circle-info" style="margin-top:0.15rem;"></i>
+                <span>O'zgarishlar darhol saqlanadi, qayta ko'rib chiqishga yuborilmaydi.</span>
+            </div>
+
+            <form id="eventForm" style="display:none;">
+                <div class="form-field">
+                    <label for="titleInput">Tadbir nomi</label>
+                    <input type="text" id="titleInput" placeholder="Masalan: IELTS Speaking Club" required>
+                </div>
+
+                <div class="form-field">
+                    <label for="categorySelect">Kategoriya</label>
+                    <select id="categorySelect">
+                        <option value="IELTS">IELTS</option>
+                        <option value="IT">IT / Dasturlash</option>
+                        <option value="Startup">Startup</option>
+                        <option value="Sport">Sport</option>
+                        <option value="Volontyorlik">Volontyorlik</option>
+                        <option value="Boshqa">Boshqa</option>
+                    </select>
+                </div>
+
+                <div class="form-field">
+                    <label>Format</label>
+                    <div class="mode-toggle">
+                        <button type="button" class="mode-btn" data-mode="in_person"><i class="fas fa-location-dot"></i> Yuzma-yuz</button>
+                        <button type="button" class="mode-btn" data-mode="online"><i class="fas fa-video"></i> Onlayn</button>
+                    </div>
+                </div>
+
+                <div class="form-field" id="locationField">
+                    <label for="locationInput">Manzil</label>
+                    <input type="text" id="locationInput" placeholder="Masalan: Toshkent, Amir Temur ko'chasi 1">
+                </div>
+
+                <div class="form-field">
+                    <label for="dateInput">Sana va vaqt</label>
+                    <input type="datetime-local" id="dateInput" required>
+                </div>
+
+                <div class="form-field">
+                    <label for="capacityInput">Maksimal qatnashuvchilar (ixtiyoriy)</label>
+                    <input type="number" id="capacityInput" min="1" placeholder="Cheklov yo'q">
+                </div>
+
+                <div class="form-field">
+                    <label for="descInput">Tavsif</label>
+                    <textarea id="descInput" rows="4" placeholder="Tadbir haqida qisqacha ma'lumot"></textarea>
+                </div>
+
+                <div class="form-field">
+                    <label for="socialLinkInput">Ijtimoiy tarmoq havolasi (ixtiyoriy)</label>
+                    <input type="url" id="socialLinkInput" placeholder="https://t.me/... yoki https://instagram.com/...">
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">
+                    <i class="fas fa-floppy-disk"></i> Saqlash
+                </button>
+                <div class="submit-status" id="submitStatus"></div>
+            </form>
+        </div>
+    </div>
+
+    <footer>BirMillat – qiziqishlar asosida do'stlar toping. · <a href="/privacy" style="color:inherit;">Maxfiylik siyosati</a><br><span style="opacity:0.8;">Founder — Bekhruz Ravshanov</span></footer>
+
+    <script>
+        let selectedMode = 'in_person';
+
+        function getEventId() {
+            const parts = window.location.pathname.split('/').filter(Boolean);
+            // path is /events/:id/edit — id is the second-to-last segment
+            return parts[parts.length - 2];
+        }
+
+        // Converts a millisecond timestamp into the local-time string format
+        // <input type="datetime-local"> expects (YYYY-MM-DDTHH:mm).
+        function toDatetimeLocalValue(ts) {
+            const d = new Date(ts);
+            const pad = n => String(n).padStart(2, '0');
+            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        }
+
+        function setMode(mode) {
+            selectedMode = mode;
+            document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.getAttribute('data-mode') === mode));
+            const locationLabel = document.querySelector('#locationField label');
+            const locationInput = document.getElementById('locationInput');
+            if (mode === 'online') {
+                locationLabel.textContent = 'Onlayn havola';
+                locationInput.placeholder = 'Masalan: Zoom/Google Meet havolasi';
+            } else {
+                locationLabel.textContent = 'Manzil';
+                locationInput.placeholder = "Masalan: Toshkent, Amir Temur ko'chasi 1";
+            }
+        }
+
+        async function loadMe() {
+            try {
+                const res = await fetch('/api/me');
+                if (!res.ok) { window.location.href = '/login'; return; }
+                const me = await res.json();
+                document.getElementById('userBadge').innerHTML = '<img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ' + me.username;
+            } catch (e) { console.error(e); }
+        }
+
+        async function loadEvent() {
+            const eventId = getEventId();
+            const subtitle = document.getElementById('formSubtitle');
+            try {
+                const res = await fetch(`/api/events/${eventId}`);
+                if (!res.ok) {
+                    subtitle.textContent = 'Bu tadbir topilmadi.';
+                    return;
+                }
+                const ev = await res.json();
+                if (!ev.isCreator) {
+                    subtitle.textContent = 'Faqat tadbir yaratuvchisi uni tahrirlashi mumkin.';
+                    return;
+                }
+
+                document.getElementById('titleInput').value = ev.title;
+                document.getElementById('categorySelect').value = ev.category || 'Boshqa';
+                setMode(ev.mode === 'online' ? 'online' : 'in_person');
+                document.getElementById('locationInput').value = ev.location || '';
+                document.getElementById('dateInput').value = toDatetimeLocalValue(ev.event_date);
+                document.getElementById('capacityInput').value = ev.capacity || '';
+                document.getElementById('descInput').value = ev.description || '';
+                document.getElementById('socialLinkInput').value = ev.social_link || '';
+
+                subtitle.textContent = "Tadbir ma'lumotlarini yangilang.";
+                document.getElementById('eventForm').style.display = 'block';
+            } catch (e) {
+                console.error('Failed to load event:', e);
+                subtitle.textContent = "Yuklab bo'lmadi. Sahifani qaytadan yuklang.";
+            }
+        }
+
+        document.querySelectorAll('.mode-btn').forEach(btn => {
+            btn.addEventListener('click', () => setMode(btn.getAttribute('data-mode')));
+        });
+
+        document.getElementById('eventForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const eventId = getEventId();
+            const statusEl = document.getElementById('submitStatus');
+            const title = document.getElementById('titleInput').value.trim();
+            const dateVal = document.getElementById('dateInput').value;
+
+            if (!title || !dateVal) return;
+
+            statusEl.textContent = 'Saqlanmoqda...';
+            statusEl.className = 'submit-status';
+
+            try {
+                const res = await fetch(`/api/events/${eventId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title,
+                        description: document.getElementById('descInput').value.trim(),
+                        category: document.getElementById('categorySelect').value,
+                        mode: selectedMode,
+                        location: document.getElementById('locationInput').value.trim(),
+                        eventDate: new Date(dateVal).toISOString(),
+                        capacity: document.getElementById('capacityInput').value || null,
+                        socialLink: document.getElementById('socialLinkInput').value.trim()
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Server error');
+
+                statusEl.textContent = 'Saqlandi! Tadbirga qaytilmoqda...';
+                statusEl.className = 'submit-status success';
+                setTimeout(() => { window.location.href = `/events/${eventId}`; }, 900);
+            } catch (err) {
+                console.error('Event update failed:', err);
+                statusEl.textContent = err.message || "Xatolik yuz berdi. Qaytadan urinib ko'ring.";
+                statusEl.className = 'submit-status error';
+            }
+        });
+
+        (async () => {
+            await loadMe();
+            loadEvent();
+        })();
+    </script>
+
+    <script>
+        const navToggleBtn = document.getElementById('navToggle');
+        const navLinksEl = document.getElementById('navLinks');
+        if (navToggleBtn && navLinksEl) {
+            navToggleBtn.addEventListener('click', () => {
+                navLinksEl.classList.toggle('open');
+            });
+        }
+    </script>
+</body>
+</html>
