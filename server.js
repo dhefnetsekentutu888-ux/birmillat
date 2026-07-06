@@ -696,6 +696,14 @@ async function setEventStatus(id, status) {
     return db.execute({ sql: 'UPDATE events SET status = ? WHERE id = ?', args: [status, id] });
 }
 
+async function updateEvent(id, { title, description, category, mode, location, eventDate, capacity, socialLink }) {
+    return db.execute({
+        sql: `UPDATE events SET title = ?, description = ?, category = ?, mode = ?, location = ?,
+              event_date = ?, capacity = ?, social_link = ? WHERE id = ?`,
+        args: [title, description, category, mode, location, eventDate, capacity || null, socialLink || null, id]
+    });
+}
+
 async function joinEvent(eventId, userId) {
     return db.execute({
         sql: `INSERT OR IGNORE INTO event_attendees (event_id, user_id, joined_at) VALUES (?, ?, ?)`,
@@ -1518,6 +1526,11 @@ app.get('/events', (req, res) => {
 app.get('/events/create', (req, res) => {
     if (!req.session.userId) return res.redirect('/login');
     res.sendFile(path.join(__dirname, 'event-create.html'));
+});
+
+app.get('/events/:id/edit', (req, res) => {
+    if (!req.session.userId) return res.redirect('/login');
+    res.sendFile(path.join(__dirname, 'event-edit.html'));
 });
 
 app.get('/events/:id', (req, res) => {
@@ -2503,6 +2516,49 @@ app.post('/api/events', async (req, res) => {
         res.json({ success: true });
     } catch (err) {
         console.error('api/events create error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.put('/api/events/:id', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const event = await getEventById(req.params.id);
+        if (!event) return res.status(404).json({ error: 'Tadbir topilmadi' });
+        if (event.creator_id !== req.session.userId) {
+            return res.status(403).json({ error: "Faqat tadbir yaratuvchisi uni tahrirlashi mumkin" });
+        }
+
+        const { title, description, category, mode, location, eventDate, capacity, socialLink } = req.body;
+        if (!title || !title.trim()) {
+            return res.status(400).json({ error: 'Tadbir nomi kerak' });
+        }
+        if (!eventDate) {
+            return res.status(400).json({ error: 'Sana kerak' });
+        }
+        const parsedDate = new Date(eventDate).getTime();
+        if (isNaN(parsedDate)) {
+            return res.status(400).json({ error: 'Sana noto‘g‘ri' });
+        }
+        const cleanSocialLink = (socialLink || '').trim();
+        if (cleanSocialLink && !/^https?:\/\//i.test(cleanSocialLink)) {
+            return res.status(400).json({ error: "Ijtimoiy tarmoq havolasi http:// yoki https:// bilan boshlanishi kerak" });
+        }
+
+        await updateEvent(req.params.id, {
+            title: title.trim(),
+            description: (description || '').trim(),
+            category: category || 'Boshqa',
+            mode: mode === 'online' ? 'online' : 'in_person',
+            location: (location || '').trim(),
+            eventDate: parsedDate,
+            capacity: capacity ? parseInt(capacity, 10) : null,
+            socialLink: cleanSocialLink || null
+        });
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error('api/events update error:', err);
         res.status(500).json({ error: 'Server error' });
     }
 });
