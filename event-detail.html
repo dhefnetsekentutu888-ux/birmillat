@@ -297,7 +297,8 @@
 
                     <div class="action-row">
                         ${ev.isCreator
-                            ? `<span class="creator-note"><i class="fas fa-star"></i> Siz bu tadbirni yaratdingiz</span>`
+                            ? `<span class="creator-note"><i class="fas fa-star"></i> Siz bu tadbirni yaratdingiz</span>
+                               <a href="/events/${ev.id}/edit" class="social-btn"><i class="fas fa-pen-to-square"></i> Tahrirlash</a>`
                             : `<button class="join-btn ${ev.isAttending ? 'joined' : ''}" id="joinBtn" ${isFull && !ev.isAttending ? 'disabled' : ''}>
                                 <i class="fas ${ev.isAttending ? 'fa-circle-check' : 'fa-calendar-plus'}"></i>
                                 <span class="join-btn-label">${ev.isAttending ? "Qatnashasiz" : (isFull ? "To'lgan" : "Tadbirga qo'shilish")}</span>
