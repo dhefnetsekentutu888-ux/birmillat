@@ -190,21 +190,45 @@ a {
 
 .navbar .nav-links {
   display: flex;
-  gap: 2rem;
+  gap: 0.3rem;
   align-items: center;
 }
 
 .navbar .nav-links a {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
   text-decoration: none;
-  color: var(--color-text);
-  font-weight: 500;
-  transition: color 0.15s ease;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  font-size: 0.92rem;
   white-space: nowrap;
+  padding: 0.5rem 0.85rem;
+  border-radius: var(--radius-pill);
+  transition: color 0.15s ease, background 0.15s ease, transform 0.15s ease;
 }
 
-.navbar .nav-links a:hover,
+.navbar .nav-links a i {
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
+
+.navbar .nav-links a:hover {
+  color: var(--color-primary);
+  background: var(--color-bg);
+}
+
 .navbar .nav-links a.active {
   color: var(--color-accent);
+  background: #FFEAE6;
+}
+
+.navbar .nav-links a.active i {
+  opacity: 1;
+}
+
+.navbar .nav-links a:active {
+  transform: scale(0.96);
 }
 
 .user-badge {
@@ -487,9 +511,12 @@ footer {
     padding: 0.8rem 1.5rem;
     white-space: normal;
   }
-  .navbar .nav-links a:hover,
-  .navbar .nav-links a.active {
+  .navbar .nav-links a:hover {
     background: var(--color-bg);
+  }
+  .navbar .nav-links a.active {
+    background: #FFEAE6;
+    color: var(--color-accent);
   }
   .nav-toggle {
     display: block;
@@ -588,4 +615,13 @@ footer {
 }
 .theme-toggle:hover {
   background: var(--color-bg);
+}
+
+:root[data-theme="dark"] .navbar .nav-links a.active {
+  background: rgba(255, 138, 115, 0.14);
+}
+@media (prefers-color-scheme: dark) {
+  .navbar .nav-links a.active {
+    background: rgba(255, 138, 115, 0.14);
+  }
 }
