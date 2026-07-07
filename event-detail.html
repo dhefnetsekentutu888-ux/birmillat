@@ -99,6 +99,8 @@
     .social-btn.telegram:hover { background: #29A9EA; color: white; }
     .social-btn.instagram { border-color: #E1306C; color: #E1306C; }
     .social-btn.instagram:hover { background: linear-gradient(45deg, #F58529, #DD2A7B, #8134AF, #515BD4); color: white; border-color: transparent; }
+    .social-btn.location-btn { border-color: #34A853; color: #34A853; }
+    .social-btn.location-btn:hover { background: #34A853; color: white; }
 
     .attendees-card { padding: 1.6rem; }
     .attendee-chip-row { display: flex; flex-wrap: wrap; gap: 0.7rem; margin-top: 0.9rem; }
@@ -137,15 +139,15 @@
     </svg></a>
         <button class="nav-toggle" id="navToggle" aria-label="Menyu"><i class="fas fa-bars"></i></button>
         <div class="nav-links" id="navLinks">
-            <a href="/home">Bosh sahifa</a>
-            <a href="/recommend">Tavsiyalar</a>
-            <a href="/events" class="active">Tadbirlar</a>
-            <a href="/communities">Jamoalar</a>
-            <a href="/articles">Maqolalar</a>
-            <a href="/search">Qidiruv</a>
-            <a href="/messages">Xabarlar</a>
-            <a href="/profile">Profil</a>
-            <a href="/logout">Chiqish</a>
+            <a href="/home"><i class="fas fa-house"></i> Bosh sahifa</a>
+            <a href="/recommend"><i class="fas fa-wand-magic-sparkles"></i> Tavsiyalar</a>
+            <a href="/events" class="active"><i class="fas fa-calendar-star"></i> Tadbirlar</a>
+            <a href="/communities"><i class="fas fa-people-group"></i> Jamoalar</a>
+            <a href="/articles"><i class="fas fa-newspaper"></i> Maqolalar</a>
+            <a href="/search"><i class="fas fa-magnifying-glass"></i> Qidiruv</a>
+            <a href="/messages"><i class="fas fa-comment-dots"></i> Xabarlar</a>
+            <a href="/profile"><i class="fas fa-user"></i> Profil</a>
+            <a href="/logout"><i class="fas fa-right-from-bracket"></i> Chiqish</a>
         </div>
         <div class="user-badge" id="userBadge"><img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ...</div>
     <button class="theme-toggle" id="themeToggle" aria-label="Mavzuni almashtirish"><i class="fas fa-moon"></i></button>
@@ -165,7 +167,7 @@
 
         function formatEventDate(ts) {
             const d = new Date(ts);
-            return d.toLocaleString('uz-UZ', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+            return formatUzDate(d, { time: true });
         }
 
         function initials(name) {
@@ -304,6 +306,11 @@
                                 <span class="join-btn-label">${ev.isAttending ? "Qatnashasiz" : (isFull ? "To'lgan" : "Tadbirga qo'shilish")}</span>
                               </button>`
                         }
+                        ${(!isOnline && ev.location) ? `
+                            <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ev.location)}" target="_blank" rel="noopener" class="social-btn location-btn">
+                                <i class="fas fa-map-location-dot"></i> Lokatsiya
+                            </a>
+                        ` : ''}
                         ${socialBtnHtml}
                     </div>
 
