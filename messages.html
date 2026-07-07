@@ -227,15 +227,15 @@
     </svg></a>
         <button class="nav-toggle" id="navToggle" aria-label="Menyu"><i class="fas fa-bars"></i></button>
         <div class="nav-links" id="navLinks">
-            <a href="/home">Bosh sahifa</a>
-            <a href="/recommend">Tavsiyalar</a>
-            <a href="/events">Tadbirlar</a>
-            <a href="/communities">Jamoalar</a>
-            <a href="/articles">Maqolalar</a>
-            <a href="/search">Qidiruv</a>
-            <a href="/messages" class="active">Xabarlar</a>
-            <a href="/profile">Profil</a>
-            <a href="/logout">Chiqish</a>
+            <a href="/home"><i class="fas fa-house"></i> Bosh sahifa</a>
+            <a href="/recommend"><i class="fas fa-wand-magic-sparkles"></i> Tavsiyalar</a>
+            <a href="/events"><i class="fas fa-calendar-star"></i> Tadbirlar</a>
+            <a href="/communities"><i class="fas fa-people-group"></i> Jamoalar</a>
+            <a href="/articles"><i class="fas fa-newspaper"></i> Maqolalar</a>
+            <a href="/search"><i class="fas fa-magnifying-glass"></i> Qidiruv</a>
+            <a href="/messages" class="active"><i class="fas fa-comment-dots"></i> Xabarlar</a>
+            <a href="/profile"><i class="fas fa-user"></i> Profil</a>
+            <a href="/logout"><i class="fas fa-right-from-bracket"></i> Chiqish</a>
         </div>
         <div class="user-badge" id="userBadge"><img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ...</div>
         <button class="theme-toggle" id="themeToggle" aria-label="Mavzuni almashtirish"><i class="fas fa-moon"></i></button>
@@ -290,7 +290,7 @@
             if (isSameDay(d, now)) return 'Bugun';
             if (isSameDay(d, yesterday)) return 'Kecha';
 
-            return d.toLocaleDateString('uz-UZ', { day: 'numeric', month: 'long', year: 'numeric' });
+            return formatUzDate(d);
         }
 
         async function loadMe() {
