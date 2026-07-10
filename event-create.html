@@ -136,6 +136,16 @@
                     <input type="url" id="socialLinkInput" placeholder="https://t.me/... yoki https://instagram.com/...">
                 </div>
 
+                <div class="form-field">
+                    <label for="mapLinkInput">Google Maps havolasi (ixtiyoriy)</label>
+                    <input type="url" id="mapLinkInput" placeholder="https://maps.app.goo.gl/... yoki https://goo.gl/maps/...">
+                </div>
+
+                <div class="form-field">
+                    <label for="planLinkInput">Tadbir rejasi havolasi (ixtiyoriy)</label>
+                    <input type="url" id="planLinkInput" placeholder="Reja/dastur hujjatiga havola">
+                </div>
+
                 <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">
                     <i class="fas fa-paper-plane"></i> Ko'rib chiqishga yuborish
                 </button>
@@ -199,7 +209,9 @@
                         location: document.getElementById('locationInput').value.trim(),
                         eventDate: new Date(dateVal).toISOString(),
                         capacity: document.getElementById('capacityInput').value || null,
-                        socialLink: document.getElementById('socialLinkInput').value.trim()
+                        socialLink: document.getElementById('socialLinkInput').value.trim(),
+                        mapLink: document.getElementById('mapLinkInput').value.trim(),
+                        planLink: document.getElementById('planLinkInput').value.trim()
                     })
                 });
                 const data = await res.json();
