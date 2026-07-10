@@ -1674,6 +1674,11 @@ app.post('/reset-password', async (req, res) => {
 
         const hashed = await bcrypt.hash(password, 10);
         await updateUserPassword(email, hashed);
+        // Successfully entering a code sent to this email already proves
+        // ownership of the inbox — no reason to make them verify again
+        // separately afterward. This also unsticks any pre-existing account
+        // that predates the deferred-verification registration flow.
+        await markUserVerified(email);
 
         res.send(renderLoginPage('Parolingiz yangilandi. Endi kirishingiz mumkin.', false));
     } catch (err) {
