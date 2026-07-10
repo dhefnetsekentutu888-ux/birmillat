@@ -169,6 +169,8 @@ async function initDb() {
     `);
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_events_status ON events (status, event_date)`);
     try { await db.execute(`ALTER TABLE events ADD COLUMN social_link TEXT`); } catch (e) {}
+    try { await db.execute(`ALTER TABLE events ADD COLUMN map_link TEXT`); } catch (e) {}
+    try { await db.execute(`ALTER TABLE events ADD COLUMN plan_link TEXT`); } catch (e) {}
 
     await db.execute(`
         CREATE TABLE IF NOT EXISTS event_attendees (
@@ -649,11 +651,11 @@ async function deleteArticleAndWarnAuthor(articleId) {
 }
 
 // ---------- Events ----------
-async function createEvent({ creatorId, title, description, category, mode, location, eventDate, capacity, socialLink }) {
+async function createEvent({ creatorId, title, description, category, mode, location, eventDate, capacity, socialLink, mapLink, planLink }) {
     const result = await db.execute({
-        sql: `INSERT INTO events (creator_id, title, description, category, mode, location, event_date, capacity, social_link, status, created_at)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)`,
-        args: [creatorId, title, description, category, mode, location, eventDate, capacity || null, socialLink || null, Date.now()]
+        sql: `INSERT INTO events (creator_id, title, description, category, mode, location, event_date, capacity, social_link, map_link, plan_link, status, created_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)`,
+        args: [creatorId, title, description, category, mode, location, eventDate, capacity || null, socialLink || null, mapLink || null, planLink || null, Date.now()]
     });
     return Number(result.lastInsertRowid);
 }
@@ -696,11 +698,11 @@ async function setEventStatus(id, status) {
     return db.execute({ sql: 'UPDATE events SET status = ? WHERE id = ?', args: [status, id] });
 }
 
-async function updateEvent(id, { title, description, category, mode, location, eventDate, capacity, socialLink }) {
+async function updateEvent(id, { title, description, category, mode, location, eventDate, capacity, socialLink, mapLink, planLink }) {
     return db.execute({
         sql: `UPDATE events SET title = ?, description = ?, category = ?, mode = ?, location = ?,
-              event_date = ?, capacity = ?, social_link = ? WHERE id = ?`,
-        args: [title, description, category, mode, location, eventDate, capacity || null, socialLink || null, id]
+              event_date = ?, capacity = ?, social_link = ?, map_link = ?, plan_link = ? WHERE id = ?`,
+        args: [title, description, category, mode, location, eventDate, capacity || null, socialLink || null, mapLink || null, planLink || null, id]
     });
 }
 
@@ -2050,6 +2052,13 @@ async function sendTelegramPhoto(buffer, filename, caption) {
     return sendTelegramPhotoTo(TELEGRAM_ADMIN_CHAT_ID, buffer, filename, caption);
 }
 
+const UZ_MONTHS_SERVER = ['yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun', 'iyul', 'avgust', 'sentabr', 'oktabr', 'noyabr', 'dekabr'];
+function formatUzDateServer(ts) {
+    const d = new Date(ts);
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getDate()} ${UZ_MONTHS_SERVER[d.getMonth()]} ${d.getFullYear()}, ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 function escapeHtmlForTelegram(str) {
     return String(str || '')
         .replace(/&/g, '&amp;')
@@ -2468,7 +2477,7 @@ app.get('/api/events/:id', async (req, res) => {
 app.post('/api/events', async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
     try {
-        const { title, description, category, mode, location, eventDate, capacity, socialLink } = req.body;
+        const { title, description, category, mode, location, eventDate, capacity, socialLink, mapLink, planLink } = req.body;
         if (!title || !title.trim()) {
             return res.status(400).json({ error: 'Tadbir nomi kerak' });
         }
@@ -2483,6 +2492,14 @@ app.post('/api/events', async (req, res) => {
         if (cleanSocialLink && !/^https?:\/\//i.test(cleanSocialLink)) {
             return res.status(400).json({ error: "Ijtimoiy tarmoq havolasi http:// yoki https:// bilan boshlanishi kerak" });
         }
+        const cleanMapLink = (mapLink || '').trim();
+        if (cleanMapLink && !/^https?:\/\//i.test(cleanMapLink)) {
+            return res.status(400).json({ error: "Google Maps havolasi http:// yoki https:// bilan boshlanishi kerak" });
+        }
+        const cleanPlanLink = (planLink || '').trim();
+        if (cleanPlanLink && !/^https?:\/\//i.test(cleanPlanLink)) {
+            return res.status(400).json({ error: "Reja havolasi http:// yoki https:// bilan boshlanishi kerak" });
+        }
 
         const creator = await getUserById(req.session.userId);
         const eventId = await createEvent({
@@ -2494,12 +2511,14 @@ app.post('/api/events', async (req, res) => {
             location: (location || '').trim(),
             eventDate: parsedDate,
             capacity: capacity ? parseInt(capacity, 10) : null,
-            socialLink: cleanSocialLink || null
+            socialLink: cleanSocialLink || null,
+            mapLink: cleanMapLink || null,
+            planLink: cleanPlanLink || null
         });
 
         const approveUrl = `${SITE_URL}/admin/events/${eventId}/approve?token=${ADMIN_SECRET}`;
         const rejectUrl = `${SITE_URL}/admin/events/${eventId}/reject?token=${ADMIN_SECRET}`;
-        const dateStr = new Date(parsedDate).toLocaleString('uz-UZ', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+        const dateStr = formatUzDateServer(parsedDate);
 
         const text =
             `🗓 <b>Yangi tadbir so'rovi</b>\n\n` +
@@ -2529,7 +2548,7 @@ app.put('/api/events/:id', async (req, res) => {
             return res.status(403).json({ error: "Faqat tadbir yaratuvchisi uni tahrirlashi mumkin" });
         }
 
-        const { title, description, category, mode, location, eventDate, capacity, socialLink } = req.body;
+        const { title, description, category, mode, location, eventDate, capacity, socialLink, mapLink, planLink } = req.body;
         if (!title || !title.trim()) {
             return res.status(400).json({ error: 'Tadbir nomi kerak' });
         }
@@ -2544,6 +2563,14 @@ app.put('/api/events/:id', async (req, res) => {
         if (cleanSocialLink && !/^https?:\/\//i.test(cleanSocialLink)) {
             return res.status(400).json({ error: "Ijtimoiy tarmoq havolasi http:// yoki https:// bilan boshlanishi kerak" });
         }
+        const cleanMapLink = (mapLink || '').trim();
+        if (cleanMapLink && !/^https?:\/\//i.test(cleanMapLink)) {
+            return res.status(400).json({ error: "Google Maps havolasi http:// yoki https:// bilan boshlanishi kerak" });
+        }
+        const cleanPlanLink = (planLink || '').trim();
+        if (cleanPlanLink && !/^https?:\/\//i.test(cleanPlanLink)) {
+            return res.status(400).json({ error: "Reja havolasi http:// yoki https:// bilan boshlanishi kerak" });
+        }
 
         await updateEvent(req.params.id, {
             title: title.trim(),
@@ -2553,7 +2580,9 @@ app.put('/api/events/:id', async (req, res) => {
             location: (location || '').trim(),
             eventDate: parsedDate,
             capacity: capacity ? parseInt(capacity, 10) : null,
-            socialLink: cleanSocialLink || null
+            socialLink: cleanSocialLink || null,
+            mapLink: cleanMapLink || null,
+            planLink: cleanPlanLink || null
         });
 
         res.json({ success: true });
