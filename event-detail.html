@@ -101,6 +101,8 @@
     .social-btn.instagram:hover { background: linear-gradient(45deg, #F58529, #DD2A7B, #8134AF, #515BD4); color: white; border-color: transparent; }
     .social-btn.location-btn { border-color: #34A853; color: #34A853; }
     .social-btn.location-btn:hover { background: #34A853; color: white; }
+    .social-btn.plan-btn { border-color: var(--color-primary); color: var(--color-primary); }
+    .social-btn.plan-btn:hover { background: var(--color-primary); color: white; }
 
     .attendees-card { padding: 1.6rem; }
     .attendee-chip-row { display: flex; flex-wrap: wrap; gap: 0.7rem; margin-top: 0.9rem; }
@@ -306,9 +308,14 @@
                                 <span class="join-btn-label">${ev.isAttending ? "Qatnashasiz" : (isFull ? "To'lgan" : "Tadbirga qo'shilish")}</span>
                               </button>`
                         }
-                        ${(!isOnline && ev.location) ? `
-                            <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ev.location)}" target="_blank" rel="noopener" class="social-btn location-btn">
+                        ${ev.map_link ? `
+                            <a href="${ev.map_link}" target="_blank" rel="noopener" class="social-btn location-btn">
                                 <i class="fas fa-map-location-dot"></i> Lokatsiya
+                            </a>
+                        ` : ''}
+                        ${ev.plan_link ? `
+                            <a href="${ev.plan_link}" target="_blank" rel="noopener" class="social-btn plan-btn">
+                                <i class="fas fa-list-check"></i> Reja
                             </a>
                         ` : ''}
                         ${socialBtnHtml}
