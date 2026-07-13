@@ -362,6 +362,14 @@
                 </div>
             </div>
         </div>
+
+        <div class="card" style="padding: 1.6rem; margin-top: 1.5rem;">
+            <div class="section-label"><i class="fab fa-telegram"></i> Telegram bildirishnomalari</div>
+            <p id="telegramStatusText" style="font-size: 0.9rem; color: var(--color-text-muted); margin: 0.5rem 0 1rem;">Tekshirilmoqda...</p>
+            <button class="btn btn-primary" id="telegramLinkBtn" style="display:none;">
+                <i class="fab fa-telegram"></i> Telegram orqali ulash
+            </button>
+        </div>
     </div>
 
     <footer>BirMillat – qiziqishlar asosida do'stlar toping. · <a href="/privacy" style="color:inherit;">Maxfiylik siyosati</a><br><span style="opacity:0.8;">Founder — Bekhruz Ravshanov</span></footer>
@@ -458,6 +466,16 @@
 
                 currentInterests = me.interests || [];
                 renderViewInterests(currentInterests);
+
+                const tgStatus = document.getElementById('telegramStatusText');
+                const tgBtn = document.getElementById('telegramLinkBtn');
+                if (me.telegramLinked) {
+                    tgStatus.innerHTML = '<i class="fas fa-circle-check" style="color:var(--color-success);"></i> Ulangan — like, xabar va tadbir bildirishnomalarini Telegram orqali olasiz.';
+                    tgBtn.style.display = 'none';
+                } else {
+                    tgStatus.textContent = "Ulanmagan. Ulasangiz, maqolangiz yoqtirilganda, yangi xabar kelganda yoki tadbiringizga birov qo'shilganda Telegram orqali xabar olasiz.";
+                    tgBtn.style.display = 'inline-flex';
+                }
 
                 document.getElementById('nameInput').value = me.name || '';
                 document.getElementById('bioInput').value = me.bio || '';
@@ -690,6 +708,21 @@
         });
 
         populateRegionDropdown();
+        document.getElementById('telegramLinkBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('telegramLinkBtn');
+            btn.disabled = true;
+            try {
+                const res = await fetch('/api/telegram/link-token', { method: 'POST' });
+                if (!res.ok) throw new Error();
+                const data = await res.json();
+                window.open(data.deepLink, '_blank');
+            } catch (e) {
+                alert("Xatolik yuz berdi. Qaytadan urinib ko'ring.");
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
         loadMe().then(() => loadAchievements());
     </script>
 
