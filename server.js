@@ -46,6 +46,10 @@ async function initDb() {
     try { await db.execute(`ALTER TABLE users ADD COLUMN email TEXT`); } catch (e) {}
     try { await db.execute(`ALTER TABLE users ADD COLUMN is_verified INTEGER DEFAULT 0`); } catch (e) {}
     await db.execute(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users (email)`);
+    // Telegram account linking — lets us DM individual users notifications
+    // (likes, messages, event joins) rather than only ever messaging the admin.
+    try { await db.execute(`ALTER TABLE users ADD COLUMN telegram_chat_id TEXT`); } catch (e) {}
+    try { await db.execute(`ALTER TABLE users ADD COLUMN telegram_link_token TEXT`); } catch (e) {}
 
     // Profile enrichment: photo, birthdate (age is calculated from this, not stored directly), region
     try { await db.execute(`ALTER TABLE users ADD COLUMN photo_url TEXT`); } catch (e) {}
@@ -430,6 +434,45 @@ async function setUserBlocked(username, blocked) {
     }
 
     return result.rowsAffected > 0;
+}
+
+// ---------- Telegram account linking & per-user notifications ----------
+function generateLinkToken() {
+    return Array.from({ length: 20 }, () => Math.floor(Math.random() * 36).toString(36)).join('');
+}
+
+async function createTelegramLinkToken(userId) {
+    const token = generateLinkToken();
+    await db.execute({ sql: 'UPDATE users SET telegram_link_token = ? WHERE id = ?', args: [token, userId] });
+    return token;
+}
+
+// Called when someone messages the bot with /start <token>. Links that
+// Telegram chat to whichever website account currently holds this token.
+async function linkTelegramByToken(token, chatId) {
+    const result = await db.execute({ sql: 'SELECT id, username FROM users WHERE telegram_link_token = ?', args: [token] });
+    const user = result.rows[0];
+    if (!user) return null;
+    await db.execute({
+        sql: 'UPDATE users SET telegram_chat_id = ?, telegram_link_token = NULL WHERE id = ?',
+        args: [String(chatId), user.id]
+    });
+    return user;
+}
+
+// Fire-and-forget notification to a specific user's linked Telegram chat.
+// Silently does nothing if they haven't linked an account — this must never
+// throw and block the action that triggered it (a like/message/join should
+// still succeed even if the notification fails).
+async function notifyUserViaTelegram(userId, text) {
+    try {
+        const result = await db.execute({ sql: 'SELECT telegram_chat_id FROM users WHERE id = ?', args: [userId] });
+        const chatId = result.rows[0] && result.rows[0].telegram_chat_id;
+        if (!chatId) return;
+        await sendTelegramMessageTo(chatId, text);
+    } catch (err) {
+        console.error('notifyUserViaTelegram failed (non-fatal):', err);
+    }
 }
 
 // ---------- Support chat helpers ----------
@@ -1702,10 +1745,24 @@ app.get('/api/me', async (req, res) => {
             photoUrl: user.photo_url,
             birthdate: user.birthdate,
             age: calculateAge(user.birthdate),
-            region: user.region
+            region: user.region,
+            telegramLinked: !!user.telegram_chat_id
         });
     } catch (err) {
         console.error('api/me error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+const TELEGRAM_BOT_USERNAME = process.env.TELEGRAM_BOT_USERNAME || 'BirMillat_support_bot';
+
+app.post('/api/telegram/link-token', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const token = await createTelegramLinkToken(req.session.userId);
+        res.json({ success: true, deepLink: `https://t.me/${TELEGRAM_BOT_USERNAME}?start=${token}` });
+    } catch (err) {
+        console.error('api/telegram/link-token error:', err);
         res.status(500).json({ error: 'Server error' });
     }
 });
@@ -2097,6 +2154,22 @@ app.post(`/telegram/webhook/${TELEGRAM_BOT_TOKEN}`, async (req, res) => {
     const isAdmin = fromChatId === TELEGRAM_ADMIN_CHAT_ID;
 
     try {
+        // ---------- Account linking: /start <token> from ANY sender ----------
+        // Comes from the deep link generated in the profile page. Handled before
+        // admin-command routing and before the generic "treat as support message"
+        // fallback, so it never accidentally gets forwarded to the admin instead.
+        const startMatch = (message.text || '').trim().match(/^\/start\s+(\S+)/);
+        if (startMatch) {
+            const linkedUser = await linkTelegramByToken(startMatch[1], fromChatId);
+            if (linkedUser) {
+                await sendTelegramMessageTo(fromChatId,
+                    `✅ Telegram hisobingiz @${escapeHtmlForTelegram(linkedUser.username)} bilan ulandi! Endi like, xabar va tadbir bildirishnomalarini shu yerda olasiz.`);
+            } else {
+                await sendTelegramMessageTo(fromChatId, "❌ Havola muddati tugagan yoki noto'g'ri. Profilingizdan qaytadan urinib ko'ring.");
+            }
+            return;
+        }
+
         // ---------- Admin chat: commands, or a reply to forward back to a user ----------
         if (isAdmin) {
             if (message.reply_to_message) {
@@ -2410,6 +2483,11 @@ app.post('/api/articles/:id/like', async (req, res) => {
             await unlikeArticle(article.id, req.session.userId);
         } else {
             await likeArticle(article.id, req.session.userId);
+            if (article.author_id !== req.session.userId) {
+                const liker = await getUserById(req.session.userId);
+                notifyUserViaTelegram(article.author_id,
+                    `❤️ @${escapeHtmlForTelegram(liker.username)} sizning "${escapeHtmlForTelegram(article.title)}" maqolangizni yoqtirdi.`);
+            }
         }
         const updated = await getArticleById(article.id);
         res.json({ success: true, isLiked: !alreadyLiked, likeCount: updated.like_count });
@@ -2605,6 +2683,11 @@ app.post('/api/events/:id/join', async (req, res) => {
             return res.status(404).json({ error: 'Tadbir topilmadi' });
         }
         await joinEvent(event.id, req.session.userId);
+        if (event.creator_id !== req.session.userId) {
+            const joiner = await getUserById(req.session.userId);
+            notifyUserViaTelegram(event.creator_id,
+                `🎉 @${escapeHtmlForTelegram(joiner.username)} "${escapeHtmlForTelegram(event.title)}" tadbiringizga qo'shildi.`);
+        }
         res.json({ success: true });
     } catch (err) {
         console.error('api/events/:id/join error:', err);
@@ -2916,6 +2999,12 @@ io.on('connection', (socket) => {
                 receiverSockets.forEach(sid => {
                     io.to(sid).emit('new_message', payload);
                 });
+            } else {
+                // Not online in the app right now — ping them on Telegram instead.
+                const sender = await getUserById(userId);
+                const preview = trimmed.length > 80 ? trimmed.slice(0, 80).trim() + '…' : trimmed;
+                notifyUserViaTelegram(receiver.id,
+                    `💬 @${escapeHtmlForTelegram(sender.username)} sizga xabar yubordi: "${escapeHtmlForTelegram(preview)}"`);
             }
 
             if (callback) callback({ success: true, message: payload });
