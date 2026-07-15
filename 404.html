@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<script src="/theme.js"></script>
+<meta charset="UTF-8">
+<link rel="icon" type="image/png" href="/favicon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BirMillat – Sahifa topilmadi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="/style.css">
+<style>
+    .notfound-shell {
+        min-height: 80vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 1.5rem;
+        text-align: center;
+    }
+    .notfound-inner { max-width: 460px; position: relative; }
+    .notfound-rings {
+        width: 180px;
+        height: 180px;
+        margin: 0 auto 1.5rem;
+        opacity: 0.9;
+    }
+    .notfound-code {
+        font-family: var(--font-display);
+        font-weight: 700;
+        font-size: 5rem;
+        line-height: 1;
+        color: var(--color-primary);
+        letter-spacing: -2px;
+        margin-bottom: 0.5rem;
+    }
+    .notfound-code .accent { color: var(--color-accent); }
+    .notfound-inner h1 {
+        font-size: 1.4rem;
+        margin-bottom: 0.6rem;
+    }
+    .notfound-inner p {
+        color: var(--color-text-muted);
+        font-size: 0.95rem;
+        line-height: 1.6;
+        margin-bottom: 2rem;
+    }
+    .notfound-actions {
+        display: flex;
+        gap: 0.8rem;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+</style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/home" class="logo">
+            <svg width="160" height="45" viewBox="0 0 320 90" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+              <g transform="translate(45,45)">
+                <g transform="rotate(-18)"><ellipse cx="-10" cy="0" rx="20" ry="36" fill="none" stroke="#2D1B69" stroke-width="10"/></g>
+                <g transform="rotate(18)"><ellipse cx="10" cy="0" rx="20" ry="36" fill="none" stroke="#FF6B5B" stroke-width="10"/></g>
+                <g transform="rotate(-18)"><path d="M -30 0 A 20 36 0 0 1 11 0" fill="none" stroke="#2D1B69" stroke-width="10" stroke-linecap="round"/></g>
+              </g>
+              <text x="95" y="53" font-size="34" font-weight="700" fill="#2D1B69" font-family="Poppins, -apple-system, sans-serif">Bir<tspan fill="#FF6B5B">Millat</tspan></text>
+            </svg>
+        </a>
+        <button class="theme-toggle" id="themeToggle" aria-label="Mavzuni almashtirish" style="margin-left:auto;"><i class="fas fa-moon"></i></button>
+    </nav>
+
+    <div class="notfound-shell">
+        <div class="notfound-inner">
+            <svg class="notfound-rings" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                <g transform="translate(100,100) rotate(-18)">
+                    <ellipse cx="-22" cy="0" rx="48" ry="86" fill="none" stroke="#2D1B69" stroke-width="9" stroke-dasharray="14 10" stroke-linecap="round"/>
+                </g>
+                <g transform="translate(100,100) rotate(18)">
+                    <ellipse cx="22" cy="0" rx="48" ry="86" fill="none" stroke="#FF6B5B" stroke-width="9" stroke-dasharray="14 10" stroke-linecap="round"/>
+                </g>
+            </svg>
+            <div class="notfound-code">4<span class="accent">0</span>4</div>
+            <h1>Bu sahifa topilmadi</h1>
+            <p>Siz izlayotgan sahifa mavjud emas, ko'chirilgan yoki o'chirilgan bo'lishi mumkin. Havolani tekshirib ko'ring yoki bosh sahifaga qayting.</p>
+            <div class="notfound-actions">
+                <a href="/home" class="btn btn-primary"><i class="fas fa-house"></i> Bosh sahifa</a>
+                <a href="/support" class="btn btn-outline"><i class="fas fa-headset"></i> Yordam</a>
+            </div>
+        </div>
+    </div>
+
+    <footer>BirMillat – qiziqishlar asosida do'stlar toping. · <a href="/privacy" style="color:inherit;">Maxfiylik siyosati</a><br><span style="opacity:0.8;">Founder — Bekhruz Ravshanov</span></footer>
+</body>
+</html>
