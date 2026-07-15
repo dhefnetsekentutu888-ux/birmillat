@@ -27,13 +27,33 @@
     document.addEventListener('DOMContentLoaded', function () {
         updateToggleIcon(document.documentElement.getAttribute('data-theme'));
         var btn = document.getElementById('themeToggle');
-        if (!btn) return;
-        btn.addEventListener('click', function () {
-            var current = document.documentElement.getAttribute('data-theme');
-            var next = current === 'dark' ? 'light' : 'dark';
-            localStorage.setItem(STORAGE_KEY, next);
-            applyTheme(next);
-        });
+        if (btn) {
+            btn.addEventListener('click', function () {
+                var current = document.documentElement.getAttribute('data-theme');
+                var next = current === 'dark' ? 'light' : 'dark';
+                localStorage.setItem(STORAGE_KEY, next);
+                applyTheme(next);
+            });
+        }
+
+        // ---------- Sidebar navigation (shared across every page) ----------
+        var sidebar = document.getElementById('navLinks');
+        var toggle = document.getElementById('navToggle');
+        var overlay = document.getElementById('sidebarOverlay');
+        var closeBtn = document.getElementById('sidebarClose');
+
+        function openSidebar() {
+            if (sidebar) sidebar.classList.add('open');
+            if (overlay) overlay.classList.add('open');
+        }
+        function closeSidebar() {
+            if (sidebar) sidebar.classList.remove('open');
+            if (overlay) overlay.classList.remove('open');
+        }
+
+        if (toggle) toggle.addEventListener('click', openSidebar);
+        if (closeBtn) closeBtn.addEventListener('click', closeSidebar);
+        if (overlay) overlay.addEventListener('click', closeSidebar);
     });
 })();
 
