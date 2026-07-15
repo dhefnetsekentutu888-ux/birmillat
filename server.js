@@ -50,6 +50,9 @@ async function initDb() {
     // (likes, messages, event joins) rather than only ever messaging the admin.
     try { await db.execute(`ALTER TABLE users ADD COLUMN telegram_chat_id TEXT`); } catch (e) {}
     try { await db.execute(`ALTER TABLE users ADD COLUMN telegram_link_token TEXT`); } catch (e) {}
+    // Phone-based registration (verified via the Telegram bot instead of SMS).
+    try { await db.execute(`ALTER TABLE users ADD COLUMN phone TEXT`); } catch (e) {}
+    await db.execute(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_phone ON users (phone)`);
 
     // Profile enrichment: photo, birthdate (age is calculated from this, not stored directly), region
     try { await db.execute(`ALTER TABLE users ADD COLUMN photo_url TEXT`); } catch (e) {}
@@ -141,19 +144,23 @@ async function initDb() {
     `);
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_verification_email ON verification_codes (email, purpose)`);
 
-    // Pending registrations: holds username/password while an email verification
-    // code is outstanding. The real `users` row is only created once the code is
+    // Pending registrations: holds username/password while a verification code
+    // is outstanding. The real `users` row is only created once the code is
     // confirmed — this is what stops half-finished signups from permanently
-    // occupying a username/email if the person never receives or enters the code.
+    // occupying a username/email/phone if the person never completes it.
+    // The `email` column doubles as a generic identifier: for phone signups it
+    // holds the phone number instead — `method` says which one it actually is.
     await db.execute(`
         CREATE TABLE IF NOT EXISTS pending_registrations (
             email TEXT PRIMARY KEY,
             username TEXT NOT NULL,
             password_hash TEXT NOT NULL,
+            method TEXT NOT NULL DEFAULT 'email',
             created_at INTEGER NOT NULL
         )
     `);
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_pending_username ON pending_registrations (username)`);
+    try { await db.execute(`ALTER TABLE pending_registrations ADD COLUMN method TEXT NOT NULL DEFAULT 'email'`); } catch (e) {}
 
     // Community events — submitted by users, require approval before going public
     await db.execute(`
@@ -269,6 +276,14 @@ async function getUserByEmail(email) {
     return result.rows[0] || null;
 }
 
+async function getUserByPhone(phone) {
+    const result = await db.execute({
+        sql: 'SELECT * FROM users WHERE phone = ?',
+        args: [phone]
+    });
+    return result.rows[0] || null;
+}
+
 async function getUserById(id) {
     const result = await db.execute({
         sql: 'SELECT * FROM users WHERE id = ?',
@@ -277,10 +292,10 @@ async function getUserById(id) {
     return result.rows[0] || null;
 }
 
-async function createUser(username, email, passwordHash, isVerified = 0) {
+async function createUser(username, email, phone, passwordHash, isVerified = 0) {
     const result = await db.execute({
-        sql: 'INSERT INTO users (username, email, password, name, is_verified) VALUES (?, ?, ?, ?, ?)',
-        args: [username, email, passwordHash, username, isVerified]
+        sql: 'INSERT INTO users (username, email, phone, password, name, is_verified) VALUES (?, ?, ?, ?, ?, ?)',
+        args: [username, email || null, phone || null, passwordHash, username, isVerified]
     });
     return Number(result.lastInsertRowid);
 }
@@ -292,13 +307,13 @@ async function createUser(username, email, passwordHash, isVerified = 0) {
 // "Server xatosi" to someone whose account was actually just created a moment
 // earlier by their own other request, we detect that case and log them into
 // the account that already exists instead of failing.
-async function createUserSafely(username, email, passwordHash) {
+async function createUserSafely(username, email, phone, passwordHash) {
     try {
-        return await createUser(username, email, passwordHash, 1);
+        return await createUser(username, email, phone, passwordHash, 1);
     } catch (err) {
-        const existing = email ? await getUserByEmail(email) : await getUser(username);
+        const existing = email ? await getUserByEmail(email) : (phone ? await getUserByPhone(phone) : await getUser(username));
         if (existing) {
-            console.warn('createUserSafely: insert conflict, reusing existing account (likely a double-submit race):', username, email);
+            console.warn('createUserSafely: insert conflict, reusing existing account (likely a double-submit race):', username, email, phone);
             return existing.id;
         }
         throw err; // genuinely something else went wrong
@@ -309,6 +324,14 @@ async function markUserVerified(email) {
     return db.execute({
         sql: 'UPDATE users SET is_verified = 1 WHERE email = ?',
         args: [email]
+    });
+}
+
+async function markUserVerifiedByIdentifier(method, identifier) {
+    const column = method === 'phone' ? 'phone' : 'email';
+    return db.execute({
+        sql: `UPDATE users SET is_verified = 1 WHERE ${column} = ?`,
+        args: [identifier]
     });
 }
 
@@ -358,40 +381,55 @@ async function verifyCode(email, code, purpose) {
 // on the code itself too).
 const PENDING_REGISTRATION_TTL_MS = 30 * 60 * 1000;
 
-async function createPendingRegistration(email, username, passwordHash) {
+async function createPendingRegistration(identifier, username, passwordHash, method = 'email') {
     const now = Date.now();
     await db.execute({
-        sql: `INSERT INTO pending_registrations (email, username, password_hash, created_at)
-              VALUES (?, ?, ?, ?)
-              ON CONFLICT(email) DO UPDATE SET username = excluded.username, password_hash = excluded.password_hash, created_at = excluded.created_at`,
-        args: [email, username, passwordHash, now]
+        sql: `INSERT INTO pending_registrations (email, username, password_hash, method, created_at)
+              VALUES (?, ?, ?, ?, ?)
+              ON CONFLICT(email) DO UPDATE SET username = excluded.username, password_hash = excluded.password_hash, method = excluded.method, created_at = excluded.created_at`,
+        args: [identifier, username, passwordHash, method, now]
     });
 }
 
-async function getPendingRegistration(email) {
-    const result = await db.execute({ sql: 'SELECT * FROM pending_registrations WHERE email = ?', args: [email] });
+async function getPendingRegistration(identifier) {
+    const result = await db.execute({ sql: 'SELECT * FROM pending_registrations WHERE email = ?', args: [identifier] });
     const row = result.rows[0];
     if (!row) return null;
     if (Date.now() - row.created_at > PENDING_REGISTRATION_TTL_MS) return null; // treat as expired
     return row;
 }
 
-async function deletePendingRegistration(email) {
-    return db.execute({ sql: 'DELETE FROM pending_registrations WHERE email = ?', args: [email] });
+async function deletePendingRegistration(identifier) {
+    return db.execute({ sql: 'DELETE FROM pending_registrations WHERE email = ?', args: [identifier] });
 }
 
 // Username is considered taken if a real account has it, OR if someone else has
 // a *fresh* (non-expired) pending registration holding it.
-async function isUsernameTaken(username, excludeEmail = null) {
+async function isUsernameTaken(username, excludeIdentifier = null) {
     const existing = await getUser(username);
     if (existing) return true;
 
     const result = await db.execute({ sql: 'SELECT email, created_at FROM pending_registrations WHERE username = ?', args: [username] });
     for (const row of result.rows) {
-        if (excludeEmail && row.email === excludeEmail) continue; // a person re-submitting their own pending signup is fine
+        if (excludeIdentifier && row.email === excludeIdentifier) continue; // a person re-submitting their own pending signup is fine
         if (Date.now() - row.created_at <= PENDING_REGISTRATION_TTL_MS) return true;
     }
     return false;
+}
+
+// Looks up an active (unused, unexpired) verification code with no known
+// identifier — used for the phone/Telegram-bot flow, where the person pastes
+// their code directly into a Telegram chat and we only have the code itself,
+// not which phone number it belongs to.
+async function findActiveCodeByCodeOnly(code, purpose) {
+    const result = await db.execute({
+        sql: `SELECT * FROM verification_codes WHERE code = ? AND purpose = ? AND used = 0 ORDER BY created_at DESC LIMIT 1`,
+        args: [code, purpose]
+    });
+    const row = result.rows[0];
+    if (!row) return null;
+    if (row.expires_at < Date.now()) return null;
+    return row;
 }
 
 async function updateUserProfile(username, { name, bio, interests, birthdate, region }) {
@@ -1187,7 +1225,17 @@ function renderRegisterPage(message, isError = true) {
         <div class="register-form-wrap" id="registerFormWrap">
         <form method=post action=/register id="registerForm">
             <input type="hidden" name="privacyAccepted" id="privacyAcceptedInput" value="">
-            <input type=email name=email placeholder="Email manzilingiz" required>
+            <input type="hidden" name="regMethod" id="regMethodInput" value="email">
+
+            <div class="mode-toggle" style="display:flex; gap:0.6rem; margin-bottom:0.8rem;">
+                <button type="button" class="mode-btn active" data-method="email" id="methodEmailBtn" style="flex:1; padding:0.65rem; border-radius:var(--radius-sm); border:1.5px solid var(--color-primary); background:#EFEAF8; color:var(--color-primary); font-weight:600; cursor:pointer;">Email</button>
+                <button type="button" class="mode-btn" data-method="phone" id="methodPhoneBtn" style="flex:1; padding:0.65rem; border-radius:var(--radius-sm); border:1.5px solid var(--color-border); background:transparent; color:var(--color-text); font-weight:600; cursor:pointer;">Telefon</button>
+            </div>
+
+            <input type=email name=email id="emailInput" placeholder="Email manzilingiz" required>
+            <input type=tel name=phone id="phoneInput" placeholder="+998 90 123 45 67" style="display:none;">
+            <div class="field-hint" id="phoneHint" style="display:none;">Telefon raqamingizni Telegram bot orqali tasdiqlaysiz — SMS yubormaymiz.</div>
+
             <input name=username placeholder="Foydalanuvchi nomi" required>
 
             <div class="pw-field">
@@ -1233,6 +1281,35 @@ function renderRegisterPage(message, isError = true) {
         document.getElementById('consentDecline').addEventListener('click', () => {
             window.location.href = '/';
         });
+
+        // Email/phone method toggle
+        const emailBtn = document.getElementById('methodEmailBtn');
+        const phoneBtn = document.getElementById('methodPhoneBtn');
+        const emailInput = document.getElementById('emailInput');
+        const phoneInput = document.getElementById('phoneInput');
+        const phoneHint = document.getElementById('phoneHint');
+        const regMethodInput = document.getElementById('regMethodInput');
+
+        function setRegMethod(method) {
+            regMethodInput.value = method;
+            const isPhone = method === 'phone';
+            emailBtn.classList.toggle('active', !isPhone);
+            phoneBtn.classList.toggle('active', isPhone);
+            emailBtn.style.borderColor = isPhone ? 'var(--color-border)' : 'var(--color-primary)';
+            emailBtn.style.background = isPhone ? 'transparent' : '#EFEAF8';
+            emailBtn.style.color = isPhone ? 'var(--color-text)' : 'var(--color-primary)';
+            phoneBtn.style.borderColor = isPhone ? 'var(--color-primary)' : 'var(--color-border)';
+            phoneBtn.style.background = isPhone ? '#EFEAF8' : 'transparent';
+            phoneBtn.style.color = isPhone ? 'var(--color-primary)' : 'var(--color-text)';
+
+            emailInput.style.display = isPhone ? 'none' : 'block';
+            emailInput.required = !isPhone;
+            phoneInput.style.display = isPhone ? 'block' : 'none';
+            phoneInput.required = isPhone;
+            phoneHint.style.display = isPhone ? 'block' : 'none';
+        }
+        emailBtn.addEventListener('click', () => setRegMethod('email'));
+        phoneBtn.addEventListener('click', () => setRegMethod('phone'));
     </script>
     </body></html>`;
 }
@@ -1273,7 +1350,7 @@ function renderLoginPage(message, isError = true, next = '/home') {
         ${message ? `<div class="message ${msgClass}">${message}</div>` : ''}
         <form method=post action=/login>
             <input type=hidden name=next value="${safeNext}">
-            <input name=identifier placeholder="Email yoki foydalanuvchi nomi" required>
+            <input name=identifier placeholder="Email, telefon yoki foydalanuvchi nomi" required>
             <div class="pw-field">
                 <input type=password name=password id=password placeholder="Parol" required>
                 <button type="button" class="pw-toggle" data-target="password" aria-label="Parolni ko'rsatish">${eyeIconOpen()}</button>
@@ -1337,9 +1414,14 @@ app.post('/login', async (req, res) => {
         const { identifier, password, next } = req.body;
         const safeNext = safeNextPath(next);
         const clean = (identifier || '').trim();
-        const user = clean.includes('@')
-            ? await getUserByEmail(clean.toLowerCase())
-            : await getUser(clean);
+        let user;
+        if (clean.includes('@')) {
+            user = await getUserByEmail(clean.toLowerCase());
+        } else if (/^\+?\d{9,15}$/.test(normalizePhone(clean))) {
+            user = await getUserByPhone(normalizePhone(clean));
+        } else {
+            user = await getUser(clean);
+        }
 
         if (!user) return res.send(renderLoginPage('Login noto‘g‘ri', true, safeNext));
         const match = await bcrypt.compare(password, user.password);
@@ -1371,20 +1453,31 @@ function isValidEmail(email) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+function normalizePhone(raw) {
+    // Strip everything except digits and a leading +, so "+998 90 123-45-67"
+    // and "998901234567" both normalize to the same stored value.
+    const trimmed = (raw || '').trim();
+    const digits = trimmed.replace(/[^\d+]/g, '');
+    return digits;
+}
+
+function isValidPhone(phone) {
+    // Loose check: optional leading +, 9-15 digits. Not strict Uzbek-only
+    // validation on purpose — people may register from other countries too.
+    return /^\+?\d{9,15}$/.test(phone);
+}
+
 app.post('/register', async (req, res) => {
     try {
-        const { username, email, password, confirmPassword, privacyAccepted } = req.body;
+        const { username, email, phone, password, confirmPassword, privacyAccepted, regMethod } = req.body;
         const cleanUsername = (username || '').trim();
-        const cleanEmail = (email || '').trim().toLowerCase();
+        const method = regMethod === 'phone' ? 'phone' : 'email';
 
         if (privacyAccepted !== '1') {
             return res.send(renderRegisterPage('Davom etish uchun Maxfiylik siyosatiga rozilik bildirishingiz kerak', true));
         }
-        if (!cleanUsername || !cleanEmail || !password) {
+        if (!cleanUsername || !password) {
             return res.send(renderRegisterPage('Barcha maydonlarni to‘ldiring', true));
-        }
-        if (!isValidEmail(cleanEmail)) {
-            return res.send(renderRegisterPage('Email manzili noto‘g‘ri', true));
         }
         if (password.length < 8) {
             return res.send(renderRegisterPage('Parol kamida 8 belgi bo‘lishi kerak', true));
@@ -1393,45 +1486,73 @@ app.post('/register', async (req, res) => {
             return res.send(renderRegisterPage('Parollar mos kelmadi', true));
         }
 
-        if (await isUsernameTaken(cleanUsername, cleanEmail)) {
+        let cleanIdentifier;
+        if (method === 'email') {
+            cleanIdentifier = (email || '').trim().toLowerCase();
+            if (!cleanIdentifier) {
+                return res.send(renderRegisterPage('Email manzilini kiriting', true));
+            }
+            if (!isValidEmail(cleanIdentifier)) {
+                return res.send(renderRegisterPage('Email manzili noto‘g‘ri', true));
+            }
+        } else {
+            cleanIdentifier = normalizePhone(phone);
+            if (!cleanIdentifier) {
+                return res.send(renderRegisterPage('Telefon raqamingizni kiriting', true));
+            }
+            if (!isValidPhone(cleanIdentifier)) {
+                return res.send(renderRegisterPage('Telefon raqami noto‘g‘ri', true));
+            }
+        }
+
+        if (await isUsernameTaken(cleanUsername, cleanIdentifier)) {
             return res.send(renderRegisterPage('Bunday foydalanuvchi nomi band', true));
         }
 
         // Nothing is written to the real `users` table yet. The account is only
-        // created once the verification code is confirmed (see POST /verify
-        // below). This is the guarantee: if anything goes wrong here — a typo,
-        // a dropped connection, a "Server xatosi" — no row exists under this
-        // username or email, so nothing is left stuck or unusable. Only a
-        // successful code confirmation ever creates the real account.
-        const existingEmail = await getUserByEmail(cleanEmail);
-        if (existingEmail) {
-            return res.send(renderRegisterPage('Bu email allaqachon ro‘yxatdan o‘tgan', true));
+        // created once the verification code is confirmed (see POST /verify /
+        // the Telegram bot flow below). This is the guarantee: if anything goes
+        // wrong here — a typo, a dropped connection, a "Server xatosi" — no row
+        // exists under this username/email/phone, so nothing is left stuck or
+        // unusable. Only a successful code confirmation ever creates the account.
+        const existing = method === 'email' ? await getUserByEmail(cleanIdentifier) : await getUserByPhone(cleanIdentifier);
+        if (existing) {
+            return res.send(renderRegisterPage(
+                method === 'email' ? 'Bu email allaqachon ro‘yxatdan o‘tgan' : 'Bu telefon raqami allaqachon ro‘yxatdan o‘tgan',
+                true));
         }
 
         const hashed = await bcrypt.hash(password, 10);
-        await createPendingRegistration(cleanEmail, cleanUsername, hashed);
+        await createPendingRegistration(cleanIdentifier, cleanUsername, hashed, method);
+        const code = await createVerificationCode(cleanIdentifier, 'register');
 
-        try {
-            const code = await createVerificationCode(cleanEmail, 'register');
-            await sendEmail(cleanEmail, 'BirMillat — tasdiqlash kodi', verificationEmailHtml(code));
-        } catch (emailErr) {
-            console.error('Failed to send verification email during registration (pending registration still saved, resend available):', emailErr);
+        if (method === 'email') {
+            try {
+                await sendEmail(cleanIdentifier, 'BirMillat — tasdiqlash kodi', verificationEmailHtml(code));
+            } catch (emailErr) {
+                console.error('Failed to send verification email during registration (pending registration still saved, resend available):', emailErr);
+            }
+            res.redirect(`/verify?identifier=${encodeURIComponent(cleanIdentifier)}&method=email`);
+        } else {
+            // No SMS is sent — the code is shown on-screen and the person pastes
+            // it into the Telegram bot themselves to prove they control that chat.
+            res.redirect(`/verify?identifier=${encodeURIComponent(cleanIdentifier)}&method=phone`);
         }
-
-        res.redirect(`/verify?email=${encodeURIComponent(cleanEmail)}`);
     } catch (err) {
         console.error('Register error:', err);
         res.send(renderRegisterPage('Server xatosi, qaytadan urinib ko‘ring', true));
     }
 });
 
-function renderVerifyPage(email, message, isError = true) {
+function renderVerifyPage(identifier, method, message, isError = true, phoneCode = null) {
     const msgClass = isError ? 'error' : 'success';
-    return `<!DOCTYPE html><html><head><script src="/theme.js"></script><title>Emailni tasdiqlash - BirMillat</title>
+    const isPhone = method === 'phone';
+    return `<!DOCTYPE html><html><head><script src="/theme.js"></script><title>${isPhone ? 'Telefonni tasdiqlash' : 'Emailni tasdiqlash'} - BirMillat</title>
     <link rel="icon" type="image/png" href="/favicon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="/style.css">
     <style>
         .auth-logo { height: 40px; margin-bottom: 1rem; }
@@ -1440,91 +1561,174 @@ function renderVerifyPage(email, message, isError = true) {
             font-weight: 700; color: var(--color-primary);
         }
         .resend-link { font-size: 0.85rem; margin-top: 0.8rem; display: inline-block; }
+        .phone-code-display {
+            font-family: var(--font-display); font-weight: 700; font-size: 2.2rem;
+            letter-spacing: 6px; color: var(--color-primary); background: #EFEAF8;
+            border-radius: var(--radius-sm); padding: 1rem; margin: 1rem 0;
+        }
+        .bot-link-btn {
+            display: inline-flex; align-items: center; gap: 0.5rem; width: 100%;
+            justify-content: center; background: #29A9EA; color: white; border: none;
+            padding: 0.85rem; border-radius: var(--radius-sm); font-weight: 600;
+            font-size: 0.95rem; text-decoration: none; margin-top: 0.6rem;
+        }
+        .waiting-status { font-size: 0.85rem; color: var(--color-text-muted); margin-top: 1rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
     </style>
     </head>
     <body class="auth-shell"><div class="auth-card">
         <img src="/logo-full.svg" alt="BirMillat" class="auth-logo">
-        <h2>Emailni tasdiqlash</h2>
-        <p style="color:var(--color-text-muted); font-size:0.9rem; margin-bottom:1rem;">
-            <strong>${email}</strong> manziliga 6 xonali kod yubordik.
-        </p>
-        ${message ? `<div class="message ${msgClass}">${message}</div>` : ''}
-        <form method=post action=/verify id="verifyForm">
-            <input type=hidden name=email value="${email}">
-            <input name=code class="code-input" placeholder="000000" maxlength=6 inputmode="numeric" required>
-            <button type=submit id="verifySubmitBtn">Tasdiqlash</button>
-        </form>
-        <form method=post action=/verify/resend>
-            <input type=hidden name=email value="${email}">
-            <button type=submit class="resend-link" style="background:none; border:none; color:var(--color-accent); cursor:pointer; width:auto; padding:0;">Kodni qayta yuborish</button>
-        </form>
+        <h2>${isPhone ? 'Telefonni tasdiqlash' : 'Emailni tasdiqlash'}</h2>
+        ${isPhone ? `
+            <p style="color:var(--color-text-muted); font-size:0.9rem; margin-bottom:0.5rem;">
+                Quyidagi kodni <strong>@BirMillat_support_bot</strong> ga Telegram orqali yuboring:
+            </p>
+            <div class="phone-code-display">${phoneCode || '------'}</div>
+            <a href="https://t.me/BirMillat_support_bot?text=${phoneCode || ''}" target="_blank" rel="noopener" class="bot-link-btn">
+                <i class="fab fa-telegram"></i> Botni ochish
+            </a>
+            <div class="waiting-status" id="waitingStatus"><i class="fas fa-circle-notch fa-spin"></i> Tasdiqlanishini kutmoqda...</div>
+            ${message ? `<div class="message ${msgClass}" style="margin-top:1rem;">${message}</div>` : ''}
+            <form method=post action=/verify/resend style="margin-top:0.6rem;">
+                <input type=hidden name=identifier value="${identifier}">
+                <input type=hidden name=method value="phone">
+                <button type=submit class="resend-link" style="background:none; border:none; color:var(--color-accent); cursor:pointer; width:auto; padding:0;">Yangi kod olish</button>
+            </form>
+        ` : `
+            <p style="color:var(--color-text-muted); font-size:0.9rem; margin-bottom:1rem;">
+                <strong>${identifier}</strong> manziliga 6 xonali kod yubordik.
+            </p>
+            ${message ? `<div class="message ${msgClass}">${message}</div>` : ''}
+            <form method=post action=/verify id="verifyForm">
+                <input type=hidden name=identifier value="${identifier}">
+                <input type=hidden name=method value="email">
+                <input name=code class="code-input" placeholder="000000" maxlength=6 inputmode="numeric" required>
+                <button type=submit id="verifySubmitBtn">Tasdiqlash</button>
+            </form>
+            <form method=post action=/verify/resend>
+                <input type=hidden name=identifier value="${identifier}">
+                <input type=hidden name=method value="email">
+                <button type=submit class="resend-link" style="background:none; border:none; color:var(--color-accent); cursor:pointer; width:auto; padding:0;">Kodni qayta yuborish</button>
+            </form>
+        `}
     </div>
     <script>
-        // Prevent double-tap/double-click from submitting the same code twice —
-        // a slow connection plus an impatient second tap could otherwise fire
-        // two account-creation attempts for the same pending registration.
-        document.getElementById('verifyForm').addEventListener('submit', function () {
-            const btn = document.getElementById('verifySubmitBtn');
-            btn.disabled = true;
-            btn.textContent = 'Tekshirilmoqda...';
-        });
+        const verifyForm = document.getElementById('verifyForm');
+        if (verifyForm) {
+            // Prevent double-tap/double-click from submitting the same code twice —
+            // a slow connection plus an impatient second tap could otherwise fire
+            // two account-creation attempts for the same pending registration.
+            verifyForm.addEventListener('submit', function () {
+                const btn = document.getElementById('verifySubmitBtn');
+                btn.disabled = true;
+                btn.textContent = 'Tekshirilmoqda...';
+            });
+        }
+
+        ${isPhone ? `
+        // Poll to detect once the Telegram bot confirms the code — the account
+        // gets created server-side the moment that happens, so this just checks
+        // whether it's ready yet and redirects to login once it is.
+        (function poll() {
+            fetch('/api/verify-check?identifier=${encodeURIComponent(identifier)}&method=phone')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.verified) {
+                        document.getElementById('waitingStatus').innerHTML = '<i class="fas fa-circle-check" style="color:var(--color-success);"></i> Tasdiqlandi! Yo\\'naltirilmoqda...';
+                        setTimeout(() => { window.location.href = '/login'; }, 1200);
+                    } else {
+                        setTimeout(poll, 3000);
+                    }
+                })
+                .catch(() => setTimeout(poll, 4000));
+        })();
+        ` : ''}
     </script>
     </body></html>`;
 }
 
-app.get('/verify', (req, res) => {
-    const email = (req.query.email || '').trim().toLowerCase();
-    if (!email) return res.redirect('/register');
-    res.send(renderVerifyPage(email, ''));
+app.get('/verify', async (req, res) => {
+    const identifier = (req.query.identifier || req.query.email || '').trim();
+    const method = req.query.method === 'phone' ? 'phone' : 'email';
+    if (!identifier) return res.redirect('/register');
+
+    if (method === 'phone') {
+        const pending = await getPendingRegistration(identifier);
+        if (!pending) return res.redirect('/register');
+        const codeResult = await db.execute({
+            sql: `SELECT code FROM verification_codes WHERE email = ? AND purpose = 'register' AND used = 0 ORDER BY created_at DESC LIMIT 1`,
+            args: [identifier]
+        });
+        const code = codeResult.rows[0] ? codeResult.rows[0].code : null;
+        return res.send(renderVerifyPage(identifier, 'phone', '', false, code));
+    }
+
+    res.send(renderVerifyPage(identifier.toLowerCase(), 'email', ''));
+});
+
+app.get('/api/verify-check', async (req, res) => {
+    try {
+        const identifier = (req.query.identifier || '').trim();
+        const method = req.query.method === 'phone' ? 'phone' : 'email';
+        if (!identifier) return res.json({ verified: false });
+        const user = method === 'phone' ? await getUserByPhone(identifier) : await getUserByEmail(identifier);
+        res.json({ verified: !!(user && user.is_verified) });
+    } catch (err) {
+        console.error('api/verify-check error:', err);
+        res.json({ verified: false });
+    }
 });
 
 app.post('/verify', async (req, res) => {
     try {
-        const email = (req.body.email || '').trim().toLowerCase();
+        const identifier = (req.body.identifier || req.body.email || '').trim().toLowerCase();
         const code = (req.body.code || '').trim();
 
-        const result = await verifyCode(email, code, 'register');
+        const result = await verifyCode(identifier, code, 'register');
         if (!result.valid) {
-            return res.send(renderVerifyPage(email, result.reason, true));
+            return res.send(renderVerifyPage(identifier, 'email', result.reason, true));
         }
 
         // Code confirmed — this is the moment the real account gets created.
-        const pending = await getPendingRegistration(email);
+        const pending = await getPendingRegistration(identifier);
         if (!pending) {
-            return res.send(renderVerifyPage(email, 'So‘rov muddati tugagan. Iltimos, qaytadan ro‘yxatdan o‘ting.', true));
+            return res.send(renderVerifyPage(identifier, 'email', 'So‘rov muddati tugagan. Iltimos, qaytadan ro‘yxatdan o‘ting.', true));
         }
 
         // Re-check uniqueness right before creating — another user could have
         // taken this username/email in the meantime.
         const existingUsername = await getUser(pending.username);
-        const existingEmailAcct = await getUserByEmail(email);
+        const existingEmailAcct = await getUserByEmail(identifier);
         if (existingUsername || existingEmailAcct) {
-            await deletePendingRegistration(email);
-            return res.send(renderVerifyPage(email, 'Bu foydalanuvchi nomi yoki email allaqachon band. Qaytadan ro‘yxatdan o‘ting.', true));
+            await deletePendingRegistration(identifier);
+            return res.send(renderVerifyPage(identifier, 'email', 'Bu foydalanuvchi nomi yoki email allaqachon band. Qaytadan ro‘yxatdan o‘ting.', true));
         }
 
-        const userId = await createUserSafely(pending.username, email, pending.password_hash);
-        await deletePendingRegistration(email);
+        const userId = await createUserSafely(pending.username, identifier, null, pending.password_hash);
+        await deletePendingRegistration(identifier);
 
         req.session.userId = userId;
         req.session.username = pending.username;
         res.redirect('/home');
     } catch (err) {
         console.error('Verify error:', err);
-        res.send(renderVerifyPage(req.body.email || '', 'Server xatosi', true));
+        res.send(renderVerifyPage(req.body.identifier || req.body.email || '', 'email', 'Server xatosi', true));
     }
 });
 
 app.post('/verify/resend', async (req, res) => {
     try {
-        const email = (req.body.email || '').trim().toLowerCase();
-        const pending = await getPendingRegistration(email);
+        const identifier = (req.body.identifier || req.body.email || '').trim().toLowerCase();
+        const method = req.body.method === 'phone' ? 'phone' : 'email';
+        const pending = await getPendingRegistration(identifier);
         if (!pending) {
-            return res.send(renderVerifyPage(email, 'So‘rov muddati tugagan. Iltimos, qaytadan ro‘yxatdan o‘ting.', true));
+            return res.send(renderVerifyPage(identifier, method, 'So‘rov muddati tugagan. Iltimos, qaytadan ro‘yxatdan o‘ting.', true));
         }
-        const code = await createVerificationCode(email, 'register');
-        await sendEmail(email, 'BirMillat — tasdiqlash kodi', verificationEmailHtml(code));
-        res.send(renderVerifyPage(email, 'Yangi kod yuborildi', false));
+        const code = await createVerificationCode(identifier, 'register');
+        if (method === 'phone') {
+            return res.send(renderVerifyPage(identifier, 'phone', 'Yangi kod tayyor', false, code));
+        }
+        await sendEmail(identifier, 'BirMillat — tasdiqlash kodi', verificationEmailHtml(code));
+        res.send(renderVerifyPage(identifier, 'email', 'Yangi kod yuborildi', false));
     } catch (err) {
         console.error('Resend code error:', err);
         res.send(renderVerifyPage(req.body.email || '', 'Server xatosi', true));
@@ -1746,6 +1950,8 @@ app.get('/api/me', async (req, res) => {
             birthdate: user.birthdate,
             age: calculateAge(user.birthdate),
             region: user.region,
+            email: user.email,
+            phone: user.phone,
             telegramLinked: !!user.telegram_chat_id
         });
     } catch (err) {
@@ -2167,6 +2373,50 @@ app.post(`/telegram/webhook/${TELEGRAM_BOT_TOKEN}`, async (req, res) => {
             } else {
                 await sendTelegramMessageTo(fromChatId, "❌ Havola muddati tugagan yoki noto'g'ri. Profilingizdan qaytadan urinib ko'ring.");
             }
+            return;
+        }
+
+        // ---------- Phone registration: bare 6-digit code from ANY sender ----------
+        // The person registered with a phone number, saw a code on-screen, and
+        // pasted it here to prove they control this Telegram chat — that's the
+        // whole "verification" for phone signups, no SMS involved. Also handled
+        // before admin/support routing for the same reason as /start above.
+        const codeMatch = (message.text || '').trim().match(/^\/?verify\s+(\d{6})$/i) || (message.text || '').trim().match(/^(\d{6})$/);
+        if (codeMatch) {
+            const code = codeMatch[1];
+            const codeRow = await findActiveCodeByCodeOnly(code, 'register');
+            if (!codeRow) {
+                await sendTelegramMessageTo(fromChatId, "❌ Kod noto'g'ri yoki muddati tugagan. Saytga qaytib, yangi kod oling.");
+                return;
+            }
+            const identifier = codeRow.email; // holds the phone number for phone signups
+            const pending = await getPendingRegistration(identifier);
+            if (!pending || pending.method !== 'phone') {
+                await sendTelegramMessageTo(fromChatId, "❌ Bu kod telefon orqali ro'yxatdan o'tish uchun emas.");
+                return;
+            }
+
+            const result = await verifyCode(identifier, code, 'register');
+            if (!result.valid) {
+                await sendTelegramMessageTo(fromChatId, "❌ " + result.reason);
+                return;
+            }
+
+            const existingUsername = await getUser(pending.username);
+            const existingPhone = await getUserByPhone(identifier);
+            if (existingUsername || existingPhone) {
+                await deletePendingRegistration(identifier);
+                await sendTelegramMessageTo(fromChatId, "❌ Bu foydalanuvchi nomi yoki raqam allaqachon band. Saytda qaytadan ro'yxatdan o'ting.");
+                return;
+            }
+
+            const userId = await createUserSafely(pending.username, null, identifier, pending.password_hash);
+            await deletePendingRegistration(identifier);
+            // Since we already know their chat here, link Telegram notifications
+            // automatically too — no separate linking step needed for phone signups.
+            await db.execute({ sql: 'UPDATE users SET telegram_chat_id = ? WHERE id = ?', args: [fromChatId, userId] });
+
+            await sendTelegramMessageTo(fromChatId, `✅ Tasdiqlandi! @${escapeHtmlForTelegram(pending.username)} hisobingiz yaratildi. Endi saytga kirishingiz mumkin.`);
             return;
         }
 
@@ -3095,6 +3345,11 @@ io.on('connection', (socket) => {
             if (sockets.size === 0) onlineUsers.delete(userId);
         }
     });
+});
+
+// ---------- 404 (must be the last route — catches anything unmatched above) ----------
+app.use((req, res) => {
+    res.status(404).sendFile(path.join(__dirname, '404.html'));
 });
 
 // ---------- Start server ----------
