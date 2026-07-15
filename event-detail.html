@@ -141,6 +141,7 @@
     </svg></a>
         <button class="nav-toggle" id="navToggle" aria-label="Menyu"><i class="fas fa-bars"></i></button>
         <div class="nav-links" id="navLinks">
+            <button class="sidebar-close" id="sidebarClose" aria-label="Yopish"><i class="fas fa-xmark"></i></button>
             <a href="/home"><i class="fas fa-house"></i> Bosh sahifa</a>
             <a href="/recommend"><i class="fas fa-wand-magic-sparkles"></i> Tavsiyalar</a>
             <a href="/events" class="active"><i class="fas fa-calendar-star"></i> Tadbirlar</a>
@@ -154,6 +155,7 @@
         <div class="user-badge" id="userBadge"><img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ...</div>
     <button class="theme-toggle" id="themeToggle" aria-label="Mavzuni almashtirish"><i class="fas fa-moon"></i></button>
 </nav>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
 
     <div class="detail-shell" id="detailRoot">
         <p style="color:var(--color-text-muted); text-align:center; padding:3rem 0;">Yuklanmoqda...</p>
@@ -350,16 +352,6 @@
             await loadMe();
             loadEvent();
         })();
-    </script>
-
-    <script>
-        const navToggleBtn = document.getElementById('navToggle');
-        const navLinksEl = document.getElementById('navLinks');
-        if (navToggleBtn && navLinksEl) {
-            navToggleBtn.addEventListener('click', () => {
-                navLinksEl.classList.toggle('open');
-            });
-        }
     </script>
 </body>
 </html>
