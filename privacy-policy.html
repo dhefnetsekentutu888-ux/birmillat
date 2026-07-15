@@ -40,10 +40,12 @@
     </svg></a>
         <button class="nav-toggle" id="navToggle" aria-label="Menyu"><i class="fas fa-bars"></i></button>
         <div class="nav-links" id="navLinks">
+            <button class="sidebar-close" id="sidebarClose" aria-label="Yopish"><i class="fas fa-xmark"></i></button>
             <a href="/login">Kirish</a>
         </div>
         <button class="theme-toggle" id="themeToggle" aria-label="Mavzuni almashtirish"><i class="fas fa-moon"></i></button>
 </nav>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
 
     <div class="policy-shell">
         <div class="policy-card card">
@@ -215,15 +217,5 @@
     </div>
 
     <footer>BirMillat – qiziqishlar asosida do'stlar toping.<br><span style="opacity:0.8;">Founder — Bekhruz Ravshanov</span></footer>
-
-    <script>
-        const navToggleBtn = document.getElementById('navToggle');
-        const navLinksEl = document.getElementById('navLinks');
-        if (navToggleBtn && navLinksEl) {
-            navToggleBtn.addEventListener('click', () => {
-                navLinksEl.classList.toggle('open');
-            });
-        }
-    </script>
 </body>
 </html>
