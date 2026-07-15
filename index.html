@@ -225,6 +225,36 @@
 .cat-card h3 { font-size: 1.05rem; margin-bottom: 0.4rem; }
 .cat-card p { font-size: 0.88rem; color: var(--color-text-muted); }
 
+.community-photo-wrap {
+    position: relative;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    box-shadow: var(--shadow-hover);
+    max-width: 900px;
+    margin: 0 auto;
+}
+.community-photo {
+    width: 100%;
+    height: clamp(260px, 45vw, 460px);
+    object-fit: cover;
+    display: block;
+}
+.community-photo-caption {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    padding: 1.6rem 1.4rem 1.2rem;
+    background: linear-gradient(to top, rgba(26,16,64,0.85), transparent);
+    color: #FAF7F2;
+    font-weight: 600;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+.community-photo-caption i {
+    color: var(--color-accent);
+}
+
 .mission {
     background: var(--color-primary); color: white; border-radius: var(--radius-md);
     padding: 3rem 2rem; text-align: center;
@@ -283,6 +313,7 @@
     </a>
     <button class="theme-toggle" id="themeToggle" aria-label="Mavzuni almashtirish"><i class="fas fa-moon"></i></button>
 </nav>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
 
 <section class="hero">
     <svg class="hero-decor" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
@@ -412,6 +443,15 @@
             <span class="tag accent"><img src="/icons/icon-sport.svg" alt="" class="tag-icon"> Sport</span>
             <span class="tag"><img src="/icons/icon-design.svg" alt="" class="tag-icon"> Dizayn</span>
             <span class="tag accent"><img src="/icons/icon-volunteer.svg" alt="" class="tag-icon"> Volontyorlik</span>
+        </div>
+    </div>
+</div>
+
+<div class="section">
+    <div class="community-photo-wrap">
+        <img src="/images/community-action.jpg" alt="BirMillat yoshlari birgalikda" class="community-photo">
+        <div class="community-photo-caption">
+            <i class="fas fa-heart"></i> Qiziqishlar birlashtiradi — jamiyat uchun, birga
         </div>
     </div>
 </div>
