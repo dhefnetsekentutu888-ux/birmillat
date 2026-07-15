@@ -5,155 +5,86 @@
 <meta charset="UTF-8">
 <link rel="icon" type="image/png" href="/favicon.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BirMillat – Tadbir</title>
+<title>BirMillat – Maqola</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="/style.css">
 <style>
     .detail-shell { max-width: 720px; margin: 2rem auto; padding: 0 1.5rem; }
+    .detail-card { padding: 2.2rem; margin-bottom: 1.5rem; }
+    .detail-card h1 { font-size: 1.7rem; margin-bottom: 1rem; line-height: 1.3; }
 
-    .event-hero {
-        border-radius: var(--radius-md);
-        padding: 2rem;
-        margin-bottom: 1.2rem;
-        background: linear-gradient(145deg, var(--color-primary) 0%, #4A2F9E 100%);
-        color: #FAF7F2;
-        position: relative;
-        overflow: hidden;
+    .author-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.8rem; margin-bottom: 1.6rem; padding-bottom: 1.2rem; border-bottom: 1px solid var(--color-border); }
+    .author-link { display: flex; align-items: center; gap: 0.6rem; text-decoration: none; color: inherit; }
+    .author-link .avatar {
+        width: 38px; height: 38px; border-radius: 50%; background: #EFEAF8;
+        display: flex; align-items: center; justify-content: center; font-size: 0.85rem; color: var(--color-primary); overflow: hidden;
+        font-family: var(--font-display); font-weight: 700;
     }
-    .event-hero-rings {
-        position: absolute; top: -20%; right: -10%;
-        width: 220px; height: 220px; opacity: 0.18; pointer-events: none;
-    }
-    .event-hero > * { position: relative; z-index: 1; }
-    .event-badges { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 1rem; }
-    .event-badge {
-        display: inline-flex; align-items: center; gap: 0.4rem;
-        background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.2);
-        padding: 0.35rem 0.9rem; border-radius: var(--radius-pill);
-        font-size: 0.78rem; font-weight: 600;
-    }
-    .event-hero h1 { color: #FAF7F2; font-size: 1.6rem; margin-bottom: 0.3rem; }
-    .event-hero .organizer-line { font-size: 0.88rem; color: rgba(250,247,242,0.8); display: flex; align-items: center; gap: 0.5rem; }
-    .event-hero .organizer-line a { color: #FAF7F2; font-weight: 600; text-decoration: underline; }
+    .author-link .avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .author-link .author-name { font-weight: 600; color: var(--color-text); font-size: 0.95rem; }
+    .author-link .author-date { font-size: 0.8rem; color: var(--color-text-muted); }
 
-    .stat-strip {
-        display: flex; gap: 1rem; padding: 1.2rem; margin-bottom: 1.2rem;
-    }
-    .stat-block { flex: 1; text-align: center; }
-    .stat-block .stat-icon {
-        width: 40px; height: 40px; border-radius: 50%; background: #EFEAF8;
-        display: flex; align-items: center; justify-content: center; margin: 0 auto 0.5rem;
-        color: var(--color-primary); font-size: 1.05rem;
-    }
-    .stat-block .stat-num { font-family: var(--font-display); font-weight: 700; font-size: 1.3rem; color: var(--color-primary); }
-    .stat-block .stat-label { font-size: 0.75rem; color: var(--color-text-muted); }
-    .stat-divider { width: 1px; background: var(--color-border); }
+    .article-body { line-height: 1.8; color: var(--color-text); white-space: pre-wrap; margin-bottom: 2rem; font-size: 1rem; }
 
-    .info-card { padding: 1.6rem; margin-bottom: 1.2rem; }
-    .info-row { display: flex; align-items: flex-start; gap: 0.9rem; padding: 0.7rem 0; }
-    .info-row + .info-row { border-top: 1px solid var(--color-border); }
-    .info-icon {
-        width: 36px; height: 36px; border-radius: 50%; background: #EFEAF8;
-        display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-        color: var(--color-primary); font-size: 0.95rem;
+    .action-row { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; }
+    .like-btn {
+        display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1.2rem;
+        border-radius: var(--radius-pill); border: 1.5px solid var(--color-border); background: var(--color-surface);
+        color: var(--color-text); font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: all 0.15s ease;
     }
-    .info-row-text .info-label { font-size: 0.75rem; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 0.15rem; }
-    .info-row-text .info-value { font-size: 0.95rem; color: var(--color-text); font-weight: 500; }
+    .like-btn:hover { border-color: var(--color-accent); }
+    .like-btn.liked { background: #FFEAE6; border-color: var(--color-accent); color: var(--color-accent); }
+    .like-btn.liked i { color: var(--color-accent); }
+    .report-btn, .delete-btn {
+        display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1.2rem;
+        border-radius: var(--radius-pill); border: 1.5px solid var(--color-border); background: transparent;
+        color: var(--color-text-muted); font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: all 0.15s ease;
+    }
+    .report-btn:hover { border-color: var(--color-error); color: var(--color-error); }
+    .delete-btn:hover { border-color: var(--color-error); color: var(--color-error); }
 
-    .description-card { padding: 1.6rem; margin-bottom: 1.2rem; line-height: 1.7; color: var(--color-text); }
-    .description-card .section-label { margin-bottom: 0.8rem; }
-
-    .action-row { display: flex; gap: 0.8rem; flex-wrap: wrap; margin-bottom: 1.2rem; }
-    .join-btn {
-        flex: 1; min-width: 180px;
-        display: inline-flex; align-items: center; justify-content: center; gap: 0.6rem;
-        padding: 0.9rem 1.4rem; border-radius: var(--radius-pill);
-        font-weight: 700; font-size: 0.95rem; cursor: pointer; border: none;
-        background: var(--color-accent); color: white;
-        transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+    .report-modal {
+        display: none; position: fixed; inset: 0; background: rgba(26,22,37,0.5);
+        z-index: 100; align-items: center; justify-content: center; padding: 1.5rem;
     }
-    .join-btn:hover { background: var(--color-accent-light); transform: translateY(-1px); box-shadow: 0 8px 20px rgba(255,107,91,0.3); }
-    .join-btn.joined {
-        background: var(--color-success-bg); color: var(--color-success);
-        border: 1.5px solid var(--color-success);
+    .report-modal.open { display: flex; }
+    .report-modal-card { max-width: 420px; width: 100%; }
+    .report-modal-card textarea {
+        width: 100%; padding: 0.75rem 1rem; border-radius: var(--radius-sm); margin-top: 0.8rem;
+        border: 1px solid var(--color-border); font-family: var(--font-body); font-size: 0.9rem; resize: vertical; min-height: 90px;
     }
-    .join-btn.joined:hover { background: var(--color-error-bg); color: var(--color-error); border-color: var(--color-error); }
-    .join-btn.joined:hover .join-btn-label::after { content: " (bekor qilish)"; }
-    .join-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
-    .creator-note {
-        flex: 1; min-width: 180px; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
-        padding: 0.9rem 1.4rem; border-radius: var(--radius-pill);
-        background: #EFEAF8; color: var(--color-primary); font-weight: 600; font-size: 0.9rem;
-    }
-    .social-btn {
-        display: inline-flex; align-items: center; justify-content: center; gap: 0.6rem;
-        padding: 0.9rem 1.4rem; border-radius: var(--radius-pill);
-        font-weight: 700; font-size: 0.95rem; text-decoration: none;
-        border: 1.5px solid var(--color-border); color: var(--color-text);
-        transition: all 0.15s ease;
-    }
-    .social-btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-card); }
-    .social-btn.telegram { border-color: #29A9EA; color: #29A9EA; }
-    .social-btn.telegram:hover { background: #29A9EA; color: white; }
-    .social-btn.instagram { border-color: #E1306C; color: #E1306C; }
-    .social-btn.instagram:hover { background: linear-gradient(45deg, #F58529, #DD2A7B, #8134AF, #515BD4); color: white; border-color: transparent; }
-    .social-btn.location-btn { border-color: #34A853; color: #34A853; }
-    .social-btn.location-btn:hover { background: #34A853; color: white; }
-    .social-btn.plan-btn { border-color: var(--color-primary); color: var(--color-primary); }
-    .social-btn.plan-btn:hover { background: var(--color-primary); color: white; }
-
-    .attendees-card { padding: 1.6rem; }
-    .attendee-chip-row { display: flex; flex-wrap: wrap; gap: 0.7rem; margin-top: 0.9rem; }
-    .attendee-chip {
-        display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none;
-        background: var(--color-bg); padding: 0.4rem 0.9rem 0.4rem 0.4rem; border-radius: var(--radius-pill);
-        font-size: 0.85rem; font-weight: 600; color: var(--color-primary);
-        transition: transform 0.15s ease;
-    }
-    .attendee-chip:hover { transform: translateY(-2px); }
-    .attendee-chip .mini-avatar {
-        width: 26px; height: 26px; border-radius: 50%; background: #EFEAF8;
-        display: flex; align-items: center; justify-content: center; overflow: hidden;
-        font-size: 0.7rem; color: var(--color-primary); font-weight: 700;
-    }
-    .attendee-chip .mini-avatar img { width: 100%; height: 100%; object-fit: cover; }
-
     .not-found { text-align: center; padding: 4rem 1.5rem; color: var(--color-text-muted); }
 </style>
 </head>
 <body>
     <nav class="navbar">
-        <a href="/home" class="logo"><svg width="160" height="45" viewBox="0 0 320 90" xmlns="http://www.w3.org/2000/svg" style="display:block;">
-      <g transform="translate(45,45)">
-        <g transform="rotate(-18)">
-          <ellipse cx="-10" cy="0" rx="20" ry="36" fill="none" stroke="#2D1B69" stroke-width="10"/>
-        </g>
-        <g transform="rotate(18)">
-          <ellipse cx="10" cy="0" rx="20" ry="36" fill="none" stroke="#FF6B5B" stroke-width="10"/>
-        </g>
-        <g transform="rotate(-18)">
-          <path d="M -30 0 A 20 36 0 0 1 11 0" fill="none" stroke="#2D1B69" stroke-width="10" stroke-linecap="round"/>
-        </g>
-      </g>
-      <text x="95" y="53" font-size="34" font-weight="700" fill="#2D1B69" font-family="Poppins, -apple-system, sans-serif">Bir<tspan fill="#FF6B5B">Millat</tspan></text>
-    </svg></a>
+        <a href="/home" class="logo">
+            <svg width="160" height="45" viewBox="0 0 320 90" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+              <g transform="translate(45,45)">
+                <g transform="rotate(-18)"><ellipse cx="-10" cy="0" rx="20" ry="36" fill="none" stroke="#2D1B69" stroke-width="10"/></g>
+                <g transform="rotate(18)"><ellipse cx="10" cy="0" rx="20" ry="36" fill="none" stroke="#FF6B5B" stroke-width="10"/></g>
+                <g transform="rotate(-18)"><path d="M -30 0 A 20 36 0 0 1 11 0" fill="none" stroke="#2D1B69" stroke-width="10" stroke-linecap="round"/></g>
+              </g>
+              <text x="95" y="53" font-size="34" font-weight="700" fill="#2D1B69" font-family="Poppins, -apple-system, sans-serif">Bir<tspan fill="#FF6B5B">Millat</tspan></text>
+            </svg>
+        </a>
         <button class="nav-toggle" id="navToggle" aria-label="Menyu"><i class="fas fa-bars"></i></button>
         <div class="nav-links" id="navLinks">
             <button class="sidebar-close" id="sidebarClose" aria-label="Yopish"><i class="fas fa-xmark"></i></button>
             <a href="/home"><i class="fas fa-house"></i> Bosh sahifa</a>
             <a href="/recommend"><i class="fas fa-wand-magic-sparkles"></i> Tavsiyalar</a>
-            <a href="/events" class="active"><i class="fas fa-calendar-star"></i> Tadbirlar</a>
+            <a href="/events"><i class="fas fa-calendar-star"></i> Tadbirlar</a>
             <a href="/communities"><i class="fas fa-people-group"></i> Jamoalar</a>
-            <a href="/articles"><i class="fas fa-newspaper"></i> Maqolalar</a>
+            <a href="/articles" class="active"><i class="fas fa-newspaper"></i> Maqolalar</a>
             <a href="/search"><i class="fas fa-magnifying-glass"></i> Qidiruv</a>
             <a href="/messages"><i class="fas fa-comment-dots"></i> Xabarlar</a>
             <a href="/profile"><i class="fas fa-user"></i> Profil</a>
             <a href="/logout"><i class="fas fa-right-from-bracket"></i> Chiqish</a>
         </div>
         <div class="user-badge" id="userBadge"><img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ...</div>
-    <button class="theme-toggle" id="themeToggle" aria-label="Mavzuni almashtirish"><i class="fas fa-moon"></i></button>
+        <button class="theme-toggle" id="themeToggle" aria-label="Mavzuni almashtirish"><i class="fas fa-moon"></i></button>
 </nav>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
@@ -161,17 +92,25 @@
         <p style="color:var(--color-text-muted); text-align:center; padding:3rem 0;">Yuklanmoqda...</p>
     </div>
 
-    <footer>BirMillat – qiziqishlar asosida do'stlar toping. · <a href="/privacy" style="color:inherit;">Maxfiylik siyosati</a><br><span style="opacity:0.8;">Founder — Bekhruz Ravshanov</span></footer>
+    <footer>BirMillat – qiziqishlar asosida do'stlar toping.<br><span style="opacity:0.8;">Founder — Bekhruz Ravshanov</span></footer>
+
+    <div class="report-modal" id="reportModal">
+        <div class="card report-modal-card">
+            <h2 style="font-size:1.15rem; margin-bottom:0.4rem;"><i class="fas fa-flag"></i> Maqolani shikoyat qilish</h2>
+            <p style="font-size:0.85rem; color:var(--color-text-muted);">Nima uchun bu maqola qoidalarga zid deb o'ylaysiz?</p>
+            <textarea id="reportReason" placeholder="Sabab (ixtiyoriy)"></textarea>
+            <div style="display:flex; gap:0.8rem; margin-top:1rem;">
+                <button class="btn btn-primary" id="submitReport" style="flex:1; justify-content:center;">Yuborish</button>
+                <button class="btn btn-cancel" id="closeReportModal" style="border:1.5px solid var(--color-border); background:transparent; color:var(--color-text-muted);">Bekor qilish</button>
+            </div>
+            <div class="submit-status" id="reportStatus" style="font-size:0.85rem; margin-top:0.6rem;"></div>
+        </div>
+    </div>
 
     <script>
-        function getEventId() {
+        function getArticleId() {
             const parts = window.location.pathname.split('/').filter(Boolean);
             return parts[parts.length - 1];
-        }
-
-        function formatEventDate(ts) {
-            const d = new Date(ts);
-            return formatUzDate(d, { time: true });
         }
 
         function initials(name) {
@@ -180,17 +119,9 @@
             return parts.length > 1 ? (parts[0][0] + parts[1][0]).toUpperCase() : parts[0].slice(0, 2).toUpperCase();
         }
 
-        // Detects the platform from a URL so the social button gets the right
-        // icon, label, and brand color instead of a generic link button.
-        function detectSocialPlatform(url) {
-            const lower = url.toLowerCase();
-            if (lower.includes('t.me') || lower.includes('telegram')) {
-                return { cls: 'telegram', icon: 'fab fa-telegram', label: 'Telegram' };
-            }
-            if (lower.includes('instagram.com')) {
-                return { cls: 'instagram', icon: 'fab fa-instagram', label: 'Instagram' };
-            }
-            return { cls: '', icon: 'fas fa-link', label: 'Havola' };
+        function formatDate(ts) {
+            const d = new Date(ts);
+            return formatUzDate(d);
         }
 
         async function loadMe() {
@@ -201,156 +132,111 @@
             return me;
         }
 
-        async function toggleJoin(eventId, isAttending) {
-            const btn = document.getElementById('joinBtn');
-            if (btn) btn.disabled = true;
-            const url = `/api/events/${eventId}/${isAttending ? 'leave' : 'join'}`;
+        async function toggleLike(articleId) {
             try {
-                const res = await fetch(url, { method: 'POST' });
-                if (!res.ok) throw new Error('Server error');
-                loadEvent();
+                const res = await fetch(`/api/articles/${articleId}/like`, { method: 'POST' });
+                if (!res.ok) throw new Error();
+                const data = await res.json();
+                const btn = document.getElementById('likeBtn');
+                btn.classList.toggle('liked', data.isLiked);
+                btn.innerHTML = `<i class="fas fa-heart"></i> ${data.likeCount}`;
             } catch (e) {
-                console.error('Join/leave failed:', e);
-                alert("Xatolik yuz berdi. Qaytadan urinib ko'ring.");
-                if (btn) btn.disabled = false;
+                console.error('Like failed:', e);
             }
         }
 
-        async function loadEvent() {
-            const eventId = getEventId();
+        async function deleteOwnArticle(articleId) {
+            if (!confirm("Maqolani o'chirishni tasdiqlaysizmi?")) return;
+            try {
+                const res = await fetch(`/api/articles/${articleId}`, { method: 'DELETE' });
+                if (!res.ok) throw new Error();
+                window.location.href = '/articles';
+            } catch (e) {
+                alert("Xatolik yuz berdi. Qaytadan urinib ko'ring.");
+            }
+        }
+
+        async function loadArticle() {
+            const articleId = getArticleId();
             const root = document.getElementById('detailRoot');
 
             try {
-                const res = await fetch(`/api/events/${eventId}`);
+                const res = await fetch(`/api/articles/${articleId}`);
                 if (!res.ok) {
-                    root.innerHTML = `<div class="not-found"><i class="fas fa-calendar-xmark" style="font-size:2.4rem; color:var(--color-border); display:block; margin-bottom:1rem;"></i><p>Bu tadbir topilmadi yoki hali tasdiqlanmagan.</p></div>`;
+                    root.innerHTML = `<div class="not-found"><i class="fas fa-file-circle-xmark" style="font-size:2.4rem; color:var(--color-border); display:block; margin-bottom:1rem;"></i><p>Bu maqola topilmadi yoki o'chirilgan.</p></div>`;
                     return;
                 }
-                const ev = await res.json();
-                const isFull = ev.capacity && ev.attendees.length >= ev.capacity;
-                const isOnline = ev.mode === 'online';
-
-                let socialBtnHtml = '';
-                if (ev.social_link) {
-                    const platform = detectSocialPlatform(ev.social_link);
-                    socialBtnHtml = `
-                        <a href="${ev.social_link}" target="_blank" rel="noopener" class="social-btn ${platform.cls}">
-                            <i class="${platform.icon}"></i> ${platform.label}
-                        </a>
-                    `;
-                }
+                const article = await res.json();
 
                 root.innerHTML = `
-                    <div class="event-hero">
-                        <svg class="event-hero-rings" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-                            <g transform="translate(100,100) rotate(-18)"><ellipse cx="-14" cy="0" rx="32" ry="58" fill="none" stroke="#FAF7F2" stroke-width="2"/></g>
-                            <g transform="translate(100,100) rotate(18)"><ellipse cx="14" cy="0" rx="32" ry="58" fill="none" stroke="#FF6B5B" stroke-width="2"/></g>
-                        </svg>
-                        <div class="event-badges">
-                            <span class="event-badge"><i class="fas fa-calendar"></i> ${formatEventDate(ev.event_date)}</span>
-                            <span class="event-badge"><i class="fas fa-tag"></i> ${ev.category}</span>
-                            <span class="event-badge"><i class="fas ${isOnline ? 'fa-video' : 'fa-location-dot'}"></i> ${isOnline ? 'Onlayn' : "Yuzma-yuz"}</span>
-                        </div>
-                        <h1>${ev.title}</h1>
-                        <div class="organizer-line">
-                            <i class="fas fa-user"></i> Tashkilotchi: <a href="/u/${ev.creator_username}">@${ev.creator_username}</a>
-                        </div>
-                    </div>
-
-                    <div class="stat-strip card">
-                        <div class="stat-block">
-                            <div class="stat-icon"><i class="fas fa-users"></i></div>
-                            <div class="stat-num">${ev.attendees.length}</div>
-                            <div class="stat-label">Qatnashuvchi</div>
-                        </div>
-                        <div class="stat-divider"></div>
-                        <div class="stat-block">
-                            <div class="stat-icon"><i class="fas fa-chair"></i></div>
-                            <div class="stat-num">${ev.capacity ? ev.capacity : '∞'}</div>
-                            <div class="stat-label">O'rinlar soni</div>
-                        </div>
-                        <div class="stat-divider"></div>
-                        <div class="stat-block">
-                            <div class="stat-icon"><i class="fas ${isOnline ? 'fa-globe' : 'fa-map-pin'}"></i></div>
-                            <div class="stat-num" style="font-size:0.95rem;">${isOnline ? 'Onlayn' : "Yuzma-yuz"}</div>
-                            <div class="stat-label">Format</div>
-                        </div>
-                    </div>
-
-                    <div class="info-card card">
-                        <div class="info-row">
-                            <div class="info-icon"><i class="fas ${isOnline ? 'fa-video' : 'fa-location-dot'}"></i></div>
-                            <div class="info-row-text">
-                                <div class="info-label">${isOnline ? 'Onlayn havola' : 'Manzil'}</div>
-                                <div class="info-value">${ev.location || (isOnline ? "Havola tez orada qo'shiladi" : "Joylashuv ko'rsatilmagan")}</div>
-                            </div>
-                        </div>
-                        <div class="info-row">
-                            <div class="info-icon"><i class="fas fa-clock"></i></div>
-                            <div class="info-row-text">
-                                <div class="info-label">Sana va vaqt</div>
-                                <div class="info-value">${formatEventDate(ev.event_date)}</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    ${ev.description ? `
-                        <div class="description-card card">
-                            <div class="section-label"><i class="fas fa-align-left"></i> Tavsif</div>
-                            <p>${ev.description}</p>
-                        </div>
-                    ` : ''}
-
-                    <div class="action-row">
-                        ${ev.isCreator
-                            ? `<span class="creator-note"><i class="fas fa-star"></i> Siz bu tadbirni yaratdingiz</span>
-                               <a href="/events/${ev.id}/edit" class="social-btn"><i class="fas fa-pen-to-square"></i> Tahrirlash</a>`
-                            : `<button class="join-btn ${ev.isAttending ? 'joined' : ''}" id="joinBtn" ${isFull && !ev.isAttending ? 'disabled' : ''}>
-                                <i class="fas ${ev.isAttending ? 'fa-circle-check' : 'fa-calendar-plus'}"></i>
-                                <span class="join-btn-label">${ev.isAttending ? "Qatnashasiz" : (isFull ? "To'lgan" : "Tadbirga qo'shilish")}</span>
-                              </button>`
-                        }
-                        ${ev.map_link ? `
-                            <a href="${ev.map_link}" target="_blank" rel="noopener" class="social-btn location-btn">
-                                <i class="fas fa-map-location-dot"></i> Lokatsiya
+                    <div class="detail-card card">
+                        <h1>${article.title}</h1>
+                        <div class="author-row">
+                            <a href="/u/${article.author.username}" class="author-link">
+                                <span class="avatar">${article.author.photoUrl ? `<img src="${article.author.photoUrl}" alt="">` : initials(article.author.name || article.author.username)}</span>
+                                <span>
+                                    <div class="author-name">@${article.author.username}</div>
+                                    <div class="author-date">${formatDate(article.createdAt)}</div>
+                                </span>
                             </a>
-                        ` : ''}
-                        ${ev.plan_link ? `
-                            <a href="${ev.plan_link}" target="_blank" rel="noopener" class="social-btn plan-btn">
-                                <i class="fas fa-list-check"></i> Reja
-                            </a>
-                        ` : ''}
-                        ${socialBtnHtml}
-                    </div>
-
-                    ${ev.attendees.length > 0 ? `
-                        <div class="attendees-card card">
-                            <div class="section-label"><i class="fas fa-users"></i> Qatnashuvchilar (${ev.attendees.length})</div>
-                            <div class="attendee-chip-row">
-                                ${ev.attendees.map(a => `
-                                    <a href="/u/${a.username}" class="attendee-chip">
-                                        <span class="mini-avatar">${a.photo_url ? `<img src="${a.photo_url}" alt="">` : initials(a.name || a.username)}</span>
-                                        @${a.username}
-                                    </a>
-                                `).join('')}
-                            </div>
                         </div>
-                    ` : ''}
+                        <div class="article-body">${article.content}</div>
+                        <div class="action-row">
+                            <button class="like-btn ${article.isLiked ? 'liked' : ''}" id="likeBtn">
+                                <i class="fas fa-heart"></i> ${article.likeCount}
+                            </button>
+                            ${article.isAuthor
+                                ? `<button class="delete-btn" id="deleteBtn"><i class="fas fa-trash"></i> O'chirish</button>`
+                                : `<button class="report-btn" id="reportBtn"><i class="fas fa-flag"></i> Shikoyat qilish</button>`
+                            }
+                        </div>
+                    </div>
                 `;
 
-                const joinBtn = document.getElementById('joinBtn');
-                if (joinBtn) {
-                    joinBtn.addEventListener('click', () => toggleJoin(ev.id, ev.isAttending));
+                document.getElementById('likeBtn').addEventListener('click', () => toggleLike(article.id));
+
+                const deleteBtn = document.getElementById('deleteBtn');
+                if (deleteBtn) deleteBtn.addEventListener('click', () => deleteOwnArticle(article.id));
+
+                const reportBtn = document.getElementById('reportBtn');
+                if (reportBtn) {
+                    reportBtn.addEventListener('click', () => {
+                        document.getElementById('reportModal').classList.add('open');
+                    });
                 }
+
+                document.getElementById('submitReport').onclick = async () => {
+                    const statusEl = document.getElementById('reportStatus');
+                    statusEl.textContent = 'Yuborilmoqda...';
+                    statusEl.className = 'submit-status';
+                    try {
+                        const res = await fetch(`/api/articles/${article.id}/report`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ reason: document.getElementById('reportReason').value.trim() })
+                        });
+                        if (!res.ok) throw new Error();
+                        statusEl.textContent = 'Shikoyat yuborildi. Rahmat!';
+                        statusEl.className = 'submit-status success';
+                        setTimeout(() => document.getElementById('reportModal').classList.remove('open'), 1200);
+                    } catch (e) {
+                        statusEl.textContent = "Xatolik yuz berdi. Qaytadan urinib ko'ring.";
+                        statusEl.className = 'submit-status error';
+                    }
+                };
             } catch (e) {
-                console.error('Failed to load event:', e);
+                console.error('Failed to load article:', e);
                 root.innerHTML = `<div class="not-found">Yuklab bo'lmadi. Sahifani qaytadan yuklang.</div>`;
             }
         }
 
+        document.getElementById('closeReportModal').addEventListener('click', () => {
+            document.getElementById('reportModal').classList.remove('open');
+        });
+
         (async () => {
             await loadMe();
-            loadEvent();
+            loadArticle();
         })();
     </script>
 </body>
