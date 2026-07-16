@@ -188,6 +188,13 @@ a {
   flex-shrink: 0;
 }
 
+/* Auto margin overrides justify-content's spacing — this clusters the
+   hamburger right next to the logo (YouTube-style), pushing everything
+   after it (user badge, theme toggle) to the far right instead. */
+.navbar .nav-toggle {
+  margin-right: auto;
+}
+
 .navbar .nav-links a {
   display: flex;
   align-items: center;
