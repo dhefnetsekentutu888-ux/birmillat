@@ -1028,7 +1028,7 @@ class TursoStore extends Store {
     }
 
     set(sid, sessionData, callback) {
-        const expires = Date.now() + (sessionData.cookie.maxAge || 24 * 60 * 60 * 1000);
+        const expires = Date.now() + (sessionData.cookie.maxAge || 30 * 24 * 60 * 60 * 1000);
         const sess = JSON.stringify(sessionData);
         db.execute({
             sql: `INSERT INTO sessions (sid, sess, expires) VALUES (?, ?, ?)
@@ -1058,7 +1058,11 @@ const sessionMiddleware = session({
     resave: false,
     saveUninitialized: false,
     store: new TursoStore(),
-    cookie: { maxAge: 24 * 60 * 60 * 1000 }
+    // 30 days — keeps people logged in across visits ("remember this device")
+    // instead of the previous 24h, which was forcing a fresh login every day
+    // even though the auto-redirect-if-logged-in logic on GET / was already
+    // working correctly the whole time.
+    cookie: { maxAge: 30 * 24 * 60 * 60 * 1000 }
 });
 app.use(sessionMiddleware);
 app.use(express.static(path.join(__dirname)));
