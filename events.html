@@ -61,7 +61,7 @@
             <button class="sidebar-close" id="sidebarClose" aria-label="Yopish"><i class="fas fa-xmark"></i></button>
             <a href="/home"><i class="fas fa-house"></i> Bosh sahifa</a>
             <a href="/recommend"><i class="fas fa-wand-magic-sparkles"></i> Tavsiyalar</a>
-            <a href="/events" class="active"><i class="fas fa-calendar-star"></i> Tadbirlar</a>
+            <a href="/events" class="active"><i class="fas fa-calendar-days"></i> Tadbirlar</a>
             <a href="/communities"><i class="fas fa-people-group"></i> Jamoalar</a>
             <a href="/articles"><i class="fas fa-newspaper"></i> Maqolalar</a>
             <a href="/search"><i class="fas fa-magnifying-glass"></i> Qidiruv</a>
@@ -70,6 +70,13 @@
             <a href="/logout"><i class="fas fa-right-from-bracket"></i> Chiqish</a>
         </div>
         <div class="user-badge" id="userBadge"><img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ...</div>
+    <div class="notif-bell-wrap">
+        <button class="notif-bell" id="notifBell" aria-label="Bildirishnomalar"><i class="fas fa-bell"></i><span class="notif-dot" id="notifDot"></span></button>
+        <div class="notif-panel" id="notifPanel">
+            <div class="notif-panel-header">Bildirishnomalar</div>
+            <div id="notifList"></div>
+        </div>
+    </div>
         <button class="theme-toggle" id="themeToggle" aria-label="Mavzuni almashtirish"><i class="fas fa-moon"></i></button>
 </nav>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -77,7 +84,7 @@
     <div class="page-container">
         <div class="page-head">
             <div>
-                <h1><i class="fas fa-calendar-star"></i> Tadbirlar</h1>
+                <h1><i class="fas fa-calendar-days"></i> Tadbirlar</h1>
                 <p>Yoshlar uchun tadbirlar, klublar va uchrashuvlar</p>
             </div>
             <a href="/events/create" class="btn btn-primary"><i class="fas fa-plus"></i> Tadbir qo'shish</a>
