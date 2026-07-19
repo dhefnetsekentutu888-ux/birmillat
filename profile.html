@@ -256,7 +256,7 @@
             <button class="sidebar-close" id="sidebarClose" aria-label="Yopish"><i class="fas fa-xmark"></i></button>
             <a href="/home"><i class="fas fa-house"></i> Bosh sahifa</a>
             <a href="/recommend"><i class="fas fa-wand-magic-sparkles"></i> Tavsiyalar</a>
-            <a href="/events"><i class="fas fa-calendar-star"></i> Tadbirlar</a>
+            <a href="/events"><i class="fas fa-calendar-days"></i> Tadbirlar</a>
             <a href="/communities"><i class="fas fa-people-group"></i> Jamoalar</a>
             <a href="/articles"><i class="fas fa-newspaper"></i> Maqolalar</a>
             <a href="/search"><i class="fas fa-magnifying-glass"></i> Qidiruv</a>
@@ -265,6 +265,13 @@
             <a href="/logout"><i class="fas fa-right-from-bracket"></i> Chiqish</a>
         </div>
         <div class="user-badge" id="userBadge"><img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ...</div>
+    <div class="notif-bell-wrap">
+        <button class="notif-bell" id="notifBell" aria-label="Bildirishnomalar"><i class="fas fa-bell"></i><span class="notif-dot" id="notifDot"></span></button>
+        <div class="notif-panel" id="notifPanel">
+            <div class="notif-panel-header">Bildirishnomalar</div>
+            <div id="notifList"></div>
+        </div>
+    </div>
         <button class="theme-toggle" id="themeToggle" aria-label="Mavzuni almashtirish"><i class="fas fa-moon"></i></button>
 </nav>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -370,6 +377,17 @@
             <p id="telegramStatusText" style="font-size: 0.9rem; color: var(--color-text-muted); margin: 0.5rem 0 1rem;">Tekshirilmoqda...</p>
             <button class="btn btn-primary" id="telegramLinkBtn" style="display:none;">
                 <i class="fab fa-telegram"></i> Telegram orqali ulash
+            </button>
+        </div>
+
+        <div class="card" style="padding: 1.6rem; margin-top: 1.5rem;">
+            <div class="section-label"><i class="fas fa-bell"></i> Push bildirishnomalar</div>
+            <p id="pushStatusText" style="font-size: 0.9rem; color: var(--color-text-muted); margin: 0.5rem 0 1rem;">Tekshirilmoqda...</p>
+            <button class="btn btn-primary" id="pushSubscribeBtn" style="display:none;">
+                <i class="fas fa-bell"></i> Bildirishnomalarni yoqish
+            </button>
+            <button class="btn btn-outline" id="pushUnsubscribeBtn" style="display:none;">
+                <i class="fas fa-bell-slash"></i> O'chirish
             </button>
         </div>
     </div>
@@ -724,6 +742,61 @@
                 btn.disabled = false;
             }
         });
+
+        async function refreshPushStatus() {
+            const statusText = document.getElementById('pushStatusText');
+            const subBtn = document.getElementById('pushSubscribeBtn');
+            const unsubBtn = document.getElementById('pushUnsubscribeBtn');
+
+            if (!window.BirMillatPush || !window.BirMillatPush.isSupported()) {
+                statusText.textContent = "Bu qurilma/brauzer push bildirishnomalarni qo'llab-quvvatlamaydi.";
+                subBtn.style.display = 'none';
+                unsubBtn.style.display = 'none';
+                return;
+            }
+
+            const reg = await navigator.serviceWorker.getRegistration();
+            const sub = reg ? await reg.pushManager.getSubscription() : null;
+
+            if (sub) {
+                statusText.innerHTML = '<i class="fas fa-circle-check" style="color:var(--color-success);"></i> Yoqilgan — like, xabar va tadbir bildirishnomalarini shu qurilmada olasiz.';
+                subBtn.style.display = 'none';
+                unsubBtn.style.display = 'inline-flex';
+            } else {
+                statusText.textContent = "O'chirilgan. Yoqsangiz, telefoningiz/brauzeringiz orqali darhol bildirishnoma olasiz.";
+                subBtn.style.display = 'inline-flex';
+                unsubBtn.style.display = 'none';
+            }
+        }
+
+        document.getElementById('pushSubscribeBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('pushSubscribeBtn');
+            btn.disabled = true;
+            try {
+                await window.BirMillatPush.subscribe();
+                await refreshPushStatus();
+            } catch (e) {
+                console.error('Push subscribe failed:', e);
+                alert("Bildirishnomalarni yoqib bo'lmadi. Brauzer ruxsatini tekshiring.");
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+        document.getElementById('pushUnsubscribeBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('pushUnsubscribeBtn');
+            btn.disabled = true;
+            try {
+                await window.BirMillatPush.unsubscribe();
+                await refreshPushStatus();
+            } catch (e) {
+                console.error('Push unsubscribe failed:', e);
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+        refreshPushStatus();
 
         loadMe().then(() => loadAchievements());
     </script>
