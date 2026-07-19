@@ -6,11 +6,20 @@ const http = require('http');
 const { Server: SocketIOServer } = require('socket.io');
 const { createClient } = require('@libsql/client');
 const multer = require('multer');
+const webpush = require('web-push');
 
 const app = express();
 const httpServer = http.createServer(app);
 const io = new SocketIOServer(httpServer);
 const PORT = process.env.PORT || 3000;
+
+// ---------- Web Push (real OS/browser-level notifications, not email/Telegram) ----------
+// Fallback keys included so this works immediately without extra setup —
+// override with VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY in Render's env vars if
+// you ever want to rotate them (would require every user to re-subscribe).
+const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || 'BL_of5M9VI6skJ9Co9D5E9pXdhvFB_ktOmr2hRZfp87Ui7ab2qbsqFMHsHqal2qQ8maoWDcNSR-lQtfNH68R1AQ';
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || 'OgoF6jxOXbIYn7ThnxXwoUgF3LBeOkwfzldezcn_mWY';
+webpush.setVapidDetails('mailto:support@birmillat.uz', VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
 
 // In-memory storage is fine here — screenshots are forwarded straight to
 // Telegram and never written to disk or the database.
@@ -53,6 +62,38 @@ async function initDb() {
     // Phone-based registration (verified via the Telegram bot instead of SMS).
     try { await db.execute(`ALTER TABLE users ADD COLUMN phone TEXT`); } catch (e) {}
     await db.execute(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_phone ON users (phone)`);
+
+    // In-app notification bell — separate from Telegram notifications, since
+    // most users don't have that linked. This is what powers the bell icon
+    // and its unread red dot in the navbar.
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS notifications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            type TEXT NOT NULL,
+            content TEXT NOT NULL,
+            link TEXT,
+            is_read INTEGER NOT NULL DEFAULT 0,
+            created_at INTEGER NOT NULL
+        )
+    `);
+    await db.execute(`CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications (user_id, created_at)`);
+
+    // Web Push subscriptions — real OS/browser-level notifications (the "top
+    // shade on mobile" behavior), one row per device/browser a user enabled
+    // notifications on.
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS push_subscriptions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            endpoint TEXT NOT NULL UNIQUE,
+            p256dh TEXT NOT NULL,
+            auth TEXT NOT NULL,
+            created_at INTEGER NOT NULL
+        )
+    `);
+    await db.execute(`CREATE INDEX IF NOT EXISTS idx_push_user ON push_subscriptions (user_id)`);
+
 
     // Profile enrichment: photo, birthdate (age is calculated from this, not stored directly), region
     try { await db.execute(`ALTER TABLE users ADD COLUMN photo_url TEXT`); } catch (e) {}
@@ -511,6 +552,86 @@ async function notifyUserViaTelegram(userId, text) {
     } catch (err) {
         console.error('notifyUserViaTelegram failed (non-fatal):', err);
     }
+}
+
+// ---------- In-app notifications (bell icon) ----------
+async function createNotification(userId, type, content, link) {
+    await db.execute({
+        sql: `INSERT INTO notifications (user_id, type, content, link, is_read, created_at) VALUES (?, ?, ?, ?, 0, ?)`,
+        args: [userId, type, content, link || null, Date.now()]
+    });
+}
+
+async function getUserNotifications(userId, limit = 30) {
+    const result = await db.execute({
+        sql: `SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT ?`,
+        args: [userId, limit]
+    });
+    return result.rows;
+}
+
+async function getUnreadNotificationCount(userId) {
+    const result = await db.execute({
+        sql: `SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = 0`,
+        args: [userId]
+    });
+    return result.rows[0].count;
+}
+
+async function markNotificationsRead(userId) {
+    await db.execute({
+        sql: `UPDATE notifications SET is_read = 1 WHERE user_id = ? AND is_read = 0`,
+        args: [userId]
+    });
+}
+
+// ---------- Web Push ----------
+async function savePushSubscription(userId, subscription) {
+    await db.execute({
+        sql: `INSERT INTO push_subscriptions (user_id, endpoint, p256dh, auth, created_at) VALUES (?, ?, ?, ?, ?)
+              ON CONFLICT(endpoint) DO UPDATE SET user_id = excluded.user_id, p256dh = excluded.p256dh, auth = excluded.auth`,
+        args: [userId, subscription.endpoint, subscription.keys.p256dh, subscription.keys.auth, Date.now()]
+    });
+}
+
+async function deletePushSubscriptionByEndpoint(endpoint) {
+    await db.execute({ sql: `DELETE FROM push_subscriptions WHERE endpoint = ?`, args: [endpoint] });
+}
+
+// Sends a real push notification to every device this user has subscribed
+// on. Never throws — a dead/expired subscription just gets cleaned up
+// silently, and any failure here must never block the action that
+// triggered it (a like/message/join should always succeed regardless).
+async function sendPushToUser(userId, { title, body, link }) {
+    try {
+        const result = await db.execute({ sql: 'SELECT * FROM push_subscriptions WHERE user_id = ?', args: [userId] });
+        const payload = JSON.stringify({ title, body, link: link || '/home' });
+        for (const row of result.rows) {
+            const subscription = { endpoint: row.endpoint, keys: { p256dh: row.p256dh, auth: row.auth } };
+            try {
+                await webpush.sendNotification(subscription, payload);
+            } catch (err) {
+                if (err.statusCode === 404 || err.statusCode === 410) {
+                    // Subscription expired or the browser revoked it — clean it up.
+                    await deletePushSubscriptionByEndpoint(row.endpoint);
+                } else {
+                    console.error('Push send failed (non-fatal):', err.message);
+                }
+            }
+        }
+    } catch (err) {
+        console.error('sendPushToUser failed (non-fatal):', err);
+    }
+}
+
+// Fires all three notification channels at once (in-app bell, push, Telegram)
+// for a given user, wherever a notify-worthy action happens. `content` should
+// be plain, unescaped text — HTML-escaping for Telegram's parse_mode happens
+// here internally, so callers don't need to think about it.
+function notifyUser(userId, { type, content, link, pushTitle }) {
+    createNotification(userId, type, content, link).catch(e => console.error('createNotification failed:', e));
+    sendPushToUser(userId, { title: pushTitle || 'BirMillat', body: content, link });
+    notifyUserViaTelegram(userId, escapeHtmlForTelegram(content));
 }
 
 // ---------- Support chat helpers ----------
@@ -1977,6 +2098,75 @@ app.post('/api/telegram/link-token', async (req, res) => {
     }
 });
 
+// ---------- In-app notification bell ----------
+app.get('/api/notifications', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const rows = await getUserNotifications(req.session.userId);
+        res.json(rows.map(n => ({
+            id: n.id, type: n.type, content: n.content, link: n.link,
+            isRead: !!n.is_read, createdAt: n.created_at
+        })));
+    } catch (err) {
+        console.error('api/notifications error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.get('/api/notifications/unread-count', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const count = await getUnreadNotificationCount(req.session.userId);
+        res.json({ count });
+    } catch (err) {
+        console.error('api/notifications/unread-count error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.post('/api/notifications/read-all', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        await markNotificationsRead(req.session.userId);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('api/notifications/read-all error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// ---------- Web Push subscription management ----------
+app.get('/api/push/vapid-public-key', (req, res) => {
+    res.json({ publicKey: VAPID_PUBLIC_KEY });
+});
+
+app.post('/api/push/subscribe', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const subscription = req.body;
+        if (!subscription || !subscription.endpoint || !subscription.keys) {
+            return res.status(400).json({ error: 'Invalid subscription' });
+        }
+        await savePushSubscription(req.session.userId, subscription);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('api/push/subscribe error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.post('/api/push/unsubscribe', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const { endpoint } = req.body;
+        if (endpoint) await deletePushSubscriptionByEndpoint(endpoint);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('api/push/unsubscribe error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 app.get('/api/recommendations', async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
     try {
@@ -2739,8 +2929,12 @@ app.post('/api/articles/:id/like', async (req, res) => {
             await likeArticle(article.id, req.session.userId);
             if (article.author_id !== req.session.userId) {
                 const liker = await getUserById(req.session.userId);
-                notifyUserViaTelegram(article.author_id,
-                    `❤️ @${escapeHtmlForTelegram(liker.username)} sizning "${escapeHtmlForTelegram(article.title)}" maqolangizni yoqtirdi.`);
+                notifyUser(article.author_id, {
+                    type: 'article_like',
+                    content: `❤️ @${liker.username} sizning "${article.title}" maqolangizni yoqtirdi.`,
+                    link: `/articles/${article.id}`,
+                    pushTitle: 'Yangi like'
+                });
             }
         }
         const updated = await getArticleById(article.id);
@@ -2939,8 +3133,12 @@ app.post('/api/events/:id/join', async (req, res) => {
         await joinEvent(event.id, req.session.userId);
         if (event.creator_id !== req.session.userId) {
             const joiner = await getUserById(req.session.userId);
-            notifyUserViaTelegram(event.creator_id,
-                `🎉 @${escapeHtmlForTelegram(joiner.username)} "${escapeHtmlForTelegram(event.title)}" tadbiringizga qo'shildi.`);
+            notifyUser(event.creator_id, {
+                type: 'event_join',
+                content: `🎉 @${joiner.username} "${event.title}" tadbiringizga qo'shildi.`,
+                link: `/events/${event.id}`,
+                pushTitle: 'Yangi qatnashuvchi'
+            });
         }
         res.json({ success: true });
     } catch (err) {
@@ -3254,11 +3452,15 @@ io.on('connection', (socket) => {
                     io.to(sid).emit('new_message', payload);
                 });
             } else {
-                // Not online in the app right now — ping them on Telegram instead.
+                // Not online in the app right now — notify via bell/push/Telegram instead.
                 const sender = await getUserById(userId);
                 const preview = trimmed.length > 80 ? trimmed.slice(0, 80).trim() + '…' : trimmed;
-                notifyUserViaTelegram(receiver.id,
-                    `💬 @${escapeHtmlForTelegram(sender.username)} sizga xabar yubordi: "${escapeHtmlForTelegram(preview)}"`);
+                notifyUser(receiver.id, {
+                    type: 'message',
+                    content: `💬 @${sender.username} sizga xabar yubordi: "${preview}"`,
+                    link: `/messages?with=${sender.username}`,
+                    pushTitle: 'Yangi xabar'
+                });
             }
 
             if (callback) callback({ success: true, message: payload });
