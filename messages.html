@@ -12,26 +12,32 @@
 <link rel="stylesheet" href="/style.css">
 <script src="/socket.io/socket.io.js"></script>
 <style>
-    html, body { height: auto; min-height: 100%; }
-    .chat-shell {
-        max-width: 1100px;
-        margin: 1.5rem auto;
-        padding: 0 1.5rem;
-        height: 600px;
-        height: min(calc(100vh - 110px), 720px);
+    html, body {
+        height: 100dvh;
+        height: 100vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
     }
-    @supports (height: 100dvh) {
-        .chat-shell { height: min(calc(100dvh - 110px), 720px); }
+    .navbar { flex-shrink: 0; }
+    .chat-shell {
+        flex: 1;
+        min-height: 0;
+        width: 100%;
+        max-width: none;
+        margin: 0;
+        padding: 0;
     }
     .chat-grid {
         display: grid;
         grid-template-columns: 300px 1fr;
         height: 100%;
         background: var(--color-surface);
-        border-radius: var(--radius-md);
-        border: 1px solid var(--color-border);
+        border-radius: 0;
+        border: none;
+        border-top: 1px solid var(--color-border);
         overflow: hidden;
-        box-shadow: var(--shadow-card);
+        box-shadow: none;
     }
     .conv-list {
         border-right: 1px solid var(--color-border);
