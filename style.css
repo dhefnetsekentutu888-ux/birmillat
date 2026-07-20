@@ -109,7 +109,18 @@
   box-sizing: border-box;
 }
 
+/* Safety net: no single element (even a mispositioned one) should ever be
+   able to force the whole page wider than the viewport — that's what causes
+   mobile browsers to auto-zoom-out to fit everything, and shows up as
+   phantom dead space on desktop. */
+html {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
 body {
+  overflow-x: hidden;
+  max-width: 100%;
   font-family: var(--font-body);
   background-color: var(--color-bg);
   background-image:
