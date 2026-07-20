@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="uz">
 <head>
+<script src="/theme.js"></script>
 <meta charset="UTF-8">
 <link rel="icon" type="image/png" href="/favicon.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,21 +12,26 @@
 <link rel="stylesheet" href="/style.css">
 <script src="/socket.io/socket.io.js"></script>
 <style>
-    html, body { height: auto; min-height: 100%; }
-    .chat-shell {
-        max-width: 1100px;
-        margin: 1.5rem auto;
-        padding: 0 1.5rem;
-        height: 600px;
-        height: min(calc(100vh - 110px), 720px);
+    html, body {
+        height: 100dvh;
+        height: 100vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
     }
-    @supports (height: 100dvh) {
-        .chat-shell { height: min(calc(100dvh - 110px), 720px); }
+    .navbar { flex-shrink: 0; }
+    .chat-shell {
+        flex: 1;
+        min-height: 0;
+        width: 100%;
+        max-width: none;
+        margin: 0;
+        padding: 0;
     }
     .chat-grid {
         display: grid; grid-template-columns: 1fr 260px; height: 100%;
-        background: var(--color-surface); border-radius: var(--radius-md);
-        border: 1px solid var(--color-border); overflow: hidden; box-shadow: var(--shadow-card);
+        background: var(--color-surface); border-radius: 0;
+        border: none; border-top: 1px solid var(--color-border); overflow: hidden; box-shadow: none;
     }
     .chat-panel { display: flex; flex-direction: column; height: 100%; min-height: 0; min-width: 0; }
     .chat-head { padding: 1rem 1.4rem; border-bottom: 1px solid var(--color-border); display: flex; align-items: center; gap: 0.8rem; flex-shrink: 0; }
@@ -45,7 +51,7 @@
     .msg-sender-name { font-size: 0.72rem; font-weight: 600; color: var(--color-primary); margin-bottom: 0.2rem; }
     .msg-bubble { padding: 0.6rem 0.95rem; border-radius: 1rem; font-size: 0.92rem; line-height: 1.4; word-wrap: break-word; }
     .msg-bubble.theirs { background: var(--color-bg); color: var(--color-text); border-bottom-left-radius: 0.3rem; }
-    .msg-bubble.mine { background: var(--color-primary); color: white; border-bottom-right-radius: 0.3rem; }
+    .msg-bubble.mine { background: var(--color-primary); color: var(--color-surface); border-bottom-right-radius: 0.3rem; }
     .msg-time { font-size: 0.68rem; opacity: 0.65; margin-top: 0.25rem; display: block; }
 
     .chat-input-row { border-top: 1px solid var(--color-border); padding: 0.9rem 1.2rem; display: flex; gap: 0.7rem; flex-shrink: 0; }
@@ -125,7 +131,20 @@
     }
     .msg-row:hover .msg-reply-btn { opacity: 1; }
 
-    .connection-banner { font-size: 0.78rem; text-align: center; padding: 0.4rem; background: var(--color-error-bg); color: var(--color-error); display: none; }
+    .connection-banner { font-size: 0.78rem; text-align: center; padding: 0.4rem; background: var(--color-error-bg); color: var(--color-error); display: none; flex-shrink: 0; }
+
+    :root[data-theme="dark"] .msg-avatar,
+    :root[data-theme="dark"] .member-avatar,
+    :root[data-theme="dark"] .role-badge.admin {
+        background: rgba(196, 181, 253, 0.14);
+    }
+    :root[data-theme="dark"] .role-badge.creator {
+        background: rgba(255, 138, 115, 0.14);
+    }
+    @media (prefers-color-scheme: dark) {
+        .msg-avatar, .member-avatar, .role-badge.admin { background: rgba(196, 181, 253, 0.14); }
+        .role-badge.creator { background: rgba(255, 138, 115, 0.14); }
+    }
 
     @media (max-width: 760px) {
         .chat-grid { grid-template-columns: 1fr; }
@@ -148,14 +167,28 @@
         </a>
         <button class="nav-toggle" id="navToggle" aria-label="Menyu"><i class="fas fa-bars"></i></button>
         <div class="nav-links" id="navLinks">
-            <a href="/home">Bosh sahifa</a>
-            <a href="/communities">Jamoalar</a>
-            <a href="/messages">Xabarlar</a>
-            <a href="/profile">Profil</a>
-            <a href="/logout">Chiqish</a>
+            <button class="sidebar-close" id="sidebarClose" aria-label="Yopish"><i class="fas fa-xmark"></i></button>
+            <a href="/home"><i class="fas fa-house"></i> Bosh sahifa</a>
+            <a href="/recommend"><i class="fas fa-wand-magic-sparkles"></i> Tavsiyalar</a>
+            <a href="/events"><i class="fas fa-calendar-days"></i> Tadbirlar</a>
+            <a href="/communities" class="active"><i class="fas fa-people-group"></i> Jamoalar</a>
+            <a href="/articles"><i class="fas fa-newspaper"></i> Maqolalar</a>
+            <a href="/search"><i class="fas fa-magnifying-glass"></i> Qidiruv</a>
+            <a href="/messages"><i class="fas fa-comment-dots"></i> Xabarlar</a>
+            <a href="/profile"><i class="fas fa-user"></i> Profil</a>
+            <a href="/logout"><i class="fas fa-right-from-bracket"></i> Chiqish</a>
         </div>
         <div class="user-badge" id="userBadge"><img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ...</div>
-    </nav>
+    <div class="notif-bell-wrap">
+        <button class="notif-bell" id="notifBell" aria-label="Bildirishnomalar"><i class="fas fa-bell"></i><span class="notif-dot" id="notifDot"></span></button>
+        <div class="notif-panel" id="notifPanel">
+            <div class="notif-panel-header">Bildirishnomalar</div>
+            <div id="notifList"></div>
+        </div>
+    </div>
+    <button class="theme-toggle" id="themeToggle" aria-label="Mavzuni almashtirish"><i class="fas fa-moon"></i></button>
+</nav>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
 
     <div class="connection-banner" id="connectionBanner">Ulanish yo'q — qayta ulanmoqda...</div>
 
@@ -485,7 +518,6 @@
                     <p style="color:var(--color-text-muted); margin-bottom:1.4rem;">${community.description || ''}</p>
                 `;
 
-                // Logged-out visitor: show preview with a login prompt instead of a join button
                 if (community.isPreview) {
                     document.getElementById('chatGrid').innerHTML = `
                         <div style="padding:3rem; text-align:center; grid-column:1/-1;">
@@ -544,16 +576,6 @@
             if (me) setupSocket();
             await loadCommunity();
         })();
-    </script>
-
-    <script>
-        const navToggleBtn = document.getElementById('navToggle');
-        const navLinksEl = document.getElementById('navLinks');
-        if (navToggleBtn && navLinksEl) {
-            navToggleBtn.addEventListener('click', () => {
-                navLinksEl.classList.toggle('open');
-            });
-        }
     </script>
 </body>
 </html>
