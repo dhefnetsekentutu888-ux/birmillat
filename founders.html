@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="uz">
+<head>
+  <script src="/theme.js"></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Asoschilar va jamoa — BirMillat</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    .founders-page { min-height:100vh; }
+    .founders-hero { background:linear-gradient(160deg,#4A2F9E,#2D1B69); color:#FAF7F2; padding:4.5rem 1.5rem 3.25rem; text-align:center; }
+    .founders-hero img { width:64px; height:64px; margin-bottom:.9rem; }
+    .founders-hero h1 { color:#FAF7F2; font-size:clamp(2rem,5vw,3rem); margin:0 0 .7rem; }
+    .founders-hero p { color:#D9D2EE; max-width:620px; margin:0 auto; line-height:1.6; }
+    .founders-main { max-width:1100px; margin:0 auto; padding:2.5rem 1.5rem 4rem; }
+    .founders-top { display:flex; justify-content:space-between; align-items:center; gap:1rem; margin-bottom:1.6rem; }
+    .back-link { text-decoration:none; font-weight:600; }
+    .manage-btn { display:none; }
+    .founders-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:1.4rem; }
+    .founder-card { overflow:hidden; padding:0; }
+    .founder-photo { width:100%; aspect-ratio:1/1; object-fit:cover; display:block; background:#EFEAF8; }
+    .founder-copy { padding:1.3rem; }
+    .founder-position { color:var(--color-accent); font-size:.82rem; font-weight:700; text-transform:uppercase; letter-spacing:.7px; margin:0 0 .45rem; }
+    .founder-name { margin:0 0 .6rem; font-size:1.25rem; }
+    .founder-description { margin:0; color:var(--color-text-muted); font-size:.92rem; line-height:1.6; white-space:pre-line; }
+    .card-actions { display:none; gap:.6rem; margin-top:1rem; }
+    .founder-card.manageable .card-actions { display:flex; }
+    .small-btn { border:1px solid var(--color-border); background:var(--color-bg); color:var(--color-primary); border-radius:999px; padding:.5rem .85rem; font:600 .82rem var(--font-body); cursor:pointer; }
+    .small-btn.danger { color:#B42318; border-color:#F5B7B1; }
+    .empty-state { grid-column:1/-1; text-align:center; padding:3rem 1rem; color:var(--color-text-muted); }
+    .modal-backdrop { position:fixed; inset:0; z-index:300; background:rgba(20,15,35,.55); display:none; align-items:center; justify-content:center; padding:1rem; }
+    .modal-backdrop.open { display:flex; }
+    .modal { background:var(--color-surface); width:min(540px,100%); max-height:90vh; overflow:auto; border-radius:var(--radius-md); padding:1.5rem; box-shadow:var(--shadow-hover); }
+    .modal h2 { margin:0 0 1rem; font-size:1.35rem; }
+    .form-field { display:block; margin:.85rem 0; font-size:.86rem; font-weight:600; color:var(--color-text); }
+    .form-field input,.form-field textarea { box-sizing:border-box; display:block; width:100%; margin-top:.35rem; border:1px solid var(--color-border); border-radius:var(--radius-sm); padding:.72rem .8rem; font:400 .95rem var(--font-body); color:var(--color-text); background:var(--color-bg); }
+    .form-field textarea { min-height:110px; resize:vertical; }
+    .form-actions { display:flex; justify-content:flex-end; gap:.7rem; margin-top:1.2rem; }
+    .form-note { color:var(--color-text-muted); font-size:.8rem; margin:.2rem 0; }
+    .form-error { color:#B42318; font-size:.86rem; min-height:1.2em; margin-top:.8rem; }
+  </style>
+</head>
+<body class="founders-page">
+  <section class="founders-hero">
+    <img src="/icons/icon-founders.svg" alt="">
+    <h1>Asoschilar va jamoa</h1>
+    <p>BirMillat ortidagi insonlar bilan tanishing. Biz yoshlarni birlashtiradigan, o‘sishga yordam beradigan hamjamiyat qurmoqdamiz.</p>
+  </section>
+
+  <main class="founders-main">
+    <div class="founders-top">
+      <a class="back-link" href="/">← Bosh sahifa</a>
+      <button class="btn btn-primary manage-btn" id="addFounder" type="button">+ Jamoa a’zosini qo‘shish</button>
+    </div>
+    <div class="founders-grid" id="foundersGrid" aria-live="polite"></div>
+  </main>
+
+  <div class="modal-backdrop" id="editorBackdrop" aria-hidden="true">
+    <form class="modal" id="founderForm">
+      <h2 id="editorTitle">Jamoa a’zosini qo‘shish</h2>
+      <input type="hidden" id="founderId">
+      <label class="form-field">Ism
+        <input id="founderName" maxlength="100" required>
+      </label>
+      <label class="form-field">Lavozim
+        <input id="founderPosition" maxlength="120" placeholder="Masalan: Founder & CEO" required>
+      </label>
+      <label class="form-field">Tavsif
+        <textarea id="founderDescription" maxlength="1200" required placeholder="Jamoa a’zosi haqida qisqacha ma’lumot"></textarea>
+      </label>
+      <label class="form-field">Tartib raqami
+        <input id="founderSortOrder" type="number" value="0">
+      </label>
+      <label class="form-field">Rasm <span id="photoRequired">*</span>
+        <input id="founderPhoto" type="file" accept="image/*">
+      </label>
+      <p class="form-note">Tahrirlashda rasm tanlanmasa, avvalgi rasm saqlanadi.</p>
+      <div class="form-error" id="formError" role="alert"></div>
+      <div class="form-actions">
+        <button class="btn btn-outline" type="button" id="cancelEditor">Bekor qilish</button>
+        <button class="btn btn-primary" type="submit">Saqlash</button>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    (function () {
+      var grid = document.getElementById('foundersGrid');
+      var backdrop = document.getElementById('editorBackdrop');
+      var form = document.getElementById('founderForm');
+      var canManage = false;
+      var founders = [];
+
+      function createText(tag, className, value) {
+        var el = document.createElement(tag);
+        el.className = className;
+        el.textContent = value;
+        return el;
+      }
+
+      function render() {
+        grid.innerHTML = '';
+        if (!founders.length) {
+          grid.appendChild(createText('div', 'empty-state', 'Jamoa a’zolari tez orada qo‘shiladi.'));
+          return;
+        }
+        founders.forEach(function (founder) {
+          var card = document.createElement('article');
+          card.className = 'founder-card card' + (canManage ? ' manageable' : '');
+          var image = document.createElement('img');
+          image.className = 'founder-photo';
+          image.src = founder.photoUrl;
+          image.alt = founder.name;
+          card.appendChild(image);
+          var copy = document.createElement('div');
+          copy.className = 'founder-copy';
+          copy.appendChild(createText('p', 'founder-position', founder.position));
+          copy.appendChild(createText('h2', 'founder-name', founder.name));
+          copy.appendChild(createText('p', 'founder-description', founder.description));
+          if (canManage) {
+            var actions = document.createElement('div');
+            actions.className = 'card-actions';
+            var edit = document.createElement('button');
+            edit.type = 'button'; edit.className = 'small-btn'; edit.textContent = 'Tahrirlash';
+            edit.addEventListener('click', function () { openEditor(founder); });
+            var remove = document.createElement('button');
+            remove.type = 'button'; remove.className = 'small-btn danger'; remove.textContent = 'O‘chirish';
+            remove.addEventListener('click', function () { removeFounder(founder); });
+            actions.append(edit, remove); copy.appendChild(actions);
+          }
+          card.appendChild(copy);
+          grid.appendChild(card);
+        });
+      }
+
+      function openEditor(founder) {
+        document.getElementById('founderId').value = founder ? founder.id : '';
+        document.getElementById('founderName').value = founder ? founder.name : '';
+        document.getElementById('founderPosition').value = founder ? founder.position : '';
+        document.getElementById('founderDescription').value = founder ? founder.description : '';
+        document.getElementById('founderSortOrder').value = founder ? (founder.sortOrder || 0) : 0;
+        document.getElementById('founderPhoto').value = '';
+        document.getElementById('editorTitle').textContent = founder ? 'Jamoa a’zosini tahrirlash' : 'Jamoa a’zosini qo‘shish';
+        document.getElementById('photoRequired').style.display = founder ? 'none' : '';
+        document.getElementById('formError').textContent = '';
+        backdrop.classList.add('open'); backdrop.setAttribute('aria-hidden', 'false');
+      }
+      function closeEditor() { backdrop.classList.remove('open'); backdrop.setAttribute('aria-hidden', 'true'); }
+
+      async function load() {
+        var responses = await Promise.all([fetch('/api/founders'), fetch('/api/founders/manage')]);
+        founders = await responses[0].json();
+        var access = await responses[1].json();
+        canManage = !!access.canManage;
+        if (canManage) document.getElementById('addFounder').style.display = 'inline-flex';
+        render();
+      }
+
+      async function removeFounder(founder) {
+        if (!confirm(founder.name + ' haqidagi ma’lumot o‘chirilsinmi?')) return;
+        var response = await fetch('/api/founders/' + founder.id, { method: 'DELETE' });
+        if (!response.ok) return alert('O‘chirib bo‘lmadi.');
+        await load();
+      }
+
+      document.getElementById('addFounder').addEventListener('click', function () { openEditor(null); });
+      document.getElementById('cancelEditor').addEventListener('click', closeEditor);
+      backdrop.addEventListener('click', function (event) { if (event.target === backdrop) closeEditor(); });
+
+      form.addEventListener('submit', async function (event) {
+        event.preventDefault();
+        var id = document.getElementById('founderId').value;
+        var photo = document.getElementById('founderPhoto').files[0];
+        if (!id && !photo) { document.getElementById('formError').textContent = 'Rasm tanlang.'; return; }
+        var data = new FormData();
+        data.append('name', document.getElementById('founderName').value);
+        data.append('position', document.getElementById('founderPosition').value);
+        data.append('description', document.getElementById('founderDescription').value);
+        data.append('sortOrder', document.getElementById('founderSortOrder').value);
+        if (photo) data.append('photo', photo);
+        var response = await fetch(id ? '/api/founders/' + id : '/api/founders', { method: id ? 'PUT' : 'POST', body: data });
+        if (!response.ok) {
+          var body = await response.json().catch(function () { return {}; });
+          document.getElementById('formError').textContent = body.error || 'Saqlab bo‘lmadi.';
+          return;
+        }
+        closeEditor(); await load();
+      });
+
+      load().catch(function () { grid.innerHTML = '<div class="empty-state">Ma’lumotlarni yuklab bo‘lmadi.</div>'; });
+    })();
+  </script>
+</body>
+</html>
