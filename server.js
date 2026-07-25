@@ -134,6 +134,21 @@ async function initDb() {
     `);
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_achievements_user ON achievements (user_id)`);
 
+    // Founders and core team members are public records managed only by the
+    // account named in FOUNDER_ADMIN_USERNAME (configured in the host).
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS founders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            position TEXT NOT NULL,
+            description TEXT NOT NULL,
+            photo_url TEXT NOT NULL,
+            sort_order INTEGER NOT NULL DEFAULT 0,
+            created_at INTEGER NOT NULL
+        )
+    `);
+    await db.execute(`CREATE INDEX IF NOT EXISTS idx_founders_sort ON founders (sort_order, created_at)`);
+
     // Communities — open group chats, anyone can create/join, creator can remove members
     await db.execute(`
         CREATE TABLE IF NOT EXISTS communities (
@@ -1131,6 +1146,71 @@ async function getCommunityMessages(communityId, limit = 100) {
     return result.rows;
 }
 
+
+// ---------- Founders ----------
+const FOUNDER_ADMIN_USERNAME = (process.env.FOUNDER_ADMIN_USERNAME || '').trim().toLowerCase();
+
+function isFounderAdmin(req) {
+    return !!(req.session && req.session.userId && FOUNDER_ADMIN_USERNAME &&
+        String(req.session.username || '').toLowerCase() === FOUNDER_ADMIN_USERNAME);
+}
+
+function requireFounderAdmin(req, res) {
+    if (!req.session || !req.session.userId) {
+        res.status(401).json({ error: 'Kirish talab qilinadi' });
+        return false;
+    }
+    if (!FOUNDER_ADMIN_USERNAME) {
+        res.status(503).json({ error: 'Founder boshqaruv akkaunti hali sozlanmagan' });
+        return false;
+    }
+    if (!isFounderAdmin(req)) {
+        res.status(403).json({ error: 'Bu bo‘lim faqat founder uchun' });
+        return false;
+    }
+    return true;
+}
+
+async function getFounders() {
+    const result = await db.execute(
+        'SELECT id, name, position, description, photo_url, sort_order FROM founders ORDER BY sort_order ASC, created_at ASC'
+    );
+    return result.rows;
+}
+
+async function getFounderById(id) {
+    const result = await db.execute({
+        sql: 'SELECT * FROM founders WHERE id = ?',
+        args: [id]
+    });
+    return result.rows[0] || null;
+}
+
+async function createFounder({ name, position, description, photoUrl, sortOrder }) {
+    const result = await db.execute({
+        sql: 'INSERT INTO founders (name, position, description, photo_url, sort_order, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+        args: [name, position, description, photoUrl, sortOrder, Date.now()]
+    });
+    return Number(result.lastInsertRowid);
+}
+
+async function updateFounder(id, { name, position, description, photoUrl, sortOrder }) {
+    if (photoUrl) {
+        return db.execute({
+            sql: 'UPDATE founders SET name = ?, position = ?, description = ?, photo_url = ?, sort_order = ? WHERE id = ?',
+            args: [name, position, description, photoUrl, sortOrder, id]
+        });
+    }
+    return db.execute({
+        sql: 'UPDATE founders SET name = ?, position = ?, description = ?, sort_order = ? WHERE id = ?',
+        args: [name, position, description, sortOrder, id]
+    });
+}
+
+async function deleteFounder(id) {
+    return db.execute({ sql: 'DELETE FROM founders WHERE id = ?', args: [id] });
+}
+
 // ---------- Custom session store backed by Turso ----------
 // express-session expects a store with get/set/destroy (callback-style).
 const Store = session.Store;
@@ -2060,6 +2140,76 @@ app.post('/reset-password', async (req, res) => {
 });
 
 // API endpoints
+// ---------- Public founders page data ----------
+app.get('/api/founders', async (req, res) => {
+    try {
+        const founders = await getFounders();
+        res.json(founders.map(f => ({ id: f.id, name: f.name, position: f.position, description: f.description, photoUrl: f.photo_url })));
+    } catch (err) {
+        console.error('api/founders list error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.get('/api/founders/manage', (req, res) => {
+    res.json({ canManage: isFounderAdmin(req) });
+});
+
+app.post('/api/founders', upload.single('photo'), async (req, res) => {
+    if (!requireFounderAdmin(req, res)) return;
+    try {
+        const name = (req.body.name || '').trim();
+        const position = (req.body.position || '').trim();
+        const description = (req.body.description || '').trim();
+        const sortOrder = Number.parseInt(req.body.sortOrder, 10) || 0;
+        if (!name || !position || !description) return res.status(400).json({ error: 'Ism, lavozim va tavsif kiritilishi kerak' });
+        if (!req.file) return res.status(400).json({ error: 'Rasm tanlanmadi' });
+        const uploadResult = await uploadImageToFreeimage(req.file.buffer);
+        if (!uploadResult.ok) return res.status(500).json({ error: uploadResult.error });
+        const id = await createFounder({ name, position, description, photoUrl: uploadResult.url, sortOrder });
+        res.status(201).json({ success: true, id });
+    } catch (err) {
+        console.error('api/founders create error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.put('/api/founders/:id', upload.single('photo'), async (req, res) => {
+    if (!requireFounderAdmin(req, res)) return;
+    try {
+        const founder = await getFounderById(req.params.id);
+        if (!founder) return res.status(404).json({ error: 'Jamoa a’zosi topilmadi' });
+        const name = (req.body.name || '').trim();
+        const position = (req.body.position || '').trim();
+        const description = (req.body.description || '').trim();
+        const sortOrder = Number.parseInt(req.body.sortOrder, 10) || 0;
+        if (!name || !position || !description) return res.status(400).json({ error: 'Ism, lavozim va tavsif kiritilishi kerak' });
+        let photoUrl = null;
+        if (req.file) {
+            const uploadResult = await uploadImageToFreeimage(req.file.buffer);
+            if (!uploadResult.ok) return res.status(500).json({ error: uploadResult.error });
+            photoUrl = uploadResult.url;
+        }
+        await updateFounder(req.params.id, { name, position, description, photoUrl, sortOrder });
+        res.json({ success: true });
+    } catch (err) {
+        console.error('api/founders update error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.delete('/api/founders/:id', async (req, res) => {
+    if (!requireFounderAdmin(req, res)) return;
+    try {
+        const result = await deleteFounder(req.params.id);
+        if (result.rowsAffected === 0) return res.status(404).json({ error: 'Jamoa a’zosi topilmadi' });
+        res.json({ success: true });
+    } catch (err) {
+        console.error('api/founders delete error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 app.get('/api/me', async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
     try {
