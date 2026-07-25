@@ -2144,7 +2144,7 @@ app.post('/reset-password', async (req, res) => {
 app.get('/api/founders', async (req, res) => {
     try {
         const founders = await getFounders();
-        res.json(founders.map(f => ({ id: f.id, name: f.name, position: f.position, description: f.description, photoUrl: f.photo_url })));
+        res.json(founders.map(f => ({ id: f.id, name: f.name, position: f.position, description: f.description, photoUrl: f.photo_url, sortOrder: f.sort_order })));
     } catch (err) {
         console.error('api/founders list error:', err);
         res.status(500).json({ error: 'Server error' });
