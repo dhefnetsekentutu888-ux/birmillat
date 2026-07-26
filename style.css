@@ -187,7 +187,14 @@ a {
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
-  position: relative;
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  transition: box-shadow 0.2s ease;
+}
+
+.navbar.navbar-scrolled {
+  box-shadow: 0 6px 20px rgba(45, 27, 105, 0.08);
 }
 
 .navbar .logo {
