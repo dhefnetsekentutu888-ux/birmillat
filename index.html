@@ -5,470 +5,504 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BirMillat – Qiziqishlar asosida do'stlar toping</title>
+<meta name="description" content="BirMillat — qiziqishlaringiz asosida jamoalar, tadbirlar va do'stlar topadigan yoshlar platformasi.">
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="/style.css">
 <style>
-
 /* ==========================================================
-   Landing page hero — built fresh, no load-time animation on
-   any element that carries real content (logo or hero text).
-   Everything is visible on first paint, no exceptions.
+   BirMillat landing v2 — built independently of the rest of the
+   site's page shell. Own type system (Sora/Inter), own layout
+   language (mesh-gradient hero, bento previews, floating chips),
+   scoped entirely to this page via .lp- prefixed classes so it
+   can't leak into anything else.
    ========================================================== */
 
-.landing-nav {
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    z-index: 10;
-    display: flex;
-    align-items: center;
-    padding: 1.5rem 2rem;
+* { box-sizing: border-box; }
+body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+.lp-display { font-family: 'Sora', 'Inter', sans-serif; }
+
+/* ---------- Nav ---------- */
+.lp-nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+  display: flex; align-items: center; gap: 1.2rem;
+  padding: 0.9rem 1.6rem;
+  background: rgba(28, 17, 72, 0.42);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  transition: background 0.25s ease, padding 0.25s ease;
+}
+.lp-nav.lp-scrolled { background: rgba(20, 12, 51, 0.82); padding: 0.65rem 1.6rem; }
+.lp-logo { display: flex; align-items: center; gap: 0.55rem; text-decoration: none; }
+.lp-logo .lp-word { font-family: 'Sora', sans-serif; font-weight: 700; font-size: 1.22rem; color: #FAF7F2; }
+.lp-logo .lp-word span { color: #FF6B5B; }
+.lp-nav-links { margin-left: auto; display: flex; align-items: center; gap: 1.3rem; }
+.lp-nav-links a { color: #D9D2EE; text-decoration: none; font-size: 0.87rem; font-weight: 600; transition: color 0.15s ease; }
+.lp-nav-links a:hover { color: #FAF7F2; }
+.lp-nav-links a[href="/founders.html"] i { margin-right: 0.3rem; }
+.lp-nav-cta {
+  color: #1C1148; background: #FAF7F2; padding: 0.5rem 1.15rem; border-radius: 999px;
+  font-weight: 700 !important;
+}
+.lp-nav-cta:hover { background: #fff !important; }
+.lp-theme-btn { color: #FAF7F2; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); width: 34px; height: 34px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.lp-theme-btn:hover { background: rgba(255,255,255,0.16); }
+@media (max-width: 620px) {
+  .lp-nav-links { gap: 0.7rem; }
+  .lp-nav-links a:not(.lp-nav-cta):not(#lpLoginLink) { display: none; }
 }
 
-.landing-nav .logo-mark {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    text-decoration: none;
+/* ---------- Hero: mesh gradient + floating chips ---------- */
+.lp-hero {
+  position: relative; overflow: hidden;
+  min-height: 100vh;
+  background: #1C1148;
+  padding: 8.5rem 1.5rem 6rem;
+  display: flex; align-items: center; justify-content: center;
 }
-
-.landing-nav .logo-mark svg { display: block; }
-
-.landing-nav .logo-mark .wordmark {
-    font-family: var(--font-display);
-    font-weight: 700;
-    font-size: 1.3rem;
-    color: #FAF7F2;
+.lp-mesh { position: absolute; inset: 0; z-index: 0; }
+.lp-mesh span {
+  position: absolute; border-radius: 50%; filter: blur(70px); opacity: 0.55;
+  animation: lp-drift 16s ease-in-out infinite alternate;
 }
-
-.landing-nav .logo-mark .wordmark .accent { color: var(--color-accent); }
-.landing-nav .theme-toggle { color: #FAF7F2; margin-left: auto; }
-.landing-nav .theme-toggle:hover { background: rgba(255,255,255,0.1); }
-
-.hero {
-    position: relative;
-    overflow: hidden;
-    background: linear-gradient(160deg, #4A2F9E 0%, #2D1B69 55%, #1C1148 100%);
-    padding: 5rem 1.5rem 3rem;
-    text-align: center;
+.lp-mesh .m1 { width: 46vw; height: 46vw; max-width: 560px; max-height: 560px; background: #4A2F9E; top: -14%; left: -10%; }
+.lp-mesh .m2 { width: 38vw; height: 38vw; max-width: 460px; max-height: 460px; background: #FF6B5B; opacity: 0.32; bottom: -12%; right: -6%; animation-delay: -4s; }
+.lp-mesh .m3 { width: 26vw; height: 26vw; max-width: 320px; max-height: 320px; background: #FFC163; opacity: 0.18; top: 34%; right: 18%; animation-delay: -9s; }
+@keyframes lp-drift {
+  from { transform: translate(0,0) scale(1); }
+  to { transform: translate(3%, 4%) scale(1.08); }
 }
+@media (prefers-reduced-motion: reduce) { .lp-mesh span { animation: none; } }
 
-.hero-decor {
-    position: absolute;
-    top: -6%;
-    right: -8%;
-    width: clamp(220px, 55vw, 460px);
-    height: clamp(220px, 55vw, 460px);
-    opacity: 0.28;
-    pointer-events: none;
-    z-index: 0;
+.lp-hero-grid {
+  position: relative; z-index: 1;
+  max-width: 1180px; width: 100%;
+  display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 3rem; align-items: center;
 }
+@media (max-width: 940px) { .lp-hero-grid { grid-template-columns: 1fr; text-align: center; } }
 
-.hero-inner {
-    position: relative;
-    z-index: 1;
-    max-width: 720px;
-    margin: 0 auto;
+.lp-eyebrow {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.16);
+  color: #FAF7F2; padding: 0.45rem 1rem; border-radius: 999px;
+  font-size: 0.8rem; font-weight: 600; margin-bottom: 1.4rem;
 }
+.lp-eyebrow .dot { width: 7px; height: 7px; border-radius: 50%; background: #7CF5C4; box-shadow: 0 0 0 3px rgba(124,245,196,0.25); }
 
-.hero-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    background: rgba(255,255,255,0.1);
-    border: 1px solid rgba(255,255,255,0.18);
-    color: #FAF7F2;
-    padding: 0.5rem 1.2rem;
-    border-radius: 999px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    margin-bottom: 1.1rem;
+.lp-hero h1 {
+  font-family: 'Sora', sans-serif; font-weight: 700;
+  font-size: clamp(2.3rem, 5vw, 3.6rem); line-height: 1.12;
+  color: #FAF7F2; margin: 0 0 1.2rem;
+  letter-spacing: -0.01em;
 }
+.lp-hero h1 .lp-underline { position: relative; white-space: nowrap; color: #FF9C8F; }
+.lp-hero h1 .lp-underline svg { position: absolute; left: 0; bottom: -0.12em; width: 100%; height: 0.3em; }
 
-.hero h1 {
-    font-family: var(--font-display);
-    font-weight: 700;
-    font-size: clamp(2rem, 6vw, 3.2rem);
-    line-height: 1.2;
-    color: #FAF7F2;
-    margin-bottom: 1rem;
-}
+.lp-hero-sub { font-size: 1.08rem; line-height: 1.7; color: #C9C0E8; max-width: 480px; margin: 0 0 2rem; }
+@media (max-width: 940px) { .lp-hero-sub { margin-left: auto; margin-right: auto; } }
 
-.hero h1 .accent { color: var(--color-accent); }
+.lp-hero-actions { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 2.4rem; }
+@media (max-width: 940px) { .lp-hero-actions { justify-content: center; } }
 
-.hero-sub {
-    font-size: 1.05rem;
-    line-height: 1.6;
-    color: #C9C0E8;
-    max-width: 560px;
-    margin: 0 auto 1.6rem;
+.lp-btn {
+  display: inline-flex; align-items: center; gap: 0.55rem;
+  padding: 1rem 1.9rem; border-radius: 999px; font-weight: 700; font-size: 1rem;
+  text-decoration: none; font-family: 'Inter', sans-serif; border: none; cursor: pointer;
 }
+.lp-btn-primary { background: linear-gradient(135deg, #FF6B5B, #FF8B7D); color: #fff; box-shadow: 0 10px 26px rgba(255,107,91,0.34); }
+.lp-btn-primary:hover { box-shadow: 0 14px 32px rgba(255,107,91,0.46); }
+.lp-btn-ghost { background: rgba(255,255,255,0.06); color: #FAF7F2; border: 1px solid rgba(255,255,255,0.22); }
+.lp-btn-ghost:hover { background: rgba(255,255,255,0.12); }
 
-.hero-actions {
-    display: flex;
-    gap: 1rem;
-    justify-content: center;
-    flex-wrap: wrap;
-    margin-bottom: 1.8rem;
-}
+.lp-stats { display: flex; gap: 2.2rem; flex-wrap: wrap; }
+@media (max-width: 940px) { .lp-stats { justify-content: center; } }
+.lp-stat-num { font-family: 'Sora', sans-serif; font-weight: 700; font-size: 1.9rem; color: #FAF7F2; line-height: 1; }
+.lp-stat-label { font-size: 0.8rem; color: #B7ABDD; margin-top: 0.3rem; }
 
-.hero-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.85rem 1.8rem;
-    border-radius: 999px;
-    font-weight: 600;
-    font-size: 1rem;
-    text-decoration: none;
-    font-family: var(--font-body);
-    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+/* ---------- Hero right: floating card stack ---------- */
+.lp-hero-visual { position: relative; height: 420px; display: flex; align-items: center; justify-content: center; }
+@media (max-width: 940px) { .lp-hero-visual { height: 300px; margin-top: 1rem; } }
+.lp-float-card {
+  position: absolute; background: rgba(255,255,255,0.08); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.16); border-radius: 20px; padding: 1rem 1.2rem;
+  color: #FAF7F2; box-shadow: 0 20px 50px rgba(0,0,0,0.28);
+  animation: lp-float 6s ease-in-out infinite;
 }
+@media (prefers-reduced-motion: reduce) { .lp-float-card { animation: none; } }
+@keyframes lp-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-14px); } }
+.lp-fc-1 { top: 6%; left: 4%; width: 210px; animation-delay: 0s; }
+.lp-fc-2 { bottom: 10%; left: 18%; width: 190px; animation-delay: -2s; }
+.lp-fc-3 { top: 38%; right: 2%; width: 200px; animation-delay: -4s; }
+@media (max-width: 940px) {
+  .lp-fc-1 { top: 0; left: 2%; width: 44%; }
+  .lp-fc-2 { bottom: 0; right: 2%; left: auto; width: 44%; }
+  .lp-fc-3 { display: none; }
+}
+.lp-fc-row { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem; }
+.lp-fc-avatar { width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg,#FF6B5B,#4A2F9E); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; }
+.lp-fc-title { font-size: 0.85rem; font-weight: 700; }
+.lp-fc-sub { font-size: 0.74rem; color: #C9C0E8; }
+.lp-fc-tags { display: flex; gap: 0.35rem; flex-wrap: wrap; margin-top: 0.5rem; }
+.lp-fc-tag { font-size: 0.66rem; font-weight: 600; background: rgba(255,255,255,0.14); padding: 0.22rem 0.55rem; border-radius: 999px; }
 
-.hero-btn:active { transform: scale(0.97); }
+.lp-scroll-cue { position: absolute; bottom: 2rem; left: 50%; transform: translateX(-50%); z-index: 1; color: #B7ABDD; font-size: 0.78rem; display: flex; flex-direction: column; align-items: center; gap: 0.4rem; text-decoration: none; }
+.lp-scroll-cue .lp-mouse { width: 22px; height: 34px; border: 2px solid rgba(255,255,255,0.4); border-radius: 12px; position: relative; }
+.lp-scroll-cue .lp-mouse::after { content: ''; position: absolute; top: 6px; left: 50%; transform: translateX(-50%); width: 4px; height: 8px; background: #FAF7F2; border-radius: 2px; animation: lp-scroll-dot 1.6s ease infinite; }
+@keyframes lp-scroll-dot { 0% { opacity: 1; transform: translate(-50%,0); } 70% { opacity: 0; transform: translate(-50%,10px); } 100% { opacity: 0; } }
 
-.hero-btn-primary {
-    background: var(--color-accent);
-    color: white;
-    border: none;
-}
+/* ---------- Sections (light) ---------- */
+.lp-section { max-width: 1180px; margin: 0 auto; padding: 5.5rem 1.5rem; }
+.lp-section-head { text-align: center; max-width: 620px; margin: 0 auto 3rem; }
+.lp-kicker { display: inline-block; font-size: 0.76rem; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: #FF6B5B; margin-bottom: 0.6rem; }
+.lp-section-head h2 { font-family: 'Sora', sans-serif; font-size: clamp(1.5rem, 3.4vw, 2.1rem); margin: 0 0 0.7rem; color: var(--color-text); }
+.lp-section-head p { color: var(--color-text-muted); line-height: 1.6; }
 
-.hero-btn-primary:hover {
-    background: var(--color-accent-light);
-    box-shadow: 0 8px 20px rgba(255, 107, 91, 0.35);
-    transform: scale(1.03);
-}
+/* how it works */
+.lp-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.6rem; }
+@media (max-width: 780px) { .lp-steps { grid-template-columns: 1fr; } }
+.lp-step { position: relative; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 20px; padding: 2rem 1.6rem; }
+.lp-step-num { font-family: 'Sora', sans-serif; font-weight: 800; font-size: 2.4rem; color: #EFEAF8; line-height: 1; margin-bottom: 0.8rem; }
+:root[data-theme="dark"] .lp-step-num { color: rgba(255,255,255,0.06); }
+.lp-step h3 { font-size: 1.08rem; margin: 0 0 0.5rem; }
+.lp-step p { font-size: 0.9rem; color: var(--color-text-muted); line-height: 1.55; margin: 0; }
 
-.hero-btn-outline {
-    background: transparent;
-    color: #FAF7F2;
-    border: 1.5px solid rgba(255,255,255,0.4);
+/* live previews */
+.lp-band { background: var(--color-bg); }
+.lp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.3rem; }
+.lp-card {
+  position: relative; display: block; text-decoration: none; color: inherit;
+  background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 20px; overflow: hidden;
+  transition: transform 0.25s cubic-bezier(0.16,1,0.3,1), box-shadow 0.25s ease, border-color 0.25s ease;
 }
+.lp-card:hover { transform: translateY(-6px); box-shadow: 0 20px 40px rgba(45,27,105,0.14); border-color: transparent; }
+.lp-card-media { position: relative; width: 100%; aspect-ratio: 16/10; background: linear-gradient(135deg,#EFEAF8,#F6F2FB); overflow: hidden; }
+.lp-card-media img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.4s ease; }
+.lp-card:hover .lp-card-media img { transform: scale(1.06); }
+.lp-card-media .lp-fallback { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+.lp-card-media .lp-fallback img { width: 40px; height: 40px; object-fit: contain; transform: none; }
+.lp-badge { position: absolute; top: 0.7rem; left: 0.7rem; background: rgba(26,16,64,0.72); color: #fff; font-size: 0.7rem; font-weight: 700; padding: 0.3rem 0.7rem; border-radius: 999px; }
+.lp-card-body { padding: 1.15rem 1.25rem 1.35rem; }
+.lp-card-body h3 { font-size: 1.03rem; margin: 0 0 0.35rem; }
+.lp-card-desc { font-size: 0.85rem; color: var(--color-text-muted); line-height: 1.55; min-height: 2.4em; margin-bottom: 0.85rem; }
+.lp-card-foot { display: flex; align-items: center; justify-content: space-between; }
+.lp-meta { font-size: 0.78rem; color: var(--color-text-muted); display: flex; align-items: center; gap: 0.3rem; }
+.lp-join { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.8rem; font-weight: 700; color: #FF6B5B; }
+.lp-join svg { transition: transform 0.2s ease; }
+.lp-card:hover .lp-join svg { transform: translateX(4px); }
 
-.hero-btn-outline:hover {
-    background: rgba(255,255,255,0.08);
-    border-color: rgba(255,255,255,0.7);
-    transform: scale(1.03);
-}
+.lp-people-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1.1rem; }
+.lp-person { text-decoration: none; color: inherit; display: block; }
+.lp-person-photo { position: relative; width: 100%; aspect-ratio: 1/1; border-radius: 18px; overflow: hidden; background: #EFEAF8; margin-bottom: 0.75rem; transition: transform 0.25s ease; }
+.lp-person:hover .lp-person-photo { transform: translateY(-5px); }
+.lp-person-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.lp-person-name { font-weight: 700; font-size: 0.96rem; margin-bottom: 0.15rem; }
+.lp-person-region { font-size: 0.76rem; color: var(--color-text-muted); margin-bottom: 0.5rem; }
+.lp-person-tags { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.lp-person-tag { font-size: 0.7rem; font-weight: 600; color: var(--color-primary); background: #EFEAF8; padding: 0.22rem 0.55rem; border-radius: 999px; }
 
-.hero-tags {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 0.6rem;
-    max-width: 560px;
-    margin: 0 auto;
-}
+.lp-empty { grid-column: 1/-1; text-align: center; padding: 3rem 1.5rem; border: 1.5px dashed var(--color-border); border-radius: 18px; color: var(--color-text-muted); }
+.lp-empty a { color: #FF6B5B; font-weight: 700; text-decoration: none; }
+.lp-empty a:hover { text-decoration: underline; }
+.lp-skel { aspect-ratio: 16/10; border-radius: 20px; background: linear-gradient(100deg,#EFEAF8 30%,#F6F2FB 45%,#EFEAF8 60%); background-size: 250% 100%; animation: lp-shimmer 1.4s linear infinite; }
+@keyframes lp-shimmer { to { background-position: -150% 0; } }
 
-.hero-tag {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    background: rgba(255,255,255,0.08);
-    border: 1px solid rgba(255,255,255,0.14);
-    color: #FAF7F2;
-    padding: 0.5rem 1.1rem;
-    border-radius: 999px;
-    font-size: 0.85rem;
-    font-weight: 600;
-}
+/* categories */
+.lp-cat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.2rem; }
+.lp-cat { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 18px; padding: 1.7rem 1.4rem; text-align: center; transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.lp-cat:hover { transform: translateY(-4px); box-shadow: 0 14px 28px rgba(45,27,105,0.1); }
+.lp-cat .icon { width: 50px; height: 50px; border-radius: 14px; background: #EFEAF8; display: flex; align-items: center; justify-content: center; margin: 0 auto 0.9rem; }
+.lp-cat h3 { font-size: 1rem; margin: 0 0 0.3rem; }
+.lp-cat p { font-size: 0.82rem; color: var(--color-text-muted); margin: 0; }
 
-.hero-tag-icon { width: 15px; height: 15px; flex-shrink: 0; filter: brightness(0) invert(1); }
+/* marquee */
+.lp-marquee-wrap { overflow: hidden; padding: 1.6rem 0; background: var(--color-surface); border-top: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); }
+.lp-marquee-track { display: flex; gap: 0.7rem; width: max-content; animation: lp-marquee 32s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .lp-marquee-track { animation: none; } }
+@keyframes lp-marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.lp-mtag { display: inline-flex; align-items: center; gap: 0.4rem; background: var(--color-bg); border: 1px solid var(--color-border); padding: 0.5rem 1.1rem; border-radius: 999px; font-size: 0.85rem; font-weight: 600; white-space: nowrap; }
+.lp-mtag img { width: 15px; height: 15px; }
 
-/* ---------- Below-the-fold sections keep the site's normal light theme ---------- */
-.section {
-    padding: 2.75rem 1.5rem;
-    max-width: 1100px;
-    margin: 0 auto;
-}
-.section-head { text-align: center; margin-bottom: 1.8rem; }
-.section-head h2 { font-size: 1.7rem; margin-bottom: 0.5rem; }
-.section-head p { color: var(--color-text-muted); }
+/* mission / CTA band */
+.lp-cta-band { position: relative; overflow: hidden; border-radius: 28px; background: linear-gradient(135deg, #2D1B69, #1C1148); padding: 3.6rem 2rem; text-align: center; color: #fff; }
+.lp-cta-band::before { content:''; position: absolute; width: 340px; height: 340px; background: #FF6B5B; opacity: 0.22; filter: blur(90px); border-radius: 50%; top: -100px; right: -80px; }
+.lp-cta-band h2 { font-family: 'Sora', sans-serif; margin: 0 0 0.8rem; font-size: clamp(1.5rem, 3.5vw, 2.1rem); position: relative; }
+.lp-cta-band p { color: #D9D2EE; max-width: 520px; margin: 0 auto 1.8rem; position: relative; line-height: 1.6; }
+.lp-cta-band .lp-social { display: flex; justify-content: center; gap: 1.6rem; margin-top: 1.8rem; position: relative; }
+.lp-cta-band .lp-social a { color: #fff; font-size: 1.5rem; opacity: 0.85; transition: opacity 0.15s ease, transform 0.15s ease; }
+.lp-cta-band .lp-social a:hover { opacity: 1; transform: translateY(-2px); }
 
-.steps-row {
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
-    gap: 0;
-    max-width: 980px;
-    margin: 0 auto;
-    flex-wrap: wrap;
-}
-.step { flex: 1; min-width: 200px; max-width: 260px; text-align: center; padding: 0 1rem; }
-.step-icon {
-    width: 64px; height: 64px; margin: 0 auto 1rem;
-    border-radius: 50%; background: #EFEAF8;
-    display: flex; align-items: center; justify-content: center;
-    color: var(--color-primary); font-size: 1.4rem;
-}
-.step h3 { font-size: 1.05rem; margin-bottom: 0.5rem; }
-.step p { font-size: 0.88rem; color: var(--color-text-muted); line-height: 1.5; }
-.step-connector {
-    flex: 0 0 auto; width: 60px; height: 2px; margin-top: 28px;
-    background: repeating-linear-gradient(90deg, var(--color-border) 0, var(--color-border) 6px, transparent 6px, transparent 12px);
-}
-@media (max-width: 760px) {
-    .steps-row { flex-direction: column; align-items: center; }
-    .step-connector { width: 2px; height: 32px; margin: 0; background: repeating-linear-gradient(180deg, var(--color-border) 0, var(--color-border) 6px, transparent 6px, transparent 12px); }
-}
-
-.cat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; }
-.cat-card { text-align: center; padding: 2rem 1.5rem; transition: transform 0.18s ease; }
-.cat-card:hover { transform: translateY(-4px); }
-.cat-card .icon {
-    width: 56px; height: 56px; border-radius: var(--radius-md); background: #EFEAF8;
-    display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;
-    font-size: 1.4rem; color: var(--color-primary);
-}
-.cat-card h3 { font-size: 1.05rem; margin-bottom: 0.4rem; }
-.cat-card p { font-size: 0.88rem; color: var(--color-text-muted); }
-
-.community-photo-wrap {
-    position: relative;
-    border-radius: var(--radius-md);
-    overflow: hidden;
-    box-shadow: var(--shadow-hover);
-    max-width: 900px;
-    margin: 0 auto;
-}
-.community-photo {
-    width: 100%;
-    height: clamp(260px, 45vw, 460px);
-    object-fit: cover;
-    display: block;
-}
-.community-photo-caption {
-    position: absolute;
-    left: 0; right: 0; bottom: 0;
-    padding: 1.6rem 1.4rem 1.2rem;
-    background: linear-gradient(to top, rgba(26,16,64,0.85), transparent);
-    color: #FAF7F2;
-    font-weight: 600;
-    font-size: 1rem;
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-}
-.community-photo-caption i {
-    color: var(--color-accent);
-}
-
-.mission {
-    background: var(--color-primary); color: white; border-radius: var(--radius-md);
-    padding: 3rem 2rem; text-align: center;
-}
-.mission h2 { color: white; margin-bottom: 0.8rem; }
-.mission p { color: #D9D2EE; max-width: 560px; margin: 0 auto; }
-.social-icons { display: flex; justify-content: center; gap: 1.8rem; margin-top: 1.5rem; }
-.social-icons a { color: white; font-size: 1.6rem; opacity: 0.85; transition: opacity 0.15s ease; }
-.social-icons a:hover { opacity: 1; }
-
-/* ---------- Entrance animation ----------
-   Scoped entirely inside the no-preference media query: browsers with
-   reduced-motion turned on, or that simply don't run the animation for any
-   reason, see the final state immediately — nothing here can end up
-   permanently invisible or stuck mid-animation. */
-@media (prefers-reduced-motion: no-preference) {
-    .logo-ring {
-        stroke-dasharray: 188;
-        stroke-dashoffset: 188;
-        stroke-linecap: round;
-        animation: draw-ring 0.6s ease-out forwards;
-    }
-    .logo-ring-1 { animation-delay: 0.05s; }
-    .logo-ring-2 { animation-delay: 0.2s; }
-    .logo-ring-3 {
-        stroke-dasharray: 70;
-        stroke-dashoffset: 70;
-        animation: draw-ring-short 0.4s ease-out forwards;
-        animation-delay: 0.4s;
-    }
-    @keyframes draw-ring { to { stroke-dashoffset: 0; } }
-    @keyframes draw-ring-short { to { stroke-dashoffset: 0; } }
-
-    .animate-in {
-        opacity: 0;
-        transform: translateY(12px);
-        animation: rise-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    }
-    @keyframes rise-in { to { opacity: 1; transform: translateY(0); } }
-}
-
+footer { position: relative; z-index: 1; }
 </style>
 </head>
 <body>
 
-<nav class="landing-nav">
-    <a href="/" class="logo-mark">
-        <svg width="34" height="34" viewBox="0 0 90 90" xmlns="http://www.w3.org/2000/svg" class="logo-svg">
-            <g transform="translate(45,45)">
-                <g transform="rotate(-18)"><ellipse cx="-10" cy="0" rx="20" ry="36" fill="none" stroke="#FAF7F2" stroke-width="10" class="logo-ring logo-ring-1"/></g>
-                <g transform="rotate(18)"><ellipse cx="10" cy="0" rx="20" ry="36" fill="none" stroke="#FF6B5B" stroke-width="10" class="logo-ring logo-ring-2"/></g>
-                <g transform="rotate(-18)"><path d="M -30 0 A 20 36 0 0 1 11 0" fill="none" stroke="#FAF7F2" stroke-width="10" stroke-linecap="round" class="logo-ring logo-ring-3"/></g>
-            </g>
-        </svg>
-        <span class="wordmark">Bir<span class="accent">Millat</span></span>
-    </a>
-    <button class="theme-toggle" id="themeToggle" aria-label="Mavzuni almashtirish"><i class="fas fa-moon"></i></button>
+<nav class="lp-nav" id="lpNav">
+  <a href="/" class="lp-logo">
+    <svg width="30" height="30" viewBox="0 0 90 90" xmlns="http://www.w3.org/2000/svg">
+      <g transform="translate(45,45)">
+        <g transform="rotate(-18)"><ellipse cx="-10" cy="0" rx="20" ry="36" fill="none" stroke="#FAF7F2" stroke-width="10"/></g>
+        <g transform="rotate(18)"><ellipse cx="10" cy="0" rx="20" ry="36" fill="none" stroke="#FF6B5B" stroke-width="10"/></g>
+      </g>
+    </svg>
+    <span class="lp-word">Bir<span>Millat</span></span>
+  </a>
+  <div class="lp-nav-links">
+    <a href="/founders.html"><i class="fas fa-share-nodes"></i>Ijtimoiy tarmoq</a>
+    <a href="/login" id="lpLoginLink">Kirish</a>
+    <a href="/register" class="lp-nav-cta btn-zoom">Ro'yxatdan o'tish</a>
+    <button class="lp-theme-btn" id="themeToggle" aria-label="Mavzuni almashtirish"><i class="fas fa-moon"></i></button>
+  </div>
 </nav>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-<section class="hero">
-    <svg class="hero-decor" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-        <g transform="translate(100,100) rotate(-18)">
-            <ellipse cx="-14" cy="0" rx="32" ry="58" fill="none" stroke="#FAF7F2" stroke-width="2"/>
-        </g>
-        <g transform="translate(100,100) rotate(18)">
-            <ellipse cx="14" cy="0" rx="32" ry="58" fill="none" stroke="#FF6B5B" stroke-width="2"/>
-        </g>
-    </svg>
+<section class="lp-hero">
+  <div class="lp-mesh"><span class="m1"></span><span class="m2"></span><span class="m3"></span></div>
 
-    <div class="hero-inner">
-        <span class="hero-badge animate-in" style="animation-delay:0.55s;">✦ Yoshlar uchun yangi platforma</span>
-        <h1 class="animate-in" style="animation-delay:0.65s;">Qiziqishlaringiz asosida <span class="accent">haqiqiy do'stlar</span> toping</h1>
-        <p class="hero-sub animate-in" style="animation-delay:0.75s;">Dasturlash, sun'iy intellekt, o'yinlar, sport yoki sayohat — kim bilan bo'lishishni xohlasangiz, ular shu yerda. Suhbatlashing, birga o'sing.</p>
+  <div class="lp-hero-grid">
+    <div>
+      <span class="lp-eyebrow"><span class="dot"></span> Yoshlar uchun yangi platforma</span>
+      <h1>Qiziqishlaringiz asosida
+        <span class="lp-underline">haqiqiy do'stlar
+          <svg viewBox="0 0 200 12" preserveAspectRatio="none"><path d="M2 9 C 50 2, 150 2, 198 9" stroke="#FF6B5B" stroke-width="4" fill="none" stroke-linecap="round"/></svg>
+        </span> toping</h1>
+      <p class="lp-hero-sub">Dasturlash, sun'iy intellekt, o'yinlar, sport yoki sayohat — kim bilan bo'lishishni xohlasangiz, ular shu yerda. Jamoalarga qo'shiling, tadbirlarga boring, birga o'sing.</p>
 
-        <div class="hero-actions animate-in" style="animation-delay:0.85s;">
-            <a href="/register" class="hero-btn hero-btn-primary">Boshlash <span>→</span></a>
-            <a href="/login" class="hero-btn hero-btn-outline">Kirish</a>
-            <a href="/founders.html" class="hero-btn hero-btn-outline"><img src="/icons/icon-founders.svg" alt="" style="width:20px;height:20px;"> Asoschilar</a>
-        </div>
+      <div class="lp-hero-actions">
+        <a href="/register" class="lp-btn lp-btn-primary btn-zoom">Bepul boshlash <i class="fas fa-arrow-right"></i></a>
+        <a href="#lpJamoalar" class="lp-btn lp-btn-ghost btn-zoom">Platformani ko'rish</a>
+      </div>
 
-        <div class="hero-tags">
-            <span class="hero-tag animate-in" style="animation-delay:0.95s;"><img src="/icons/icon-python.svg" alt="" class="hero-tag-icon"> Python</span>
-            <span class="hero-tag animate-in" style="animation-delay:1.0s;"><img src="/icons/icon-ai.svg" alt="" class="hero-tag-icon"> Sun'iy intellekt</span>
-            <span class="hero-tag animate-in" style="animation-delay:1.05s;"><img src="/icons/icon-games.svg" alt="" class="hero-tag-icon"> O'yinlar</span>
-            <span class="hero-tag animate-in" style="animation-delay:1.1s;"><img src="/icons/icon-cloud.svg" alt="" class="hero-tag-icon"> Cloud</span>
-            <span class="hero-tag animate-in" style="animation-delay:1.15s;"><img src="/icons/icon-mobile.svg" alt="" class="hero-tag-icon"> Mobil dasturlash</span>
-        </div>
+      <div class="lp-stats">
+        <div><div class="lp-stat-num" data-count="0" data-target="0">0</div><div class="lp-stat-label">a'zo</div></div>
+        <div><div class="lp-stat-num" data-count="0" data-target="0">0</div><div class="lp-stat-label">jamoa</div></div>
+        <div><div class="lp-stat-num" data-count="0" data-target="0">0</div><div class="lp-stat-label">tadbir</div></div>
+      </div>
     </div>
+
+    <div class="lp-hero-visual">
+      <div class="lp-float-card lp-fc-1">
+        <div class="lp-fc-row"><div class="lp-fc-avatar">AI</div><div><div class="lp-fc-title">Sun'iy intellekt jamoasi</div><div class="lp-fc-sub">128 a'zo</div></div></div>
+        <div class="lp-fc-tags"><span class="lp-fc-tag">Python</span><span class="lp-fc-tag">ML</span></div>
+      </div>
+      <div class="lp-float-card lp-fc-2">
+        <div class="lp-fc-row"><div class="lp-fc-avatar"><i class="fas fa-calendar"></i></div><div><div class="lp-fc-title">Startup uchrashuvi</div><div class="lp-fc-sub">Shanba, 18:00</div></div></div>
+      </div>
+      <div class="lp-float-card lp-fc-3">
+        <div class="lp-fc-row"><div class="lp-fc-avatar">✓</div><div><div class="lp-fc-title">Yangi do'st topildi</div><div class="lp-fc-sub">3 ta umumiy qiziqish</div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <a href="#lpQanday" class="lp-scroll-cue"><span class="lp-mouse"></span> Pastga aylantiring</a>
 </section>
 
-<div class="section">
-    <div class="section-head">
-        <h2>Qanday ishlaydi</h2>
-        <p>Uch qadam — shu qadar oddiy</p>
-    </div>
-    <div class="steps-row">
-        <div class="step">
-            <div class="step-icon">
-                <svg viewBox="0 0 64 64" width="34" height="34">
-                    <circle cx="32" cy="18" r="9" fill="#2D1B69"/>
-                    <path d="M16 52c0-10 7-18 16-18s16 8 16 18" fill="none" stroke="#2D1B69" stroke-width="4" stroke-linecap="round"/>
-                    <rect x="20" y="40" width="24" height="14" rx="2" fill="#FF6B5B"/>
-                    <line x1="32" y1="40" x2="32" y2="54" stroke="#FAF7F2" stroke-width="1.5"/>
-                </svg>
-            </div>
-            <h3>Profil yarating</h3>
-            <p>Ism, rasm, qiziqishlaringizni qo'shing — bir necha daqiqa ichida</p>
-        </div>
-        <div class="step-connector"></div>
-        <div class="step">
-            <div class="step-icon">
-                <svg viewBox="0 0 64 64" width="34" height="34">
-                    <circle cx="24" cy="24" r="10" fill="none" stroke="#2D1B69" stroke-width="4"/>
-                    <circle cx="40" cy="24" r="10" fill="none" stroke="#FF6B5B" stroke-width="4"/>
-                    <path d="M14 52c0-8 6-14 14-14M50 52c0-8-6-14-14-14" fill="none" stroke="#2D1B69" stroke-width="4" stroke-linecap="round"/>
-                </svg>
-            </div>
-            <h3>Mos kelganlarni toping</h3>
-            <p>Qiziqishlaringiz asosida tavsiyalar va qidiruv orqali odamlarni kashf eting</p>
-        </div>
-        <div class="step-connector"></div>
-        <div class="step">
-            <div class="step-icon">
-                <svg viewBox="0 0 64 64" width="34" height="34">
-                    <rect x="8" y="14" width="30" height="20" rx="6" fill="#2D1B69"/>
-                    <path d="M14 34l0 8 8-8z" fill="#2D1B69"/>
-                    <rect x="26" y="30" width="30" height="20" rx="6" fill="#FF6B5B"/>
-                    <path d="M50 50l0 8-8-8z" fill="#FF6B5B"/>
-                </svg>
-            </div>
-            <h3>Suhbatlashing va birga o'sing</h3>
-            <p>Real vaqtda xabar yozing, tadbirlarga qatnashing, do'stlar orttiring</p>
-        </div>
-    </div>
+<section class="lp-section" id="lpQanday">
+  <div class="lp-section-head reveal">
+    <span class="lp-kicker">Jarayon</span>
+    <h2>Qanday ishlaydi</h2>
+    <p>Uch qadam — shu qadar oddiy</p>
+  </div>
+  <div class="lp-steps reveal-stagger reveal">
+    <div class="lp-step"><div class="lp-step-num">01</div><h3>Profil yarating</h3><p>Ism, rasm, qiziqishlaringizni qo'shing — bir necha daqiqa ichida.</p></div>
+    <div class="lp-step"><div class="lp-step-num">02</div><h3>Mos kelganlarni toping</h3><p>Qiziqishlaringiz asosida tavsiyalar va qidiruv orqali odamlarni kashf eting.</p></div>
+    <div class="lp-step"><div class="lp-step-num">03</div><h3>Suhbatlashing, o'sing</h3><p>Real vaqtda xabar yozing, tadbirlarga qatnashing, do'stlar orttiring.</p></div>
+  </div>
+</section>
+
+<section class="lp-section lp-band" id="lpJamoalar">
+  <div class="lp-section-head reveal">
+    <span class="lp-kicker">Hozir faol</span>
+    <h2>Jamoalar</h2>
+    <p>BirMillat'dagi haqiqiy jamoalar — birortasiga qo'shilish uchun ro'yxatdan o'ting.</p>
+  </div>
+  <div class="lp-grid reveal-stagger reveal" id="lpCommunityGrid">
+    <div class="lp-skel"></div><div class="lp-skel"></div><div class="lp-skel"></div>
+  </div>
+</section>
+
+<section class="lp-section">
+  <div class="lp-section-head reveal">
+    <span class="lp-kicker">Jamoamiz</span>
+    <h2>A'zolarimiz</h2>
+    <p>Turli qiziqish va viloyatlardan bo'lgan a'zolar. To'liq profillarni ko'rish uchun ro'yxatdan o'ting.</p>
+  </div>
+  <div class="lp-people-grid reveal-stagger reveal" id="lpPeopleGrid"></div>
+</section>
+
+<section class="lp-section lp-band">
+  <div class="lp-section-head reveal">
+    <span class="lp-kicker">Yo'nalishlar</span>
+    <h2>Sizga mosini toping</h2>
+    <p>Har bir yo'nalishda faol jamoalar va do'stlar bor</p>
+  </div>
+  <div class="lp-cat-grid reveal-stagger reveal">
+    <div class="lp-cat"><div class="icon"><img src="/icons/icon-education.svg" alt="" width="24" height="24"></div><h3>Ta'lim</h3><p>IELTS, matematika, dasturlash</p></div>
+    <div class="lp-cat"><div class="icon"><img src="/icons/icon-startup.svg" alt="" width="24" height="24"></div><h3>Startup</h3><p>Yangi g'oyalar, jamoa</p></div>
+    <div class="lp-cat"><div class="icon"><img src="/icons/icon-tech.svg" alt="" width="24" height="24"></div><h3>Texnologiya</h3><p>IT, AI, dizayn</p></div>
+    <div class="lp-cat"><div class="icon"><img src="/icons/icon-trophy.svg" alt="" width="24" height="24"></div><h3>Motivatsiya</h3><p>Maqsadli hamjamiyat</p></div>
+  </div>
+</section>
+
+<div class="lp-marquee-wrap">
+  <div class="lp-marquee-track" id="lpMarquee"></div>
 </div>
 
-<div class="section">
-    <div class="section-head">
-        <h2><img src="/icons/icon-categories.svg" alt="" style="width:22px; height:22px; vertical-align:-4px;"> Kategoriyalar</h2>
-        <p>Sizga mos jamoa va do'stlarni shu yo'nalishlarda toping</p>
+<section class="lp-section">
+  <div class="lp-cta-band reveal">
+    <h2>Bizning maqsad</h2>
+    <p>Yoshlarni qiziqishlari bo'yicha birlashtirish va ularga rivojlanish imkoniyatini yaratish.</p>
+    <a href="/register" class="lp-btn lp-btn-primary btn-zoom">Bepul boshlash <i class="fas fa-arrow-right"></i></a>
+    <div class="lp-social">
+      <a href="https://t.me/birmillatUZB" aria-label="Telegram"><i class="fab fa-telegram"></i></a>
+      <a href="https://instagram.com/birmillat.uz" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
     </div>
-    <div class="cat-grid">
-        <div class="cat-card card">
-            <div class="icon"><img src="/icons/icon-education.svg" alt="" style="width:26px; height:26px;"></div>
-            <h3>Ta'lim</h3>
-            <p>IELTS, matematika, dasturlash</p>
-        </div>
-        <div class="cat-card card">
-            <div class="icon"><img src="/icons/icon-startup.svg" alt="" style="width:26px; height:26px;"></div>
-            <h3>Startup</h3>
-            <p>Yangi g'oyalar, jamoa</p>
-        </div>
-        <div class="cat-card card">
-            <div class="icon"><img src="/icons/icon-tech.svg" alt="" style="width:26px; height:26px;"></div>
-            <h3>Texnologiya</h3>
-            <p>IT, AI, dizayn</p>
-        </div>
-        <div class="cat-card card">
-            <div class="icon"><img src="/icons/icon-trophy.svg" alt="" style="width:26px; height:26px;"></div>
-            <h3>Motivatsiya</h3>
-            <p>Maqsadli hamjamiyat</p>
-        </div>
-    </div>
-</div>
-
-<div class="tag-marquee-wrap">
-    <div class="marquee">
-        <div class="marquee-track">
-            <span class="tag"><img src="/icons/icon-python.svg" alt="" class="tag-icon"> Python</span>
-            <span class="tag accent"><img src="/icons/icon-ai.svg" alt="" class="tag-icon"> Sun'iy intellekt</span>
-            <span class="tag"><img src="/icons/icon-games.svg" alt="" class="tag-icon"> O'yinlar</span>
-            <span class="tag accent"><img src="/icons/icon-cloud.svg" alt="" class="tag-icon"> Cloud</span>
-            <span class="tag"><img src="/icons/icon-mobile.svg" alt="" class="tag-icon"> Mobil dasturlash</span>
-            <span class="tag accent"><img src="/icons/icon-ielts.svg" alt="" class="tag-icon"> IELTS</span>
-            <span class="tag"><img src="/icons/icon-startup.svg" alt="" class="tag-icon"> Startup</span>
-            <span class="tag accent"><img src="/icons/icon-sport.svg" alt="" class="tag-icon"> Sport</span>
-            <span class="tag"><img src="/icons/icon-design.svg" alt="" class="tag-icon"> Dizayn</span>
-            <span class="tag accent"><img src="/icons/icon-volunteer.svg" alt="" class="tag-icon"> Volontyorlik</span>
-            <span class="tag"><img src="/icons/icon-python.svg" alt="" class="tag-icon"> Python</span>
-            <span class="tag accent"><img src="/icons/icon-ai.svg" alt="" class="tag-icon"> Sun'iy intellekt</span>
-            <span class="tag"><img src="/icons/icon-games.svg" alt="" class="tag-icon"> O'yinlar</span>
-            <span class="tag accent"><img src="/icons/icon-cloud.svg" alt="" class="tag-icon"> Cloud</span>
-            <span class="tag"><img src="/icons/icon-mobile.svg" alt="" class="tag-icon"> Mobil dasturlash</span>
-            <span class="tag accent"><img src="/icons/icon-ielts.svg" alt="" class="tag-icon"> IELTS</span>
-            <span class="tag"><img src="/icons/icon-startup.svg" alt="" class="tag-icon"> Startup</span>
-            <span class="tag accent"><img src="/icons/icon-sport.svg" alt="" class="tag-icon"> Sport</span>
-            <span class="tag"><img src="/icons/icon-design.svg" alt="" class="tag-icon"> Dizayn</span>
-            <span class="tag accent"><img src="/icons/icon-volunteer.svg" alt="" class="tag-icon"> Volontyorlik</span>
-        </div>
-    </div>
-</div>
-
-<div class="section">
-    <div class="community-photo-wrap">
-        <img src="/images/community-action.jpg" alt="BirMillat yoshlari birgalikda" class="community-photo">
-        <div class="community-photo-caption">
-            <i class="fas fa-heart"></i> Qiziqishlar birlashtiradi — jamiyat uchun, birga
-        </div>
-    </div>
-</div>
-
-<div class="section">
-    <div class="mission">
-        <h2><img src="/icons/icon-star.svg" alt="" style="width:24px; height:24px; vertical-align:-4px; filter:brightness(0) invert(1);"> Bizning maqsad</h2>
-        <p>Yoshlarni qiziqishlari bo'yicha birlashtirish va ularga rivojlanish imkoniyatini yaratish.</p>
-        <div class="social-icons">
-            <a href="https://t.me/birmillatUZB"><i class="fab fa-telegram"></i></a>
-            <a href="https://instagram.com/birmillat.uz"><i class="fab fa-instagram"></i></a>
-        </div>
-    </div>
-</div>
+  </div>
+</section>
 
 <footer>© 2026 BirMillat · <a href="/contact" style="color:inherit;">Biz bilan bog'lanish</a> · <a href="/support" style="color:inherit;">Yordam</a> · <a href="/privacy" style="color:inherit;">Maxfiylik siyosati</a><br><span style="opacity:0.8;">Founder — Bekhruz Ravshanov</span></footer>
+
+<script>
+(function () {
+  // ---------- Sticky nav background swap ----------
+  var nav = document.getElementById('lpNav');
+  window.addEventListener('scroll', function () {
+    nav.classList.toggle('lp-scrolled', window.scrollY > 40);
+  }, { passive: true });
+
+  function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.textContent = str == null ? '' : String(str);
+    return div.innerHTML;
+  }
+
+  // ---------- Animated counters, from real data ----------
+  function animateCount(el, target) {
+    var start = 0;
+    var duration = 1100;
+    var startTime = null;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      el.textContent = target.toLocaleString('en-US');
+      return;
+    }
+    function tick(ts) {
+      if (!startTime) startTime = ts;
+      var progress = Math.min((ts - startTime) / duration, 1);
+      var eased = 1 - Math.pow(1 - progress, 3);
+      el.textContent = Math.round(start + (target - start) * eased).toLocaleString('en-US');
+      if (progress < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+
+  function loadStats() {
+    fetch('/api/public/stats').then(function (r) { return r.ok ? r.json() : null; }).then(function (data) {
+      if (!data) return;
+      var nums = document.querySelectorAll('.lp-stat-num');
+      var values = [data.memberCount, data.communityCount, data.eventCount];
+      var observer = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry, i) {
+          if (entry.isIntersecting) {
+            var idx = Array.prototype.indexOf.call(nums, entry.target);
+            animateCount(entry.target, values[idx] || 0);
+            observer.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.4 });
+      nums.forEach(function (el) { observer.observe(el); });
+    }).catch(function () {});
+  }
+
+  var CATEGORY_FALLBACK_ICON = {
+    "Ta\u2019lim": '/icons/icon-education.svg',
+    'Startup': '/icons/icon-startup.svg',
+    'Texnologiya': '/icons/icon-tech.svg',
+    'Sport': '/icons/icon-sport.svg',
+    'Dizayn': '/icons/icon-design.svg'
+  };
+
+  function loadCommunities() {
+    var grid = document.getElementById('lpCommunityGrid');
+    fetch('/api/public/communities').then(function (r) {
+      if (!r.ok) throw new Error('bad');
+      return r.json();
+    }).then(function (communities) {
+      if (!communities.length) {
+        grid.innerHTML = '<div class="lp-empty">Hali jamoalar yo\u2018q. <a href="/register">Birinchi jamoani siz yarating →</a></div>';
+        return;
+      }
+      grid.innerHTML = communities.map(function (c) {
+        var fallbackIcon = CATEGORY_FALLBACK_ICON[c.category] || '/icons/icon-categories.svg';
+        var media = c.imageUrl
+          ? '<img src="' + escapeHtml(c.imageUrl) + '" alt="" loading="lazy">'
+          : '<div class="lp-fallback"><img src="' + fallbackIcon + '" alt=""></div>';
+        return '' +
+          '<a class="lp-card" href="/register">' +
+          '<div class="lp-card-media">' + media + (c.category ? '<span class="lp-badge">' + escapeHtml(c.category) + '</span>' : '') + '</div>' +
+          '<div class="lp-card-body">' +
+          '<h3>' + escapeHtml(c.name) + '</h3>' +
+          '<p class="lp-card-desc">' + escapeHtml(c.description || 'Qiziqarli jamoa — batafsilni ko\u2018rish uchun qo\u2018shiling.') + '</p>' +
+          '<div class="lp-card-foot"><span class="lp-meta"><i class="fas fa-user-group"></i> ' + (c.memberCount || 0) + ' a\u2019zo</span>' +
+          '<span class="lp-join">Qo\u2018shilish <svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 6h8M6 2l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>' +
+          '</div></a>';
+      }).join('');
+    }).catch(function () {
+      grid.innerHTML = '<div class="lp-empty">Jamoalarni yuklab bo\u2018lmadi. <a href="/register">Ro\u2018yxatdan o\u2018tib, o\u2018zingiz ko\u2018ring →</a></div>';
+    });
+  }
+
+  function loadPeople() {
+    var grid = document.getElementById('lpPeopleGrid');
+    fetch('/api/public/profiles').then(function (r) {
+      if (!r.ok) throw new Error('bad');
+      return r.json();
+    }).then(function (people) {
+      if (!people.length) {
+        grid.innerHTML = '<div class="lp-empty">Hozircha namoyish uchun profil yo\u2018q. Ro\u2018yxatdan o\u2018tib, profil sozlamalaridan <strong>"Bosh sahifada ko\u2018rsatilsin"</strong>ni yoqing va birinchi bo\u2018ling. <a href="/register">Boshlash →</a></div>';
+        return;
+      }
+      grid.innerHTML = people.map(function (p) {
+        var firstName = (p.name || 'A\u2019zo').trim().split(' ')[0];
+        var tags = (p.interests || []).slice(0, 2).map(function (i) {
+          return '<span class="lp-person-tag">' + escapeHtml(i) + '</span>';
+        }).join('');
+        var photo = p.photoUrl
+          ? '<img src="' + escapeHtml(p.photoUrl) + '" alt="" loading="lazy">'
+          : '<img src="/icons/icon-user.svg" alt="" style="object-fit:contain; padding:22%;">';
+        return '' +
+          '<a class="lp-person" href="/register">' +
+          '<div class="lp-person-photo">' + photo + '</div>' +
+          '<div class="lp-person-name">' + escapeHtml(firstName) + '</div>' +
+          (p.region ? '<div class="lp-person-region"><i class="fas fa-location-dot"></i> ' + escapeHtml(p.region) + '</div>' : '') +
+          '<div class="lp-person-tags">' + tags + '</div>' +
+          '</a>';
+      }).join('');
+    }).catch(function () {
+      grid.innerHTML = '<div class="lp-empty">A\u2019zolarni yuklab bo\u2018lmadi. <a href="/register">Ro\u2018yxatdan o\u2018tib, o\u2018zingiz ko\u2018ring →</a></div>';
+    });
+  }
+
+  function buildMarquee() {
+    var tags = [
+      ['icon-python.svg', 'Python'], ['icon-ai.svg', "Sun'iy intellekt"], ['icon-games.svg', "O'yinlar"],
+      ['icon-cloud.svg', 'Cloud'], ['icon-mobile.svg', 'Mobil dasturlash'], ['icon-ielts.svg', 'IELTS'],
+      ['icon-startup.svg', 'Startup'], ['icon-sport.svg', 'Sport'], ['icon-design.svg', 'Dizayn'],
+      ['icon-volunteer.svg', 'Volontyorlik']
+    ];
+    var doubled = tags.concat(tags);
+    document.getElementById('lpMarquee').innerHTML = doubled.map(function (t) {
+      return '<span class="lp-mtag"><img src="/icons/' + t[0] + '" alt=""> ' + t[1] + '</span>';
+    }).join('');
+  }
+
+  loadStats();
+  loadCommunities();
+  loadPeople();
+  buildMarquee();
+})();
+</script>
 
 </body>
 </html>
