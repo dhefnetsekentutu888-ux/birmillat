@@ -7,22 +7,28 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BirMillat – Maqola yozish</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="/style.css">
 <style>
-    .form-shell { max-width: 720px; margin: 2rem auto; padding: 0 1.5rem; }
-    .form-card { padding: 2.2rem; }
-    .form-card h1 { font-size: 1.5rem; margin-bottom: 0.4rem; }
+    body { font-family: 'Inter', sans-serif; }
+    .form-shell { max-width: 720px; margin: 2.2rem auto; padding: 0 1.5rem; }
+    .form-card { padding: 2.3rem; }
+    .form-card h1 { font-family: 'Sora', sans-serif; font-size: 1.5rem; margin-bottom: 0.4rem; display: flex; align-items: center; gap: .5rem; }
+    .form-card h1 i { color: var(--color-accent); }
     .form-card > p { color: var(--color-text-muted); margin-bottom: 1.6rem; font-size: 0.9rem; }
     .form-field { margin-bottom: 1.1rem; }
     .form-field label {
-        display: block; font-size: 0.82rem; font-weight: 600; color: var(--color-text-muted);
+        display: block; font-size: 0.82rem; font-weight: 700; color: var(--color-text-muted);
         margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.4px;
     }
     .form-field input, .form-field textarea {
         width: 100%; padding: 0.75rem 1rem; border-radius: var(--radius-sm);
-        border: 1px solid var(--color-border); font-family: var(--font-body); font-size: 0.95rem; resize: vertical;
+        border: 1.5px solid var(--color-border); font-family: 'Inter', sans-serif; font-size: 0.95rem; resize: vertical;
+        transition: border-color .15s ease, box-shadow .15s ease; background: var(--color-bg); color: var(--color-text);
+    }
+    .form-field input:focus, .form-field textarea:focus {
+        outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(45,27,105,0.1);
     }
     .form-field textarea { min-height: 320px; line-height: 1.6; }
     .rules-note {
@@ -33,6 +39,11 @@
     .submit-status { font-size: 0.88rem; margin-top: 0.8rem; min-height: 1.2em; }
     .submit-status.success { color: var(--color-success); }
     .submit-status.error { color: var(--color-error); }
+    @media (max-width: 560px) {
+        .form-shell { margin: 1.4rem auto; padding: 0 1rem; }
+        .form-card { padding: 1.5rem 1.3rem; }
+        .form-field textarea { min-height: 220px; }
+    }
 </style>
 </head>
 <body>
@@ -44,7 +55,7 @@
                 <g transform="rotate(18)"><ellipse cx="10" cy="0" rx="20" ry="36" fill="none" stroke="#FF6B5B" stroke-width="10"/></g>
                 <g transform="rotate(-18)"><path d="M -30 0 A 20 36 0 0 1 11 0" fill="none" stroke="#2D1B69" stroke-width="10" stroke-linecap="round"/></g>
               </g>
-              <text x="95" y="53" font-size="34" font-weight="700" fill="#2D1B69" font-family="Poppins, -apple-system, sans-serif">Bir<tspan fill="#FF6B5B">Millat</tspan></text>
+              <text x="95" y="53" font-size="34" font-weight="700" fill="#2D1B69" font-family="Sora, -apple-system, sans-serif">Bir<tspan fill="#FF6B5B">Millat</tspan></text>
             </svg>
         </a>
         <button class="nav-toggle" id="navToggle" aria-label="Menyu"><i class="fas fa-bars"></i></button>
@@ -72,7 +83,7 @@
 </nav>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-    <div class="form-shell">
+    <div class="form-shell reveal">
         <div class="form-card card">
             <h1><i class="fas fa-pen-nib"></i> Yangi maqola</h1>
             <p>Tadqiqotingiz yoki maqolangizni ulashing — darhol e'lon qilinadi.</p>
@@ -91,7 +102,7 @@
                     <label for="contentInput">Matn</label>
                     <textarea id="contentInput" placeholder="Maqolangizni shu yerga yozing..." required></textarea>
                 </div>
-                <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">
+                <button type="submit" class="btn btn-primary btn-zoom" style="width:100%; justify-content:center;">
                     <i class="fas fa-paper-plane"></i> E'lon qilish
                 </button>
                 <div class="submit-status" id="submitStatus"></div>
