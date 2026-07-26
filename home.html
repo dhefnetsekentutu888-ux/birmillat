@@ -7,212 +7,134 @@
 <title>BirMillat – Bosh sahifa</title>
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="/style.css">
 <style>
-    .page-container {
-        max-width: 1100px;
-        margin: 2rem auto;
-        padding: 0 1.5rem;
-    }
-    .welcome-card {
-        padding: 2rem;
-        margin-bottom: 2rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        flex-wrap: wrap;
-        gap: 1.5rem;
-    }
-    .welcome-card h1 {
-        font-size: 1.7rem;
-        margin-bottom: 0.5rem;
-    }
-    .welcome-card h1 span { color: var(--color-accent); }
-    .welcome-card p {
-        color: var(--color-text-muted);
-        max-width: 480px;
-    }
-    .interests-section { margin-bottom: 2rem; }
-    .events-ticker-wrap { margin: 1.5rem 0; }
-    .event-chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        background: var(--color-surface);
-        border: 1px solid var(--color-border);
-        padding: 0.5rem 1rem;
-        border-radius: var(--radius-pill);
-        font-size: 0.82rem;
-        font-weight: 600;
-        color: var(--color-primary);
-        text-decoration: none;
-        white-space: nowrap;
-    }
-    .event-chip i { color: var(--color-accent); }
-    .rec-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: baseline;
-        margin-bottom: 1.2rem;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-    }
-    .rec-header h2 { font-size: 1.3rem; }
-    .rec-header p { color: var(--color-text-muted); font-size: 0.85rem; }
-    .users-grid {
-        display: flex;
-        gap: 1.2rem;
-        overflow-x: auto;
-        scroll-snap-type: x mandatory;
-        padding-bottom: 0.6rem;
-        -webkit-overflow-scrolling: touch;
-    }
-    .users-grid::-webkit-scrollbar { height: 6px; }
-    .users-grid::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
-    .user-card {
-        flex: 0 0 240px;
-        scroll-snap-align: start;
-        display: flex;
-        flex-direction: column;
-        height: 210px;
-        transition: transform 0.18s ease, box-shadow 0.18s ease;
-    }
-    .user-card:hover { transform: translateY(-3px); }
-    .more-users-card {
-        flex: 0 0 140px;
-        height: 210px;
-        scroll-snap-align: start;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-        text-decoration: none;
-        gap: 0.5rem;
-        color: var(--color-primary);
-        font-weight: 700;
-        font-size: 0.9rem;
-    }
-    .more-users-card i { font-size: 1.3rem; }
-    .card-top {
-        display: flex;
-        align-items: center;
-        gap: 0.8rem;
-        margin-bottom: 0.8rem;
-    }
-    .avatar {
-        width: 48px;
-        height: 48px;
-        background: #EFEAF8;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.25rem;
-        color: var(--color-primary);
-        flex-shrink: 0;
-    }
-    .user-info h3 { font-size: 1rem; color: var(--color-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .user-info .username { font-size: 0.75rem; color: var(--color-text-muted); }
-    .common-interests {
-        display: flex;
-        flex-wrap: nowrap;
-        gap: 0.4rem;
-        margin: 0.6rem 0;
-        overflow: hidden;
-        height: 1.6rem;
-        flex: 1;
-    }
-    .interest-badge {
-        white-space: nowrap;
-        flex-shrink: 0;
-        background: var(--color-bg);
-        font-size: 0.7rem;
-        padding: 0.25rem 0.7rem;
-        border-radius: var(--radius-pill);
-        color: var(--color-primary);
-        font-weight: 600;
-    }
-    .follow-btn {
-        width: 100%;
-        background: transparent;
-        border: 1.5px solid var(--color-primary);
-        padding: 0.5rem;
-        border-radius: var(--radius-pill);
-        font-weight: 600;
-        font-size: 0.8rem;
-        color: var(--color-primary);
-        cursor: pointer;
-        transition: 0.18s ease;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.4rem;
-        margin-top: auto;
-        flex-shrink: 0;
-    }
-    .follow-btn:hover {
-        background: var(--color-primary);
-        color: white;
-    }
-    .users-scroll-wrap { position: relative; }
-    .scroll-arrow {
-        position: absolute;
-        top: 40%;
-        transform: translateY(-50%);
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-        background: var(--color-surface);
-        border: 1px solid var(--color-border);
-        box-shadow: var(--shadow-card);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        color: var(--color-primary);
-        z-index: 5;
-        transition: background 0.15s ease;
-    }
-    .scroll-arrow:hover { background: var(--color-bg); }
-    .scroll-arrow-left { left: 6px; }
-    .scroll-arrow-right { right: 6px; }
-    @media (max-width: 600px) {
-        .scroll-arrow { display: none; }
-    }
-    .empty-state {
-        text-align: center;
-        padding: 3rem 1rem;
-        color: var(--color-text-muted);
-    }
-    .dash-section { margin-top: 2.5rem; }
-    .mini-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-        gap: 1.2rem;
-    }
-    .mini-card {
-        text-decoration: none;
-        color: inherit;
-        display: block;
-        padding: 1.3rem;
-    }
-    .mini-card h3 { font-size: 0.98rem; margin-bottom: 0.4rem; line-height: 1.35; }
-    .mini-card p { font-size: 0.82rem; color: var(--color-text-muted); line-height: 1.5; }
-    .mini-card .mini-meta { display: flex; align-items: center; gap: 0.5rem; font-size: 0.78rem; color: var(--color-text-muted); margin-top: 0.7rem; }
-    .empty-mini {
-        grid-column: 1 / -1;
-        text-align: center;
-        padding: 2rem 1.5rem;
-        color: var(--color-text-muted);
-        font-size: 0.9rem;
-    }
-    .empty-mini a { color: var(--color-accent); font-weight: 600; }
+/* ==========================================================
+   Home / dashboard — own visual layer (hm- prefixed), sharing
+   only the persistent .navbar shell + design tokens with the
+   rest of the app. Data logic below is unchanged from before;
+   only presentation is new.
+   ========================================================== */
+.hm-page { font-family: 'Inter', sans-serif; }
+.hm-display { font-family: 'Sora', sans-serif; }
+.hm-container { max-width: 1120px; margin: 0 auto; padding: 1.8rem 1.5rem 3rem; }
+
+/* ---------- Greeting hero ---------- */
+.hm-hero {
+  position: relative; overflow: hidden;
+  background: linear-gradient(135deg, #2D1B69, #4A2F9E 60%, #3a2380);
+  border-radius: 24px;
+  padding: 2.2rem 2rem;
+  margin-bottom: 1.6rem;
+  display: flex; justify-content: space-between; align-items: center; gap: 1.5rem; flex-wrap: wrap;
+  color: #FAF7F2;
+}
+.hm-hero::before { content:''; position:absolute; width:220px; height:220px; background:#FF6B5B; opacity:.28; filter:blur(70px); border-radius:50%; top:-70px; right:-40px; }
+.hm-hero-copy { position: relative; max-width: 520px; }
+.hm-hero h1 { font-family: 'Sora', sans-serif; font-size: clamp(1.4rem, 3vw, 1.85rem); margin: 0 0 .5rem; color: #FAF7F2; }
+.hm-hero h1 span { color: #FF9C8F; }
+.hm-hero p { color: #D9D2EE; line-height: 1.6; margin: 0; font-size: .93rem; }
+.hm-hero .btn { position: relative; flex-shrink: 0; }
+
+/* ---------- Events ticker ---------- */
+.hm-ticker-wrap { margin: 0 0 1.8rem; }
+.hm-chip {
+  display: inline-flex; align-items: center; gap: .5rem;
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  padding: .55rem 1.05rem; border-radius: 999px; font-size: .82rem; font-weight: 600;
+  color: var(--color-primary); text-decoration: none; white-space: nowrap;
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.hm-chip:hover { transform: translateY(-2px); box-shadow: var(--shadow-card); }
+.hm-chip i { color: var(--color-accent); }
+
+/* ---------- Interests ---------- */
+.hm-interests { margin-bottom: 2rem; }
+.hm-kicker { display: flex; align-items: center; gap: .4rem; font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--color-text-muted); margin-bottom: .6rem; }
+.hm-kicker img { width: 13px; height: 13px; }
+
+/* ---------- Section headers ---------- */
+.hm-section-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 1.1rem; flex-wrap: wrap; gap: .5rem; }
+.hm-section-head h2 { font-family: 'Sora', sans-serif; font-size: 1.22rem; display: flex; align-items: center; gap: .5rem; margin: 0; }
+.hm-section-head h2 i { color: var(--color-accent); font-size: 1rem; }
+.hm-section-head p { color: var(--color-text-muted); font-size: .85rem; margin: .2rem 0 0; }
+.hm-see-all { font-size: .85rem; font-weight: 700; color: var(--color-primary); text-decoration: none; }
+.hm-see-all:hover { text-decoration: underline; }
+
+/* ---------- Recommended users rail ---------- */
+.hm-users-scroll-wrap { position: relative; }
+.hm-users-grid {
+  display: flex; gap: 1.1rem; overflow-x: auto; scroll-snap-type: x mandatory;
+  padding: .2rem .1rem .7rem; -webkit-overflow-scrolling: touch;
+}
+.hm-users-grid::-webkit-scrollbar { height: 6px; }
+.hm-users-grid::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
+.hm-user-card {
+  flex: 0 0 232px; scroll-snap-align: start; display: flex; flex-direction: column;
+  min-height: 208px; text-decoration: none; color: inherit; padding: 1.15rem;
+  transition: transform .2s cubic-bezier(.16,1,.3,1), box-shadow .2s ease;
+}
+.hm-user-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-hover); }
+.hm-more-card {
+  flex: 0 0 130px; min-height: 208px; scroll-snap-align: start; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; text-align: center; text-decoration: none;
+  gap: .5rem; color: var(--color-primary); font-weight: 700; font-size: .88rem;
+  transition: transform .2s ease;
+}
+.hm-more-card:hover { transform: translateY(-4px); }
+.hm-more-card i { font-size: 1.25rem; }
+.hm-card-top { display: flex; align-items: center; gap: .8rem; margin-bottom: .8rem; }
+.hm-avatar { width: 46px; height: 46px; background: linear-gradient(135deg,#EFEAF8,#E4DBF7); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.15rem; color: var(--color-primary); flex-shrink: 0; overflow: hidden; }
+.hm-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+.hm-user-info h3 { font-size: .98rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0; }
+.hm-user-info .hm-username { font-size: .74rem; color: var(--color-text-muted); }
+.hm-common-interests { display: flex; flex-wrap: nowrap; gap: .35rem; margin: .5rem 0; overflow: hidden; height: 1.6rem; flex: 1; }
+.hm-interest-badge { white-space: nowrap; flex-shrink: 0; background: var(--color-bg); font-size: .68rem; padding: .25rem .65rem; border-radius: 999px; color: var(--color-primary); font-weight: 600; }
+.hm-follow-btn {
+  width: 100%; background: transparent; border: 1.5px solid var(--color-primary); padding: .5rem;
+  border-radius: 999px; font-weight: 700; font-size: .78rem; color: var(--color-primary); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: .4rem; margin-top: auto; flex-shrink: 0;
+  transition: transform .18s cubic-bezier(.34,1.56,.64,1), background .18s ease, color .18s ease;
+}
+.hm-follow-btn:hover { background: var(--color-primary); color: #fff; transform: scale(1.03); }
+.hm-follow-btn:active { transform: scale(.94); }
+.hm-scroll-arrow {
+  position: absolute; top: 40%; transform: translateY(-50%); width: 36px; height: 36px; border-radius: 50%;
+  background: var(--color-surface); border: 1px solid var(--color-border); box-shadow: var(--shadow-card);
+  display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--color-primary);
+  z-index: 5; transition: background .15s ease, transform .15s ease;
+}
+.hm-scroll-arrow:hover { background: var(--color-bg); transform: translateY(-50%) scale(1.08); }
+.hm-scroll-arrow-left { left: -6px; } .hm-scroll-arrow-right { right: -6px; }
+@media (max-width: 640px) { .hm-scroll-arrow { display: none; } }
+
+.hm-empty { text-align: center; padding: 2.6rem 1rem; color: var(--color-text-muted); grid-column: 1/-1; }
+
+/* ---------- Dashboard mini sections ---------- */
+.hm-dash-section { margin-top: 2.3rem; }
+.hm-mini-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 1.1rem; }
+.hm-mini-card {
+  text-decoration: none; color: inherit; display: block; padding: 1.25rem;
+  transition: transform .2s cubic-bezier(.16,1,.3,1), box-shadow .2s ease;
+}
+.hm-mini-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-hover); }
+.hm-mini-card h3 { font-size: .96rem; margin: 0 0 .4rem; line-height: 1.35; font-family: 'Sora', sans-serif; }
+.hm-mini-card p { font-size: .82rem; color: var(--color-text-muted); line-height: 1.5; margin: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.hm-mini-meta { display: flex; align-items: center; gap: .5rem; font-size: .76rem; color: var(--color-text-muted); margin-top: .65rem; }
+.hm-mini-meta i { color: var(--color-accent); }
+.hm-empty-mini { grid-column: 1/-1; text-align: center; padding: 1.8rem 1.5rem; color: var(--color-text-muted); font-size: .88rem; }
+.hm-empty-mini a { color: var(--color-accent); font-weight: 700; text-decoration: none; }
+.hm-empty-mini a:hover { text-decoration: underline; }
+
+@media (max-width: 620px) {
+  .hm-hero { padding: 1.7rem 1.4rem; }
+  .hm-hero .btn { width: 100%; justify-content: center; }
+}
 </style>
 </head>
-<body>
+<body class="hm-page">
     <nav class="navbar">
         <a href="/home" class="logo"><svg width="160" height="45" viewBox="0 0 320 90" xmlns="http://www.w3.org/2000/svg" style="display:block;">
       <g transform="translate(45,45)">
@@ -226,7 +148,7 @@
           <path d="M -30 0 A 20 36 0 0 1 11 0" fill="none" stroke="#2D1B69" stroke-width="10" stroke-linecap="round"/>
         </g>
       </g>
-      <text x="95" y="53" font-size="34" font-weight="700" fill="#2D1B69" font-family="Poppins, -apple-system, sans-serif">Bir<tspan fill="#FF6B5B">Millat</tspan></text>
+      <text x="95" y="53" font-size="34" font-weight="700" fill="#2D1B69" font-family="Sora, -apple-system, sans-serif">Bir<tspan fill="#FF6B5B">Millat</tspan></text>
     </svg></a>
         <button class="nav-toggle" id="navToggle" aria-label="Menyu"><i class="fas fa-bars"></i></button>
         <div class="nav-links" id="navLinks">
@@ -253,78 +175,78 @@
 </nav>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-    <div class="page-container">
-        <div class="welcome-card card">
-            <div>
+    <div class="hm-container">
+        <div class="hm-hero reveal">
+            <div class="hm-hero-copy">
                 <h1>Xush kelibsiz, <span id="welcomeName">...</span></h1>
                 <p>BirMillat'da siz <strong>qiziqishlaringiz asosida</strong> haqiqiy do'stlar va jamoa topasiz. Suhbatlashing, g'oyalar almashing, birga o'sing.</p>
             </div>
-            <a href="/profile" class="btn btn-primary">Profilni tahrirlash</a>
+            <a href="/profile" class="btn btn-primary btn-zoom">Profilni tahrirlash</a>
         </div>
 
-        <div class="events-ticker-wrap" id="eventsTickerWrap" style="display:none;">
+        <div class="hm-ticker-wrap" id="eventsTickerWrap" style="display:none;">
             <div class="marquee">
                 <div class="marquee-track" id="eventsTickerTrack"></div>
             </div>
         </div>
 
-        <div class="interests-section">
-            <div class="section-label"><img src="/icons/icon-bolt.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> Sizning qiziqishlaringiz</div>
+        <div class="hm-interests reveal">
+            <div class="hm-kicker"><img src="/icons/icon-bolt.svg" alt=""> Sizning qiziqishlaringiz</div>
             <div class="tag-list" id="myInterestsTags">
                 <span class="tag" style="opacity:0.5">Yuklanmoqda...</span>
             </div>
         </div>
 
-        <div class="rec-header">
+        <div class="hm-section-head reveal">
             <div>
                 <h2><i class="fas fa-users"></i> Sizga tavsiya etiladi</h2>
                 <p>Qiziqishlari siznikiga mos keladigan foydalanuvchilar</p>
             </div>
         </div>
 
-        <div class="users-scroll-wrap">
-            <button class="scroll-arrow scroll-arrow-left" id="usersScrollLeft" aria-label="Chapga"><i class="fas fa-chevron-left"></i></button>
-            <div class="users-grid" id="recommendGrid">
+        <div class="hm-users-scroll-wrap reveal">
+            <button class="hm-scroll-arrow hm-scroll-arrow-left" id="usersScrollLeft" aria-label="Chapga"><i class="fas fa-chevron-left"></i></button>
+            <div class="hm-users-grid" id="recommendGrid">
                 <p style="color:var(--color-text-muted)">Yuklanmoqda...</p>
             </div>
-            <button class="scroll-arrow scroll-arrow-right" id="usersScrollRight" aria-label="O'ngga"><i class="fas fa-chevron-right"></i></button>
+            <button class="hm-scroll-arrow hm-scroll-arrow-right" id="usersScrollRight" aria-label="O'ngga"><i class="fas fa-chevron-right"></i></button>
         </div>
 
-        <div class="dash-section">
-            <div class="rec-header">
+        <div class="hm-dash-section">
+            <div class="hm-section-head reveal">
                 <div>
                     <h2><i class="fas fa-newspaper"></i> So'nggi maqolalar</h2>
                     <p>Jamoa a'zolari yozgan eng yangi maqolalar</p>
                 </div>
-                <a href="/articles" style="font-size:0.85rem; font-weight:600;">Barchasi →</a>
+                <a href="/articles" class="hm-see-all">Barchasi →</a>
             </div>
-            <div class="mini-grid" id="articlesMiniGrid">
+            <div class="hm-mini-grid reveal-stagger reveal" id="articlesMiniGrid">
                 <p style="color:var(--color-text-muted)">Yuklanmoqda...</p>
             </div>
         </div>
 
-        <div class="dash-section">
-            <div class="rec-header">
+        <div class="hm-dash-section">
+            <div class="hm-section-head reveal">
                 <div>
                     <h2><i class="fas fa-calendar-days"></i> Yaqinlashib kelayotgan tadbirlar</h2>
                     <p>Yaqin orada bo'lib o'tadigan tadbirlar</p>
                 </div>
-                <a href="/events" style="font-size:0.85rem; font-weight:600;">Barchasi →</a>
+                <a href="/events" class="hm-see-all">Barchasi →</a>
             </div>
-            <div class="mini-grid" id="eventsMiniGrid">
+            <div class="hm-mini-grid reveal-stagger reveal" id="eventsMiniGrid">
                 <p style="color:var(--color-text-muted)">Yuklanmoqda...</p>
             </div>
         </div>
 
-        <div class="dash-section">
-            <div class="rec-header">
+        <div class="hm-dash-section">
+            <div class="hm-section-head reveal">
                 <div>
                     <h2><i class="fas fa-people-group"></i> Ommabop jamoalar</h2>
                     <p>Eng ko'p a'zoli jamoalar</p>
                 </div>
-                <a href="/communities" style="font-size:0.85rem; font-weight:600;">Barchasi →</a>
+                <a href="/communities" class="hm-see-all">Barchasi →</a>
             </div>
-            <div class="mini-grid" id="communitiesMiniGrid">
+            <div class="hm-mini-grid reveal-stagger reveal" id="communitiesMiniGrid">
                 <p style="color:var(--color-text-muted)">Yuklanmoqda...</p>
             </div>
         </div>
@@ -370,52 +292,49 @@
                 const users = await res.json();
 
                 if (users.length === 0) {
-                    grid.innerHTML = `<div class="empty-state">Hozircha boshqa foydalanuvchilar yo'q. Tez orada bu yerda tavsiyalar paydo bo'ladi!</div>`;
+                    grid.innerHTML = `<div class="hm-empty">Hozircha boshqa foydalanuvchilar yo'q. Tez orada bu yerda tavsiyalar paydo bo'ladi!</div>`;
                     return;
                 }
 
                 grid.innerHTML = '';
                 users.slice(0, 9).forEach(user => {
                     const card = document.createElement('a');
-                    card.className = 'user-card card';
+                    card.className = 'hm-user-card card';
                     card.href = `/u/${encodeURIComponent(user.username)}`;
-                    card.style.textDecoration = 'none';
-                    card.style.color = 'inherit';
-                    card.style.display = 'block';
                     const interests = user.interests || [];
                     card.innerHTML = `
-                        <div class="card-top">
-                            <div class="avatar">${user.photoUrl ? `<img src="${user.photoUrl}" alt="" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">` : `<i class="fas ${pickIcon(user.username)}"></i>`}</div>
-                            <div class="user-info">
+                        <div class="hm-card-top">
+                            <div class="hm-avatar">${user.photoUrl ? `<img src="${user.photoUrl}" alt="">` : `<i class="fas ${pickIcon(user.username)}"></i>`}</div>
+                            <div class="hm-user-info">
                                 <h3>${user.name || user.username}</h3>
-                                <div class="username">@${user.username}</div>
+                                <div class="hm-username">@${user.username}</div>
                             </div>
                         </div>
-                        <div class="common-interests">
-                            ${interests.slice(0, 2).map(t => `<span class="interest-badge">#${t}</span>`).join('')}
-                            ${interests.length > 2 ? `<span class="interest-badge">+${interests.length - 2}</span>` : ''}
-                            ${interests.length === 0 ? `<span class="interest-badge" style="opacity:0.6">Qiziqish ko'rsatilmagan</span>` : ''}
+                        <div class="hm-common-interests">
+                            ${interests.slice(0, 2).map(t => `<span class="hm-interest-badge">#${t}</span>`).join('')}
+                            ${interests.length > 2 ? `<span class="hm-interest-badge">+${interests.length - 2}</span>` : ''}
+                            ${interests.length === 0 ? `<span class="hm-interest-badge" style="opacity:0.6">Qiziqish ko'rsatilmagan</span>` : ''}
                         </div>
-                        <button class="follow-btn" data-name="${user.name || user.username}"><i class="fas fa-user-plus"></i> Kuzatish</button>
+                        <button class="hm-follow-btn" data-name="${user.name || user.username}"><i class="fas fa-user-plus"></i> Kuzatish</button>
                     `;
                     grid.appendChild(card);
                 });
 
                 if (users.length > 9) {
                     const moreCard = document.createElement('a');
-                    moreCard.className = 'more-users-card card';
+                    moreCard.className = 'hm-more-card card';
                     moreCard.href = '/recommend';
                     moreCard.innerHTML = `<i class="fas fa-arrow-right"></i><span>Yana ${users.length - 9}</span>`;
                     grid.appendChild(moreCard);
                 }
             } catch (e) {
                 console.error('Failed to load recommendations:', e);
-                grid.innerHTML = `<div class="empty-state">Tavsiyalarni yuklab bo'lmadi. Sahifani qaytadan yuklang.</div>`;
+                grid.innerHTML = `<div class="hm-empty">Tavsiyalarni yuklab bo'lmadi. Sahifani qaytadan yuklang.</div>`;
             }
         }
 
         document.addEventListener('click', (e) => {
-            const btn = e.target.closest('.follow-btn');
+            const btn = e.target.closest('.hm-follow-btn');
             if (btn) {
                 e.preventDefault();
                 e.stopPropagation();
@@ -436,7 +355,7 @@
                 const chips = events.slice(0, 8).map(ev => {
                     const d = new Date(ev.event_date);
                     const dateStr = formatUzDate(d, { year: false });
-                    return `<a href="/events/${ev.id}" class="event-chip"><i class="fas fa-calendar"></i> ${ev.title} — ${dateStr}</a>`;
+                    return `<a href="/events/${ev.id}" class="hm-chip"><i class="fas fa-calendar"></i> ${ev.title} — ${dateStr}</a>`;
                 });
                 // Duplicate the set so the scroll loop is seamless
                 const track = document.getElementById('eventsTickerTrack');
@@ -455,19 +374,19 @@
                 const articles = await res.json();
 
                 if (articles.length === 0) {
-                    grid.innerHTML = `<div class="empty-mini">Hozircha maqolalar yo'q. <a href="/articles/create">Birinchi maqolani siz yozing!</a></div>`;
+                    grid.innerHTML = `<div class="hm-empty-mini">Hozircha maqolalar yo'q. <a href="/articles/create">Birinchi maqolani siz yozing!</a></div>`;
                     return;
                 }
 
                 grid.innerHTML = '';
                 articles.slice(0, 3).forEach(a => {
                     const card = document.createElement('a');
-                    card.className = 'mini-card card';
+                    card.className = 'hm-mini-card card';
                     card.href = `/articles/${a.id}`;
                     card.innerHTML = `
                         <h3>${a.title}</h3>
                         <p>${a.excerpt}</p>
-                        <div class="mini-meta"><i class="fas fa-heart"></i> ${a.likeCount} <span>·</span> @${a.author.username}</div>
+                        <div class="hm-mini-meta"><i class="fas fa-heart"></i> ${a.likeCount} <span>·</span> @${a.author.username}</div>
                     `;
                     grid.appendChild(card);
                 });
@@ -485,7 +404,7 @@
                 const events = await res.json();
 
                 if (events.length === 0) {
-                    grid.innerHTML = `<div class="empty-mini">Hozircha tadbirlar yo'q. <a href="/events/create">Birinchi tadbirni siz qo'shing!</a></div>`;
+                    grid.innerHTML = `<div class="hm-empty-mini">Hozircha tadbirlar yo'q. <a href="/events/create">Birinchi tadbirni siz qo'shing!</a></div>`;
                     return;
                 }
 
@@ -494,12 +413,12 @@
                     const d = new Date(ev.event_date);
                     const dateStr = formatUzDate(d, { year: false });
                     const card = document.createElement('a');
-                    card.className = 'mini-card card';
+                    card.className = 'hm-mini-card card';
                     card.href = `/events/${ev.id}`;
                     card.innerHTML = `
                         <h3>${ev.title}</h3>
                         <p>${ev.category || ''}</p>
-                        <div class="mini-meta"><i class="fas fa-calendar"></i> ${dateStr} <span>·</span> <i class="fas fa-users"></i> ${ev.attendee_count}</div>
+                        <div class="hm-mini-meta"><i class="fas fa-calendar"></i> ${dateStr} <span>·</span> <i class="fas fa-users"></i> ${ev.attendee_count}</div>
                     `;
                     grid.appendChild(card);
                 });
@@ -517,7 +436,7 @@
                 let communities = await res.json();
 
                 if (communities.length === 0) {
-                    grid.innerHTML = `<div class="empty-mini">Hozircha jamoalar yo'q. <a href="/communities">Birinchi jamoani siz yarating!</a></div>`;
+                    grid.innerHTML = `<div class="hm-empty-mini">Hozircha jamoalar yo'q. <a href="/communities">Birinchi jamoani siz yarating!</a></div>`;
                     return;
                 }
 
@@ -526,12 +445,12 @@
                 grid.innerHTML = '';
                 communities.slice(0, 3).forEach(c => {
                     const card = document.createElement('a');
-                    card.className = 'mini-card card';
+                    card.className = 'hm-mini-card card';
                     card.href = `/communities/${c.id}`;
                     card.innerHTML = `
                         <h3>${c.name}</h3>
                         <p>${c.description || "Tavsif qo'shilmagan"}</p>
-                        <div class="mini-meta"><i class="fas fa-tag"></i> ${c.category} <span>·</span> <i class="fas fa-users"></i> ${c.member_count}</div>
+                        <div class="hm-mini-meta"><i class="fas fa-tag"></i> ${c.category} <span>·</span> <i class="fas fa-users"></i> ${c.member_count}</div>
                     `;
                     grid.appendChild(card);
                 });
