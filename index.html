@@ -51,6 +51,7 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
 .lp-theme-btn { color: #FAF7F2; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); width: 34px; height: 34px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
 .lp-theme-btn:hover { background: rgba(255,255,255,0.16); }
 @media (max-width: 620px) {
+  .lp-nav { padding: 0.9rem 1rem; gap: 0.8rem; }
   .lp-nav-links { gap: 0.7rem; }
   .lp-nav-links a:not(.lp-nav-cta):not(#lpLoginLink) { display: none; }
 }
@@ -98,8 +99,7 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
   color: #FAF7F2; margin: 0 0 1.2rem;
   letter-spacing: -0.01em;
 }
-.lp-hero h1 .lp-underline { position: relative; white-space: nowrap; color: #FF9C8F; }
-.lp-hero h1 .lp-underline svg { position: absolute; left: 0; bottom: -0.12em; width: 100%; height: 0.3em; }
+.lp-hero h1 .lp-underline { color: #FF9C8F; text-decoration: underline; text-decoration-color: #FF6B5B; text-decoration-thickness: 3px; text-underline-offset: 6px; text-decoration-style: wavy; }
 
 .lp-hero-sub { font-size: 1.08rem; line-height: 1.7; color: #C9C0E8; max-width: 480px; margin: 0 0 2rem; }
 @media (max-width: 940px) { .lp-hero-sub { margin-left: auto; margin-right: auto; } }
@@ -124,21 +124,24 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
 
 /* ---------- Hero right: floating card stack ---------- */
 .lp-hero-visual { position: relative; height: 420px; display: flex; align-items: center; justify-content: center; }
-@media (max-width: 940px) { .lp-hero-visual { height: 300px; margin-top: 1rem; } }
 .lp-float-card {
   position: absolute; background: rgba(255,255,255,0.08); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255,255,255,0.16); border-radius: 20px; padding: 1rem 1.2rem;
   color: #FAF7F2; box-shadow: 0 20px 50px rgba(0,0,0,0.28);
   animation: lp-float 6s ease-in-out infinite;
+  width: 210px;
 }
 @media (prefers-reduced-motion: reduce) { .lp-float-card { animation: none; } }
 @keyframes lp-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-14px); } }
-.lp-fc-1 { top: 6%; left: 4%; width: 210px; animation-delay: 0s; }
+.lp-fc-1 { top: 6%; left: 4%; animation-delay: 0s; }
 .lp-fc-2 { bottom: 10%; left: 18%; width: 190px; animation-delay: -2s; }
 .lp-fc-3 { top: 38%; right: 2%; width: 200px; animation-delay: -4s; }
+/* Below ~940px there isn't room for three overlapping floating cards without
+   text getting cramped or cards colliding — so on tablet/mobile they drop
+   out of absolute position entirely and stack normally in flow instead. */
 @media (max-width: 940px) {
-  .lp-fc-1 { top: 0; left: 2%; width: 44%; }
-  .lp-fc-2 { bottom: 0; right: 2%; left: auto; width: 44%; }
+  .lp-hero-visual { height: auto; flex-direction: column; gap: 0.9rem; margin-top: 0.5rem; }
+  .lp-float-card { position: static; width: 100%; max-width: 320px; animation: none; }
   .lp-fc-3 { display: none; }
 }
 .lp-fc-row { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem; }
@@ -171,7 +174,7 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
 
 /* live previews */
 .lp-band { background: var(--color-bg); }
-.lp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.3rem; }
+.lp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.3rem; }
 .lp-card {
   position: relative; display: block; text-decoration: none; color: inherit;
   background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 20px; overflow: hidden;
@@ -210,7 +213,7 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
 @keyframes lp-shimmer { to { background-position: -150% 0; } }
 
 /* categories */
-.lp-cat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.2rem; }
+.lp-cat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1.2rem; }
 .lp-cat { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 18px; padding: 1.7rem 1.4rem; text-align: center; transition: transform 0.2s ease, box-shadow 0.2s ease; }
 .lp-cat:hover { transform: translateY(-4px); box-shadow: 0 14px 28px rgba(45,27,105,0.1); }
 .lp-cat .icon { width: 50px; height: 50px; border-radius: 14px; background: #EFEAF8; display: flex; align-items: center; justify-content: center; margin: 0 auto 0.9rem; }
@@ -265,9 +268,7 @@ footer { position: relative; z-index: 1; }
     <div>
       <span class="lp-eyebrow"><span class="dot"></span> Yoshlar uchun yangi platforma</span>
       <h1>Qiziqishlaringiz asosida
-        <span class="lp-underline">haqiqiy do'stlar
-          <svg viewBox="0 0 200 12" preserveAspectRatio="none"><path d="M2 9 C 50 2, 150 2, 198 9" stroke="#FF6B5B" stroke-width="4" fill="none" stroke-linecap="round"/></svg>
-        </span> toping</h1>
+        <span class="lp-underline">haqiqiy do'stlar</span> toping</h1>
       <p class="lp-hero-sub">Dasturlash, sun'iy intellekt, o'yinlar, sport yoki sayohat — kim bilan bo'lishishni xohlasangiz, ular shu yerda. Jamoalarga qo'shiling, tadbirlarga boring, birga o'sing.</p>
 
       <div class="lp-hero-actions">
