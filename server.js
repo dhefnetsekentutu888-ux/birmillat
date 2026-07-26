@@ -62,6 +62,10 @@ async function initDb() {
     // Phone-based registration (verified via the Telegram bot instead of SMS).
     try { await db.execute(`ALTER TABLE users ADD COLUMN phone TEXT`); } catch (e) {}
     await db.execute(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_phone ON users (phone)`);
+    // Opt-in flag: only members who explicitly turn this on (Profil sozlamalari)
+    // can appear in the logged-out landing page's public "showcase" preview.
+    // Default is off — nobody's photo/bio is public until they choose it.
+    try { await db.execute(`ALTER TABLE users ADD COLUMN showcase_public INTEGER DEFAULT 0`); } catch (e) {}
 
     // In-app notification bell — separate from Telegram notifications, since
     // most users don't have that linked. This is what powers the bell icon
@@ -148,6 +152,11 @@ async function initDb() {
         )
     `);
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_founders_sort ON founders (sort_order, created_at)`);
+    // Social links shown as icon+label buttons on the "Ijtimoiy tarmoq" page —
+    // all optional, all managed by the same founder-admin account.
+    try { await db.execute(`ALTER TABLE founders ADD COLUMN instagram_url TEXT`); } catch (e) {}
+    try { await db.execute(`ALTER TABLE founders ADD COLUMN telegram_url TEXT`); } catch (e) {}
+    try { await db.execute(`ALTER TABLE founders ADD COLUMN linkedin_url TEXT`); } catch (e) {}
 
     // Communities — open group chats, anyone can create/join, creator can remove members
     await db.execute(`
@@ -238,6 +247,10 @@ async function initDb() {
     try { await db.execute(`ALTER TABLE events ADD COLUMN social_link TEXT`); } catch (e) {}
     try { await db.execute(`ALTER TABLE events ADD COLUMN map_link TEXT`); } catch (e) {}
     try { await db.execute(`ALTER TABLE events ADD COLUMN plan_link TEXT`); } catch (e) {}
+    // "Yaqinda bo'lib o'tgan tadbirlar" — after an event's date has passed, its
+    // creator can add a recap photo + short note, shown on the past-events tab.
+    try { await db.execute(`ALTER TABLE events ADD COLUMN recap_image_url TEXT`); } catch (e) {}
+    try { await db.execute(`ALTER TABLE events ADD COLUMN recap_note TEXT`); } catch (e) {}
 
     await db.execute(`
         CREATE TABLE IF NOT EXISTS event_attendees (
@@ -488,10 +501,10 @@ async function findActiveCodeByCodeOnly(code, purpose) {
     return row;
 }
 
-async function updateUserProfile(username, { name, bio, interests, birthdate, region }) {
+async function updateUserProfile(username, { name, bio, interests, birthdate, region, showcasePublic }) {
     return db.execute({
-        sql: `UPDATE users SET name = ?, bio = ?, interests = ?, birthdate = ?, region = ? WHERE username = ?`,
-        args: [name, bio, JSON.stringify(interests), birthdate || null, region || null, username]
+        sql: `UPDATE users SET name = ?, bio = ?, interests = ?, birthdate = ?, region = ?, showcase_public = ? WHERE username = ?`,
+        args: [name, bio, JSON.stringify(interests), birthdate || null, region || null, showcasePublic ? 1 : 0, username]
     });
 }
 
@@ -911,6 +924,33 @@ async function getApprovedEvents(category) {
     return result.rows;
 }
 
+async function getPastEvents(category, limit) {
+    const now = Date.now();
+    const sql = category
+        ? `SELECT events.*, users.username AS creator_username, users.name AS creator_name,
+                  (SELECT COUNT(*) FROM event_attendees WHERE event_attendees.event_id = events.id) AS attendee_count
+           FROM events JOIN users ON users.id = events.creator_id
+           WHERE events.status = 'approved' AND events.event_date < ? AND events.category = ?
+           ORDER BY events.event_date DESC
+           LIMIT ?`
+        : `SELECT events.*, users.username AS creator_username, users.name AS creator_name,
+                  (SELECT COUNT(*) FROM event_attendees WHERE event_attendees.event_id = events.id) AS attendee_count
+           FROM events JOIN users ON users.id = events.creator_id
+           WHERE events.status = 'approved' AND events.event_date < ?
+           ORDER BY events.event_date DESC
+           LIMIT ?`;
+    const args = category ? [now, category, limit] : [now, limit];
+    const result = await db.execute({ sql, args });
+    return result.rows;
+}
+
+async function setEventRecap(id, { recapImageUrl, recapNote }) {
+    return db.execute({
+        sql: 'UPDATE events SET recap_image_url = ?, recap_note = ? WHERE id = ?',
+        args: [recapImageUrl, recapNote, id]
+    });
+}
+
 async function setEventStatus(id, status) {
     return db.execute({ sql: 'UPDATE events SET status = ? WHERE id = ?', args: [status, id] });
 }
@@ -1029,6 +1069,29 @@ async function getCommunityById(id) {
         args: [id]
     });
     return result.rows[0] || null;
+}
+
+async function getShowcaseCommunities(limit) {
+    const result = await db.execute({
+        sql: `SELECT c.id, c.name, c.description, c.category, c.image_url,
+                     (SELECT COUNT(*) FROM community_members WHERE community_id = c.id) AS member_count
+              FROM communities c
+              ORDER BY member_count DESC, c.created_at DESC
+              LIMIT ?`,
+        args: [limit]
+    });
+    return result.rows;
+}
+
+async function getShowcaseProfiles(limit) {
+    const result = await db.execute({
+        sql: `SELECT name, bio, interests, photo_url, region FROM users
+              WHERE showcase_public = 1 AND photo_url IS NOT NULL AND (is_blocked IS NULL OR is_blocked = 0)
+              ORDER BY RANDOM()
+              LIMIT ?`,
+        args: [limit]
+    });
+    return result.rows;
 }
 
 async function listCommunities(category) {
@@ -1173,7 +1236,7 @@ function requireFounderAdmin(req, res) {
 
 async function getFounders() {
     const result = await db.execute(
-        'SELECT id, name, position, description, photo_url, sort_order FROM founders ORDER BY sort_order ASC, created_at ASC'
+        'SELECT id, name, position, description, photo_url, sort_order, instagram_url, telegram_url, linkedin_url FROM founders ORDER BY sort_order ASC, created_at ASC'
     );
     return result.rows;
 }
@@ -1186,24 +1249,24 @@ async function getFounderById(id) {
     return result.rows[0] || null;
 }
 
-async function createFounder({ name, position, description, photoUrl, sortOrder }) {
+async function createFounder({ name, position, description, photoUrl, sortOrder, instagramUrl, telegramUrl, linkedinUrl }) {
     const result = await db.execute({
-        sql: 'INSERT INTO founders (name, position, description, photo_url, sort_order, created_at) VALUES (?, ?, ?, ?, ?, ?)',
-        args: [name, position, description, photoUrl, sortOrder, Date.now()]
+        sql: 'INSERT INTO founders (name, position, description, photo_url, sort_order, instagram_url, telegram_url, linkedin_url, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        args: [name, position, description, photoUrl, sortOrder, instagramUrl || null, telegramUrl || null, linkedinUrl || null, Date.now()]
     });
     return Number(result.lastInsertRowid);
 }
 
-async function updateFounder(id, { name, position, description, photoUrl, sortOrder }) {
+async function updateFounder(id, { name, position, description, photoUrl, sortOrder, instagramUrl, telegramUrl, linkedinUrl }) {
     if (photoUrl) {
         return db.execute({
-            sql: 'UPDATE founders SET name = ?, position = ?, description = ?, photo_url = ?, sort_order = ? WHERE id = ?',
-            args: [name, position, description, photoUrl, sortOrder, id]
+            sql: 'UPDATE founders SET name = ?, position = ?, description = ?, photo_url = ?, sort_order = ?, instagram_url = ?, telegram_url = ?, linkedin_url = ? WHERE id = ?',
+            args: [name, position, description, photoUrl, sortOrder, instagramUrl || null, telegramUrl || null, linkedinUrl || null, id]
         });
     }
     return db.execute({
-        sql: 'UPDATE founders SET name = ?, position = ?, description = ?, sort_order = ? WHERE id = ?',
-        args: [name, position, description, sortOrder, id]
+        sql: 'UPDATE founders SET name = ?, position = ?, description = ?, sort_order = ?, instagram_url = ?, telegram_url = ?, linkedin_url = ? WHERE id = ?',
+        args: [name, position, description, sortOrder, instagramUrl || null, telegramUrl || null, linkedinUrl || null, id]
     });
 }
 
@@ -2144,9 +2207,69 @@ app.post('/reset-password', async (req, res) => {
 app.get('/api/founders', async (req, res) => {
     try {
         const founders = await getFounders();
-        res.json(founders.map(f => ({ id: f.id, name: f.name, position: f.position, description: f.description, photoUrl: f.photo_url, sortOrder: f.sort_order })));
+        res.json(founders.map(f => ({
+            id: f.id, name: f.name, position: f.position, description: f.description,
+            photoUrl: f.photo_url, sortOrder: f.sort_order,
+            instagramUrl: f.instagram_url, telegramUrl: f.telegram_url, linkedinUrl: f.linkedin_url
+        })));
     } catch (err) {
         console.error('api/founders list error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// ---------- Public landing-page previews (no login required) ----------
+// Both endpoints below are intentionally minimal: communities expose only
+// what's already visible on any public listing, and profiles are limited to
+// members who explicitly opted in via the "showcase_public" profile setting
+// — no username, email, phone, or age is ever included here.
+app.get('/api/public/stats', async (req, res) => {
+    try {
+        const [userCount, communityCount, eventCount] = await Promise.all([
+            db.execute(`SELECT COUNT(*) AS n FROM users`),
+            db.execute(`SELECT COUNT(*) AS n FROM communities`),
+            db.execute(`SELECT COUNT(*) AS n FROM events WHERE status = 'approved'`)
+        ]);
+        res.json({
+            memberCount: Number(userCount.rows[0].n) || 0,
+            communityCount: Number(communityCount.rows[0].n) || 0,
+            eventCount: Number(eventCount.rows[0].n) || 0
+        });
+    } catch (err) {
+        console.error('api/public/stats error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.get('/api/public/communities', async (req, res) => {
+    try {
+        const communities = await getShowcaseCommunities(6);
+        res.json(communities.map(c => ({
+            id: c.id,
+            name: c.name,
+            description: c.description,
+            category: c.category,
+            imageUrl: c.image_url,
+            memberCount: c.member_count
+        })));
+    } catch (err) {
+        console.error('api/public/communities error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.get('/api/public/profiles', async (req, res) => {
+    try {
+        const profiles = await getShowcaseProfiles(8);
+        res.json(profiles.map(u => ({
+            name: u.name,
+            bio: u.bio,
+            interests: JSON.parse(u.interests || '[]'),
+            photoUrl: u.photo_url,
+            region: u.region
+        })));
+    } catch (err) {
+        console.error('api/public/profiles error:', err);
         res.status(500).json({ error: 'Server error' });
     }
 });
@@ -2154,6 +2277,13 @@ app.get('/api/founders', async (req, res) => {
 app.get('/api/founders/manage', (req, res) => {
     res.json({ canManage: isFounderAdmin(req) });
 });
+
+function cleanSocialUrl(value) {
+    const trimmed = (value || '').trim();
+    if (!trimmed) return { ok: true, value: null };
+    if (!/^https?:\/\//i.test(trimmed)) return { ok: false };
+    return { ok: true, value: trimmed };
+}
 
 app.post('/api/founders', upload.single('photo'), async (req, res) => {
     if (!requireFounderAdmin(req, res)) return;
@@ -2164,9 +2294,18 @@ app.post('/api/founders', upload.single('photo'), async (req, res) => {
         const sortOrder = Number.parseInt(req.body.sortOrder, 10) || 0;
         if (!name || !position || !description) return res.status(400).json({ error: 'Ism, lavozim va tavsif kiritilishi kerak' });
         if (!req.file) return res.status(400).json({ error: 'Rasm tanlanmadi' });
+        const instagram = cleanSocialUrl(req.body.instagramUrl);
+        const telegram = cleanSocialUrl(req.body.telegramUrl);
+        const linkedin = cleanSocialUrl(req.body.linkedinUrl);
+        if (!instagram.ok || !telegram.ok || !linkedin.ok) {
+            return res.status(400).json({ error: 'Ijtimoiy tarmoq havolalari http:// yoki https:// bilan boshlanishi kerak' });
+        }
         const uploadResult = await uploadImageToFreeimage(req.file.buffer);
         if (!uploadResult.ok) return res.status(500).json({ error: uploadResult.error });
-        const id = await createFounder({ name, position, description, photoUrl: uploadResult.url, sortOrder });
+        const id = await createFounder({
+            name, position, description, photoUrl: uploadResult.url, sortOrder,
+            instagramUrl: instagram.value, telegramUrl: telegram.value, linkedinUrl: linkedin.value
+        });
         res.status(201).json({ success: true, id });
     } catch (err) {
         console.error('api/founders create error:', err);
@@ -2184,13 +2323,22 @@ app.put('/api/founders/:id', upload.single('photo'), async (req, res) => {
         const description = (req.body.description || '').trim();
         const sortOrder = Number.parseInt(req.body.sortOrder, 10) || 0;
         if (!name || !position || !description) return res.status(400).json({ error: 'Ism, lavozim va tavsif kiritilishi kerak' });
+        const instagram = cleanSocialUrl(req.body.instagramUrl);
+        const telegram = cleanSocialUrl(req.body.telegramUrl);
+        const linkedin = cleanSocialUrl(req.body.linkedinUrl);
+        if (!instagram.ok || !telegram.ok || !linkedin.ok) {
+            return res.status(400).json({ error: 'Ijtimoiy tarmoq havolalari http:// yoki https:// bilan boshlanishi kerak' });
+        }
         let photoUrl = null;
         if (req.file) {
             const uploadResult = await uploadImageToFreeimage(req.file.buffer);
             if (!uploadResult.ok) return res.status(500).json({ error: uploadResult.error });
             photoUrl = uploadResult.url;
         }
-        await updateFounder(req.params.id, { name, position, description, photoUrl, sortOrder });
+        await updateFounder(req.params.id, {
+            name, position, description, photoUrl, sortOrder,
+            instagramUrl: instagram.value, telegramUrl: telegram.value, linkedinUrl: linkedin.value
+        });
         res.json({ success: true });
     } catch (err) {
         console.error('api/founders update error:', err);
@@ -2227,7 +2375,8 @@ app.get('/api/me', async (req, res) => {
             region: user.region,
             email: user.email,
             phone: user.phone,
-            telegramLinked: !!user.telegram_chat_id
+            telegramLinked: !!user.telegram_chat_id,
+            showcasePublic: !!user.showcase_public
         });
     } catch (err) {
         console.error('api/me error:', err);
@@ -2470,7 +2619,7 @@ app.delete('/api/achievements/:id', async (req, res) => {
 app.post('/api/profile/update', async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
     try {
-        const { name, bio, interests, birthdate, region } = req.body;
+        const { name, bio, interests, birthdate, region, showcasePublic } = req.body;
 
         if (region && !UZ_REGIONS.includes(region)) {
             return res.status(400).json({ error: "Noto'g'ri viloyat tanlandi" });
@@ -2483,7 +2632,10 @@ app.post('/api/profile/update', async (req, res) => {
         }
 
         const user = await getUserById(req.session.userId);
-        await updateUserProfile(user.username, { name, bio, interests, birthdate, region });
+        // showcasePublic is only sent by the settings toggle itself; any other
+        // profile save (name/bio/etc.) should leave the existing choice as-is.
+        const nextShowcasePublic = showcasePublic === undefined ? !!user.showcase_public : !!showcasePublic;
+        await updateUserProfile(user.username, { name, bio, interests, birthdate, region, showcasePublic: nextShowcasePublic });
         res.json({ success: true });
     } catch (err) {
         console.error('api/profile/update error:', err);
@@ -3135,6 +3287,48 @@ app.get('/api/events', async (req, res) => {
         res.json(events);
     } catch (err) {
         console.error('api/events error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.get('/api/events/past', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const category = (req.query.category || '').trim();
+        const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 24, 1), 50);
+        const events = await getPastEvents(category || null, limit);
+        res.json(events);
+    } catch (err) {
+        console.error('api/events/past error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.post('/api/events/:id/recap', upload.single('photo'), async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const event = await getEventById(req.params.id);
+        if (!event) return res.status(404).json({ error: 'Tadbir topilmadi' });
+        if (event.creator_id !== req.session.userId) {
+            return res.status(403).json({ error: "Faqat tadbir yaratuvchisi hisobot qo'sha oladi" });
+        }
+        if (event.event_date > Date.now()) {
+            return res.status(400).json({ error: "Tadbir hali bo'lib o'tmagan" });
+        }
+        const recapNote = (req.body.note || '').trim().slice(0, 1000);
+        let recapImageUrl = event.recap_image_url || null;
+        if (req.file) {
+            const uploadResult = await uploadImageToFreeimage(req.file.buffer);
+            if (!uploadResult.ok) return res.status(500).json({ error: uploadResult.error });
+            recapImageUrl = uploadResult.url;
+        }
+        if (!recapImageUrl && !recapNote) {
+            return res.status(400).json({ error: 'Rasm yoki matn kiriting' });
+        }
+        await setEventRecap(event.id, { recapImageUrl, recapNote: recapNote || null });
+        res.json({ success: true, recapImageUrl, recapNote });
+    } catch (err) {
+        console.error('api/events/:id/recap error:', err);
         res.status(500).json({ error: 'Server error' });
     }
 });
