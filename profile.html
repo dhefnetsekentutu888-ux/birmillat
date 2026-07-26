@@ -347,6 +347,11 @@
                         </div>
                     </div>
 
+                    <div class="edit-field" style="display:flex; align-items:flex-start; gap:.7rem; margin-top:1rem;">
+                        <input type="checkbox" id="showcasePublicInput" style="margin-top:.3rem; width:auto;">
+                        <label for="showcasePublicInput" style="font-weight:500;">Profilim bosh sahifada (kirmagan foydalanuvchilarga) namuna sifatida ko'rsatilsin<br><span style="font-weight:400; color:var(--color-text-muted); font-size:.82rem;">Faqat ism, rasm, viloyat va qiziqishlaringiz ko'rinadi — username, email yoki telefon hech qachon ko'rsatilmaydi.</span></label>
+                    </div>
+
                     <div class="action-row">
                         <button class="btn btn-primary" id="saveBtn">Saqlash</button>
                         <button class="btn btn-cancel" id="cancelBtn">Bekor qilish</button>
@@ -501,6 +506,7 @@
                 document.getElementById('bioInput').value = me.bio || '';
                 document.getElementById('birthdateInput').value = me.birthdate ? me.birthdate.split('T')[0] : '';
                 document.getElementById('regionInput').value = me.region || '';
+                document.getElementById('showcasePublicInput').checked = !!me.showcasePublic;
                 editInterests = [...currentInterests];
                 renderEditInterests();
             } catch (e) {
@@ -553,6 +559,7 @@
             const bio = document.getElementById('bioInput').value.trim();
             const birthdate = document.getElementById('birthdateInput').value;
             const region = document.getElementById('regionInput').value;
+            const showcasePublic = document.getElementById('showcasePublicInput').checked;
 
             statusEl.textContent = 'Saqlanmoqda...';
             statusEl.className = 'save-status';
@@ -561,7 +568,7 @@
                 const res = await fetch('/api/profile/update', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, bio, interests: editInterests, birthdate, region })
+                    body: JSON.stringify({ name, bio, interests: editInterests, birthdate, region, showcasePublic })
                 });
                 const data = await res.json().catch(() => ({}));
                 if (!res.ok) throw new Error(data.error || 'Server error');
