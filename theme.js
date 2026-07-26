@@ -208,3 +208,52 @@ window.formatUzDate = function (ts, opts) {
     }
     return result;
 };
+
+// ---------- Scroll-reveal (shared across every page) ----------
+// Add class="reveal" to any element and it fades/rises into view the first
+// time it enters the viewport — used by the redesigned pages instead of
+// each one rolling its own IntersectionObserver. Elements added to the DOM
+// later (e.g. cards rendered after a fetch) are picked up automatically by
+// the MutationObserver below, so dynamic grids don't need extra wiring.
+(function () {
+    var prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function revealAll(items) {
+        items.forEach(function (el) { el.classList.add('in-view'); });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        if (prefersReduced || !('IntersectionObserver' in window)) {
+            revealAll(document.querySelectorAll('.reveal'));
+            return;
+        }
+
+        var observer = new IntersectionObserver(function (entries) {
+            entries.forEach(function (entry) {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('in-view');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+
+        function observeNew(root) {
+            (root.matches && root.matches('.reveal') ? [root] : [])
+                .concat(Array.prototype.slice.call(root.querySelectorAll ? root.querySelectorAll('.reveal') : []))
+                .forEach(function (el) {
+                    if (!el.classList.contains('in-view')) observer.observe(el);
+                });
+        }
+
+        observeNew(document.body);
+
+        var mo = new MutationObserver(function (mutations) {
+            mutations.forEach(function (m) {
+                m.addedNodes.forEach(function (node) {
+                    if (node.nodeType === 1) observeNew(node);
+                });
+            });
+        });
+        mo.observe(document.body, { childList: true, subtree: true });
+    });
+})();
