@@ -36,6 +36,16 @@
             });
         }
 
+        // ---------- Sticky nav scroll shadow (shared across every page) ----------
+        var navbar = document.querySelector('.navbar');
+        if (navbar) {
+            var onScroll = function () {
+                navbar.classList.toggle('navbar-scrolled', window.scrollY > 8);
+            };
+            window.addEventListener('scroll', onScroll, { passive: true });
+            onScroll();
+        }
+
         // ---------- Sidebar navigation (shared across every page) ----------
         var sidebar = document.getElementById('navLinks');
         var toggle = document.getElementById('navToggle');
