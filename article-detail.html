@@ -7,43 +7,50 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BirMillat – Maqola</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="/style.css">
 <style>
-    .detail-shell { max-width: 720px; margin: 2rem auto; padding: 0 1.5rem; }
-    .detail-card { padding: 2.2rem; margin-bottom: 1.5rem; }
-    .detail-card h1 { font-size: 1.7rem; margin-bottom: 1rem; line-height: 1.3; }
+    body { font-family: 'Inter', sans-serif; }
+    .detail-shell { max-width: 720px; margin: 2.2rem auto; padding: 0 1.5rem; }
+    .detail-card { padding: 2.3rem 2.2rem; margin-bottom: 1.5rem; }
+    .detail-card h1 { font-family: 'Sora', sans-serif; font-size: clamp(1.5rem, 3.4vw, 1.9rem); margin-bottom: 1.1rem; line-height: 1.32; }
 
     .author-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.8rem; margin-bottom: 1.6rem; padding-bottom: 1.2rem; border-bottom: 1px solid var(--color-border); }
-    .author-link { display: flex; align-items: center; gap: 0.6rem; text-decoration: none; color: inherit; }
+    .author-link { display: flex; align-items: center; gap: 0.6rem; text-decoration: none; color: inherit; transition: opacity .15s ease; }
+    .author-link:hover { opacity: .78; }
     .author-link .avatar {
-        width: 38px; height: 38px; border-radius: 50%; background: #EFEAF8;
+        width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg,#EFEAF8,#E4DBF7);
         display: flex; align-items: center; justify-content: center; font-size: 0.85rem; color: var(--color-primary); overflow: hidden;
-        font-family: var(--font-display); font-weight: 700;
+        font-family: 'Sora', sans-serif; font-weight: 700;
     }
     .author-link .avatar img { width: 100%; height: 100%; object-fit: cover; }
-    .author-link .author-name { font-weight: 600; color: var(--color-text); font-size: 0.95rem; }
+    .author-link .author-name { font-weight: 700; color: var(--color-text); font-size: 0.95rem; }
     .author-link .author-date { font-size: 0.8rem; color: var(--color-text-muted); }
 
-    .article-body { line-height: 1.8; color: var(--color-text); white-space: pre-wrap; margin-bottom: 2rem; font-size: 1rem; }
+    .article-body { line-height: 1.85; color: var(--color-text); white-space: pre-wrap; margin-bottom: 2rem; font-size: 1.02rem; }
 
     .action-row { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; }
     .like-btn {
         display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1.2rem;
         border-radius: var(--radius-pill); border: 1.5px solid var(--color-border); background: var(--color-surface);
-        color: var(--color-text); font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: all 0.15s ease;
+        color: var(--color-text); font-weight: 700; font-size: 0.9rem; cursor: pointer;
+        transition: transform .18s cubic-bezier(.34,1.56,.64,1), border-color .15s ease, background .15s ease, color .15s ease;
     }
-    .like-btn:hover { border-color: var(--color-accent); }
+    .like-btn:hover { border-color: var(--color-accent); transform: scale(1.05); }
+    .like-btn:active { transform: scale(.92); }
     .like-btn.liked { background: #FFEAE6; border-color: var(--color-accent); color: var(--color-accent); }
     .like-btn.liked i { color: var(--color-accent); }
+    .like-btn.just-liked i { animation: like-pop .4s cubic-bezier(.34,1.56,.64,1); }
+    @keyframes like-pop { 0% { transform: scale(1); } 45% { transform: scale(1.5); } 100% { transform: scale(1); } }
     .report-btn, .delete-btn {
         display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1.2rem;
         border-radius: var(--radius-pill); border: 1.5px solid var(--color-border); background: transparent;
-        color: var(--color-text-muted); font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: all 0.15s ease;
+        color: var(--color-text-muted); font-weight: 700; font-size: 0.9rem; cursor: pointer;
+        transition: transform .18s cubic-bezier(.34,1.56,.64,1), border-color .15s ease, color .15s ease;
     }
-    .report-btn:hover { border-color: var(--color-error); color: var(--color-error); }
-    .delete-btn:hover { border-color: var(--color-error); color: var(--color-error); }
+    .report-btn:hover, .delete-btn:hover { border-color: var(--color-error); color: var(--color-error); transform: scale(1.04); }
+    .report-btn:active, .delete-btn:active { transform: scale(.93); }
 
     .report-modal {
         display: none; position: fixed; inset: 0; background: rgba(26,22,37,0.5);
@@ -51,11 +58,17 @@
     }
     .report-modal.open { display: flex; }
     .report-modal-card { max-width: 420px; width: 100%; }
+    .report-modal-card h2 { font-family: 'Sora', sans-serif; }
     .report-modal-card textarea {
         width: 100%; padding: 0.75rem 1rem; border-radius: var(--radius-sm); margin-top: 0.8rem;
-        border: 1px solid var(--color-border); font-family: var(--font-body); font-size: 0.9rem; resize: vertical; min-height: 90px;
+        border: 1px solid var(--color-border); font-family: 'Inter', sans-serif; font-size: 0.9rem; resize: vertical; min-height: 90px;
     }
     .not-found { text-align: center; padding: 4rem 1.5rem; color: var(--color-text-muted); }
+
+    @media (max-width: 560px) {
+        .detail-shell { margin: 1.4rem auto; padding: 0 1rem; }
+        .detail-card { padding: 1.5rem 1.3rem; }
+    }
 </style>
 </head>
 <body>
@@ -67,7 +80,7 @@
                 <g transform="rotate(18)"><ellipse cx="10" cy="0" rx="20" ry="36" fill="none" stroke="#FF6B5B" stroke-width="10"/></g>
                 <g transform="rotate(-18)"><path d="M -30 0 A 20 36 0 0 1 11 0" fill="none" stroke="#2D1B69" stroke-width="10" stroke-linecap="round"/></g>
               </g>
-              <text x="95" y="53" font-size="34" font-weight="700" fill="#2D1B69" font-family="Poppins, -apple-system, sans-serif">Bir<tspan fill="#FF6B5B">Millat</tspan></text>
+              <text x="95" y="53" font-size="34" font-weight="700" fill="#2D1B69" font-family="Sora, -apple-system, sans-serif">Bir<tspan fill="#FF6B5B">Millat</tspan></text>
             </svg>
         </a>
         <button class="nav-toggle" id="navToggle" aria-label="Menyu"><i class="fas fa-bars"></i></button>
@@ -95,7 +108,7 @@
 </nav>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-    <div class="detail-shell" id="detailRoot">
+    <div class="detail-shell reveal" id="detailRoot">
         <p style="color:var(--color-text-muted); text-align:center; padding:3rem 0;">Yuklanmoqda...</p>
     </div>
 
@@ -147,6 +160,11 @@
                 const btn = document.getElementById('likeBtn');
                 btn.classList.toggle('liked', data.isLiked);
                 btn.innerHTML = `<i class="fas fa-heart"></i> ${data.likeCount}`;
+                if (data.isLiked) {
+                    btn.classList.remove('just-liked');
+                    void btn.offsetWidth;
+                    btn.classList.add('just-liked');
+                }
             } catch (e) {
                 console.error('Like failed:', e);
             }
@@ -189,12 +207,12 @@
                         </div>
                         <div class="article-body">${article.content}</div>
                         <div class="action-row">
-                            <button class="like-btn ${article.isLiked ? 'liked' : ''}" id="likeBtn">
+                            <button class="like-btn btn-zoom ${article.isLiked ? 'liked' : ''}" id="likeBtn">
                                 <i class="fas fa-heart"></i> ${article.likeCount}
                             </button>
                             ${article.isAuthor
-                                ? `<button class="delete-btn" id="deleteBtn"><i class="fas fa-trash"></i> O'chirish</button>`
-                                : `<button class="report-btn" id="reportBtn"><i class="fas fa-flag"></i> Shikoyat qilish</button>`
+                                ? `<button class="delete-btn btn-zoom" id="deleteBtn"><i class="fas fa-trash"></i> O'chirish</button>`
+                                : `<button class="report-btn btn-zoom" id="reportBtn"><i class="fas fa-flag"></i> Shikoyat qilish</button>`
                             }
                         </div>
                     </div>
