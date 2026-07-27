@@ -3297,7 +3297,7 @@ app.get('/api/events/past', async (req, res) => {
         const category = (req.query.category || '').trim();
         const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 24, 1), 50);
         const events = await getPastEvents(category || null, limit);
-        res.json(events);
+        res.json(events.map(ev => ({ ...ev, isCreator: ev.creator_id === req.session.userId })));
     } catch (err) {
         console.error('api/events/past error:', err);
         res.status(500).json({ error: 'Server error' });
