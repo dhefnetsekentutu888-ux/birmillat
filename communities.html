@@ -7,55 +7,71 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BirMillat – Jamoalar</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="/style.css">
 <style>
-    .page-container { max-width: 1100px; margin: 2rem auto; padding: 0 1.5rem; }
-    .page-head { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; }
-    .page-head h1 { font-size: 1.6rem; margin-bottom: 0.3rem; }
-    .page-head p { color: var(--color-text-muted); }
+body { font-family: 'Inter', sans-serif; }
+.page-container { max-width: 1100px; margin: 0 auto; padding: 1.8rem 1.5rem 3rem; }
+.page-head { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; }
+.page-head h1 { font-family: 'Sora', sans-serif; font-size: clamp(1.4rem, 3vw, 1.75rem); margin-bottom: 0.3rem; display: flex; align-items: center; gap: .5rem; }
+.page-head h1 i { color: var(--color-accent); }
+.page-head p { color: var(--color-text-muted); margin: 0; }
 
-    .filter-bar { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 2rem; }
-    .filter-chip {
-        background: var(--color-surface); border: 1.5px solid var(--color-border); color: var(--color-text);
-        padding: 0.5rem 1.1rem; border-radius: var(--radius-pill); font-size: 0.85rem; font-weight: 600;
-        cursor: pointer; transition: all 0.15s ease;
-    }
-    .filter-chip:hover { border-color: var(--color-primary); }
-    .filter-chip.active { background: var(--color-primary); border-color: var(--color-primary); color: white; }
+.filter-bar { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 2rem; }
+.filter-chip {
+    background: var(--color-surface); border: 1.5px solid var(--color-border); color: var(--color-text);
+    padding: 0.5rem 1.1rem; border-radius: var(--radius-pill); font-size: 0.85rem; font-weight: 600;
+    cursor: pointer; transition: transform .18s cubic-bezier(.34,1.56,.64,1), border-color .15s ease, background .15s ease, color .15s ease;
+}
+.filter-chip:hover { border-color: var(--color-primary); transform: scale(1.04); }
+.filter-chip:active { transform: scale(.94); }
+.filter-chip.active { background: var(--color-primary); border-color: var(--color-primary); color: white; }
 
-    .comm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.5rem; }
-    .comm-card { text-decoration: none; color: inherit; display: block; transition: transform 0.18s ease; }
-    .comm-card:hover { transform: translateY(-3px); }
-    .comm-icon {
-        width: 48px; height: 48px; border-radius: 50%; background: #EFEAF8;
-        display: flex; align-items: center; justify-content: center;
-        color: var(--color-primary); font-size: 1.2rem; margin-bottom: 0.8rem;
-    }
-    .comm-card h3 { font-size: 1.05rem; margin-bottom: 0.3rem; }
-    .comm-card .comm-desc { font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: 0.8rem; min-height: 2.4em; }
-    .comm-meta { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: var(--color-text-muted); }
-    .empty-state { text-align: center; padding: 3rem 1rem; color: var(--color-text-muted); grid-column: 1 / -1; }
+.comm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 1.4rem; }
+.comm-card { text-decoration: none; color: inherit; display: block; padding: 1.4rem; transition: transform 0.2s cubic-bezier(.16,1,.3,1), box-shadow .2s ease; }
+.comm-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-hover); }
+.comm-icon {
+    width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg,#EFEAF8,#E4DBF7);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--color-primary); font-size: 1.2rem; margin-bottom: 0.8rem; overflow: hidden;
+}
+.comm-card h3 { font-family: 'Sora', sans-serif; font-size: 1.05rem; margin-bottom: 0.3rem; }
+.comm-card .comm-desc { font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: 0.8rem; min-height: 2.4em; line-height: 1.5; }
+.comm-meta { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: var(--color-text-muted); }
+.comm-meta i { color: var(--color-accent); }
+.empty-state { text-align: center; padding: 3rem 1rem; color: var(--color-text-muted); grid-column: 1 / -1; }
+.empty-state a { color: var(--color-accent); font-weight: 700; text-decoration: none; }
+.empty-state a:hover { text-decoration: underline; }
 
-    .create-modal {
-        display: none; position: fixed; inset: 0; background: rgba(26,22,37,0.5);
-        z-index: 100; align-items: center; justify-content: center; padding: 1.5rem;
-    }
-    .create-modal.open { display: flex; }
-    .create-modal-card { max-width: 420px; width: 100%; }
-    .form-field { margin-bottom: 1.1rem; }
-    .form-field label {
-        display: block; font-size: 0.82rem; font-weight: 600; color: var(--color-text-muted);
-        margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.4px;
-    }
-    .form-field input, .form-field textarea, .form-field select {
-        width: 100%; padding: 0.75rem 1rem; border-radius: var(--radius-sm);
-        border: 1px solid var(--color-border); font-family: var(--font-body); font-size: 0.95rem; resize: vertical;
-    }
-    .create-status { font-size: 0.88rem; margin-top: 0.8rem; min-height: 1.2em; }
-    .create-status.success { color: var(--color-success); }
-    .create-status.error { color: var(--color-error); }
+.create-modal {
+    display: none; position: fixed; inset: 0; background: rgba(26,22,37,0.5);
+    z-index: 100; align-items: center; justify-content: center; padding: 1.5rem;
+}
+.create-modal.open { display: flex; }
+.create-modal-card { max-width: 420px; width: 100%; padding: 1.6rem; }
+.create-modal-card h2 { font-family: 'Sora', sans-serif; }
+.form-field { margin-bottom: 1.1rem; }
+.form-field label {
+    display: block; font-size: 0.82rem; font-weight: 700; color: var(--color-text-muted);
+    margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.4px;
+}
+.form-field input, .form-field textarea, .form-field select {
+    width: 100%; padding: 0.75rem 1rem; border-radius: var(--radius-sm); box-sizing: border-box;
+    border: 1.5px solid var(--color-border); font-family: 'Inter', sans-serif; font-size: 0.95rem; resize: vertical;
+    background: var(--color-bg); color: var(--color-text); transition: border-color .15s ease, box-shadow .15s ease;
+}
+.form-field input:focus, .form-field textarea:focus, .form-field select:focus {
+    outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(45,27,105,0.1);
+}
+.create-status { font-size: 0.88rem; margin-top: 0.8rem; min-height: 1.2em; }
+.create-status.success { color: var(--color-success); }
+.create-status.error { color: var(--color-error); }
+
+@media (max-width: 560px) {
+    .page-container { padding: 1.3rem 1rem 2.5rem; }
+    .comm-grid { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 1rem; }
+}
 </style>
 </head>
 <body>
@@ -67,7 +83,7 @@
                 <g transform="rotate(18)"><ellipse cx="10" cy="0" rx="20" ry="36" fill="none" stroke="#FF6B5B" stroke-width="10"/></g>
                 <g transform="rotate(-18)"><path d="M -30 0 A 20 36 0 0 1 11 0" fill="none" stroke="#2D1B69" stroke-width="10" stroke-linecap="round"/></g>
               </g>
-              <text x="95" y="53" font-size="34" font-weight="700" fill="#2D1B69" font-family="Poppins, -apple-system, sans-serif">Bir<tspan fill="#FF6B5B">Millat</tspan></text>
+              <text x="95" y="53" font-size="34" font-weight="700" fill="#2D1B69" font-family="Sora, -apple-system, sans-serif">Bir<tspan fill="#FF6B5B">Millat</tspan></text>
             </svg>
         </a>
         <button class="nav-toggle" id="navToggle" aria-label="Menyu"><i class="fas fa-bars"></i></button>
@@ -96,15 +112,15 @@
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
     <div class="page-container">
-        <div class="page-head">
+        <div class="page-head reveal">
             <div>
                 <h1><i class="fas fa-people-group"></i> Jamoalar</h1>
                 <p>Qiziqishlaringiz bo'yicha guruhlarga qo'shiling yoki o'zingiznikini yarating</p>
             </div>
-            <button class="btn btn-primary" id="createBtn"><i class="fas fa-plus"></i> Jamoa yaratish</button>
+            <button class="btn btn-primary btn-zoom" id="createBtn"><i class="fas fa-plus"></i> Jamoa yaratish</button>
         </div>
 
-        <div class="filter-bar" id="filterBar">
+        <div class="filter-bar reveal" id="filterBar">
             <button class="filter-chip active" data-category="">Hammasi</button>
             <button class="filter-chip" data-category="IELTS">IELTS</button>
             <button class="filter-chip" data-category="IT">IT / Dasturlash</button>
@@ -114,7 +130,7 @@
             <button class="filter-chip" data-category="Boshqa">Boshqa</button>
         </div>
 
-        <div class="comm-grid" id="commGrid">
+        <div class="comm-grid reveal-stagger reveal" id="commGrid">
             <p style="color:var(--color-text-muted)">Yuklanmoqda...</p>
         </div>
     </div>
@@ -123,7 +139,7 @@
 
     <div class="create-modal" id="createModal">
         <div class="card create-modal-card">
-            <h2 style="font-size:1.2rem; margin-bottom:1rem;"><i class="fas fa-people-group"></i> Yangi jamoa</h2>
+            <h2 style="font-size:1.2rem; margin-bottom:1rem;"><i class="fas fa-people-group" style="color:var(--color-accent);"></i> Yangi jamoa</h2>
             <form id="createForm">
                 <div class="form-field">
                     <label for="commName">Jamoa nomi</label>
@@ -149,7 +165,7 @@
                     <input type="file" id="commImage" accept="image/*">
                 </div>
                 <div style="display:flex; gap:0.8rem;">
-                    <button type="submit" class="btn btn-primary" style="flex:1; justify-content:center;">Yaratish</button>
+                    <button type="submit" class="btn btn-primary btn-zoom" style="flex:1; justify-content:center;">Yaratish</button>
                     <button type="button" class="btn btn-cancel" id="closeCreateModal" style="border:1.5px solid var(--color-border); background:transparent; color:var(--color-text-muted);">Bekor qilish</button>
                 </div>
                 <div class="create-status" id="createStatus"></div>
@@ -179,7 +195,7 @@
                 const communities = await res.json();
 
                 if (communities.length === 0) {
-                    grid.innerHTML = `<div class="empty-state">Hozircha bu toifada jamoalar yo'q. Birinchi bo'lib yarating!</div>`;
+                    grid.innerHTML = `<div class="empty-state">Hozircha bu toifada jamoalar yo'q. <a href="#" onclick="document.getElementById('createBtn').click(); return false;">Birinchi bo'lib yarating →</a></div>`;
                     return;
                 }
 
