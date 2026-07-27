@@ -7,30 +7,31 @@
 <title>BirMillat – Profil</title>
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="/style.css">
 <style>
-    .profile-shell { max-width: 760px; margin: 2rem auto; padding: 0 1.5rem; }
+    body { font-family: 'Inter', sans-serif; }
+    .profile-shell { max-width: 760px; margin: 2.2rem auto; padding: 0 1.5rem; }
     .profile-card { overflow: hidden; padding: 0; margin-bottom: 1.5rem; }
-    .cover-band { height: 120px; background: linear-gradient(120deg, var(--color-primary), #6B4FC9); }
+    .cover-band { height: 130px; background: linear-gradient(120deg, var(--color-primary), #6B4FC9 55%, var(--color-accent-light)); }
     .profile-main { padding: 0 2rem 2rem; position: relative; }
     .avatar-ring {
-        width: 110px; height: 110px; border-radius: 50%;
+        width: 112px; height: 112px; border-radius: 50%;
         background: var(--color-surface); border: 4px solid var(--color-surface);
-        margin-top: -55px; display: flex; align-items: center; justify-content: center;
-        box-shadow: var(--shadow-card);
+        margin-top: -56px; display: flex; align-items: center; justify-content: center;
+        box-shadow: var(--shadow-hover);
     }
     .avatar-circle {
-        width: 100%; height: 100%; border-radius: 50%; background: #EFEAF8;
+        width: 100%; height: 100%; border-radius: 50%; background: linear-gradient(135deg,#EFEAF8,#E4DBF7);
         display: flex; align-items: center; justify-content: center;
-        font-family: var(--font-display); font-size: 2.2rem; font-weight: 700;
+        font-family: 'Sora', sans-serif; font-size: 2.2rem; font-weight: 700;
         color: var(--color-primary);
     }
     .profile-top-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; }
-    .profile-name h1 { font-size: 1.5rem; margin-top: 0.8rem; margin-bottom: 0.15rem; }
+    .profile-name h1 { font-family: 'Sora', sans-serif; font-size: 1.5rem; margin-top: 0.8rem; margin-bottom: 0.15rem; }
     .profile-name .username { color: var(--color-text-muted); font-size: 0.95rem; margin-bottom: 1rem; }
-    .profile-bio { font-size: 0.98rem; color: var(--color-text); max-width: 540px; margin-bottom: 1.4rem; }
+    .profile-bio { font-size: 0.98rem; color: var(--color-text); max-width: 540px; margin-bottom: 1.4rem; line-height: 1.6; }
     .profile-bio.empty { color: var(--color-text-muted); font-style: italic; }
     .not-found {
         text-align: center;
@@ -49,10 +50,10 @@
         border-radius: var(--radius-sm);
         overflow: hidden;
         cursor: pointer;
-        transition: transform 0.15s ease, box-shadow 0.15s ease;
+        transition: transform 0.2s cubic-bezier(.16,1,.3,1), box-shadow 0.2s ease;
         background: var(--color-surface);
     }
-    .ach-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); }
+    .ach-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-hover); }
     .ach-card img { width: 100%; height: 90px; object-fit: cover; display: block; }
     .ach-card .ach-title {
         padding: 0.5rem 0.6rem;
@@ -77,12 +78,20 @@
     }
     .ach-modal-card img { width: 100%; max-height: 260px; object-fit: cover; display: block; }
     .ach-modal-body { padding: 1.4rem; }
-    .ach-modal-body h3 { font-size: 1.1rem; margin-bottom: 0.4rem; }
+    .ach-modal-body h3 { font-family: 'Sora', sans-serif; font-size: 1.1rem; margin-bottom: 0.4rem; }
     .ach-modal-body .ach-date { font-size: 0.78rem; color: var(--color-text-muted); margin-bottom: 0.6rem; }
     .ach-modal-body p { font-size: 0.92rem; color: var(--color-text); line-height: 1.5; }
     .ach-modal-close {
         background: transparent; border: 1.5px solid var(--color-border); color: var(--color-text-muted);
         padding: 0.5rem 1rem; border-radius: var(--radius-pill); cursor: pointer; margin-top: 1rem; font-size: 0.85rem;
+        transition: transform .18s cubic-bezier(.34,1.56,.64,1);
+    }
+    .ach-modal-close:hover { transform: scale(1.05); }
+
+    @media (max-width: 560px) {
+        .profile-shell { margin: 1.4rem auto; padding: 0 1rem; }
+        .profile-main { padding: 0 1.3rem 1.5rem; }
+        .profile-top-row { flex-direction: column; }
     }
 </style>
 </head>
@@ -100,7 +109,7 @@
           <path d="M -30 0 A 20 36 0 0 1 11 0" fill="none" stroke="#2D1B69" stroke-width="10" stroke-linecap="round"/>
         </g>
       </g>
-      <text x="95" y="53" font-size="34" font-weight="700" fill="#2D1B69" font-family="Poppins, -apple-system, sans-serif">Bir<tspan fill="#FF6B5B">Millat</tspan></text>
+      <text x="95" y="53" font-size="34" font-weight="700" fill="#2D1B69" font-family="Sora, -apple-system, sans-serif">Bir<tspan fill="#FF6B5B">Millat</tspan></text>
     </svg></a>
         <button class="nav-toggle" id="navToggle" aria-label="Menyu"><i class="fas fa-bars"></i></button>
         <div class="nav-links" id="navLinks">
@@ -127,7 +136,7 @@
 </nav>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-    <div class="profile-shell" id="profileRoot">
+    <div class="profile-shell reveal" id="profileRoot">
         <div class="profile-card card">
             <div class="cover-band"></div>
             <div class="profile-main">
@@ -137,10 +146,10 @@
                         <div class="avatar-circle" id="avatarInitial">?</div>
                     </div>
                     <div style="display:flex; gap:0.6rem; align-items:center;">
-                        <button class="btn btn-cancel" id="reportBtn" style="border:1.5px solid var(--color-border); background:transparent; color:var(--color-text-muted);">
+                        <button class="btn btn-cancel btn-zoom" id="reportBtn" style="border:1.5px solid var(--color-border); background:transparent; color:var(--color-text-muted);">
                             <i class="fas fa-flag"></i> Shikoyat
                         </button>
-                        <a href="#" class="btn btn-primary" id="messageBtn">
+                        <a href="#" class="btn btn-primary btn-zoom" id="messageBtn">
                             <i class="fas fa-paper-plane"></i> Xabar yuborish
                         </a>
                     </div>
@@ -204,7 +213,7 @@
                     <input type="file" id="reportScreenshot" accept="image/*" style="width:100%; font-size:0.88rem;">
                 </div>
                 <div style="display:flex; gap:0.8rem;">
-                    <button type="submit" class="btn btn-primary" style="flex:1; justify-content:center;">Yuborish</button>
+                    <button type="submit" class="btn btn-primary btn-zoom" style="flex:1; justify-content:center;">Yuborish</button>
                     <button type="button" class="btn btn-cancel" id="closeReportModal" style="border:1.5px solid var(--color-border); background:transparent; color:var(--color-text-muted);">Bekor qilish</button>
                 </div>
                 <div class="save-status" id="reportStatus" style="font-size:0.85rem; margin-top:0.6rem; min-height:1.2em;"></div>
