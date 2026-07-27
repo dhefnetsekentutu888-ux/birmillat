@@ -7,7 +7,7 @@
 <title>BirMillat – Profil</title>
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="/style.css">
 <style>
@@ -49,7 +49,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        font-family: var(--font-display);
+        font-family: 'Sora', sans-serif;
         font-size: 2.2rem;
         font-weight: 700;
         color: var(--color-primary);
@@ -249,7 +249,7 @@
           <path d="M -30 0 A 20 36 0 0 1 11 0" fill="none" stroke="#2D1B69" stroke-width="10" stroke-linecap="round"/>
         </g>
       </g>
-      <text x="95" y="53" font-size="34" font-weight="700" fill="#2D1B69" font-family="Poppins, -apple-system, sans-serif">Bir<tspan fill="#FF6B5B">Millat</tspan></text>
+      <text x="95" y="53" font-size="34" font-weight="700" fill="#2D1B69" font-family="Sora, -apple-system, sans-serif">Bir<tspan fill="#FF6B5B">Millat</tspan></text>
     </svg></a>
         <button class="nav-toggle" id="navToggle" aria-label="Menyu"><i class="fas fa-bars"></i></button>
         <div class="nav-links" id="navLinks">
@@ -276,7 +276,7 @@
 </nav>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-    <div class="profile-shell" id="profileRoot" data-mode="view">
+    <div class="profile-shell reveal" id="profileRoot" data-mode="view">
         <div class="profile-card card">
             <div class="cover-band"></div>
             <div class="profile-main">
@@ -353,7 +353,7 @@
                     </div>
 
                     <div class="action-row">
-                        <button class="btn btn-primary" id="saveBtn">Saqlash</button>
+                        <button class="btn btn-primary btn-zoom" id="saveBtn">Saqlash</button>
                         <button class="btn btn-cancel" id="cancelBtn">Bekor qilish</button>
                     </div>
                     <div class="save-status" id="saveStatus"></div>
@@ -380,7 +380,7 @@
         <div class="card" style="padding: 1.6rem; margin-top: 1.5rem;">
             <div class="section-label"><i class="fab fa-telegram"></i> Telegram bildirishnomalari</div>
             <p id="telegramStatusText" style="font-size: 0.9rem; color: var(--color-text-muted); margin: 0.5rem 0 1rem;">Tekshirilmoqda...</p>
-            <button class="btn btn-primary" id="telegramLinkBtn" style="display:none;">
+            <button class="btn btn-primary btn-zoom" id="telegramLinkBtn" style="display:none;">
                 <i class="fab fa-telegram"></i> Telegram orqali ulash
             </button>
         </div>
@@ -388,7 +388,7 @@
         <div class="card" style="padding: 1.6rem; margin-top: 1.5rem;">
             <div class="section-label"><i class="fas fa-bell"></i> Push bildirishnomalar</div>
             <p id="pushStatusText" style="font-size: 0.9rem; color: var(--color-text-muted); margin: 0.5rem 0 1rem;">Tekshirilmoqda...</p>
-            <button class="btn btn-primary" id="pushSubscribeBtn" style="display:none;">
+            <button class="btn btn-primary btn-zoom" id="pushSubscribeBtn" style="display:none;">
                 <i class="fas fa-bell"></i> Bildirishnomalarni yoqish
             </button>
             <button class="btn btn-outline" id="pushUnsubscribeBtn" style="display:none;">
