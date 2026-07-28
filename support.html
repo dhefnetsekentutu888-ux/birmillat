@@ -7,34 +7,61 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BirMillat – Yordam</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="/style.css">
 <style>
-    .support-shell { max-width: 560px; margin: 2rem auto; padding: 0 1.5rem; }
-    .support-card { padding: 2.2rem; }
-    .support-card h1 { font-size: 1.5rem; margin-bottom: 0.4rem; }
-    .support-card > p { color: var(--color-text-muted); margin-bottom: 1.6rem; font-size: 0.9rem; }
+    body { font-family: 'Inter', sans-serif; }
+    .support-shell { max-width: 560px; margin: 2.2rem auto; padding: 0 1.5rem 3rem; }
+    .support-icon {
+        width: 56px; height: 56px; border-radius: 16px; margin: 0 auto 1rem;
+        background: linear-gradient(135deg, var(--color-accent), var(--color-primary));
+        display: flex; align-items: center; justify-content: center; color: #fff; font-size: 1.4rem;
+    }
+    .support-card { padding: 2.2rem; text-align: center; }
+    .support-card h1 { font-family: 'Sora', sans-serif; font-size: 1.5rem; margin-bottom: 0.5rem; }
+    .support-card > p { color: var(--color-text-muted); margin-bottom: 1.8rem; font-size: 0.9rem; text-align: center; }
+    .support-card form { text-align: left; }
 
     .replies-list { margin-bottom: 1.4rem; display: flex; flex-direction: column; gap: 0.6rem; max-height: 280px; overflow-y: auto; }
     .reply-bubble {
-        background: var(--color-bg); border-radius: var(--radius-sm); padding: 0.7rem 1rem;
-        font-size: 0.9rem; align-self: flex-start; max-width: 85%;
+        background: var(--color-bg); border-radius: 16px; border-bottom-left-radius: 4px; padding: 0.75rem 1.05rem;
+        font-size: 0.9rem; align-self: flex-start; max-width: 85%; line-height: 1.5;
     }
-    .reply-bubble .reply-label { font-size: 0.72rem; font-weight: 700; color: var(--color-primary); margin-bottom: 0.2rem; display: block; }
+    .reply-bubble .reply-label { font-size: 0.72rem; font-weight: 700; color: var(--color-primary); margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.35rem; }
 
     .form-field { margin-bottom: 1.1rem; }
     .form-field label {
-        display: block; font-size: 0.82rem; font-weight: 600; color: var(--color-text-muted);
-        margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.4px;
+        display: block; font-size: 0.8rem; font-weight: 700; color: var(--color-text-muted);
+        margin-bottom: 0.4rem;
     }
-    .form-field textarea, .form-field input[type=file] {
-        width: 100%; padding: 0.75rem 1rem; border-radius: var(--radius-sm);
-        border: 1px solid var(--color-border); font-family: var(--font-body); font-size: 0.95rem; resize: vertical;
+    .form-field textarea, .form-field input {
+        width: 100%; box-sizing: border-box; padding: 0.75rem 1rem; border-radius: var(--radius-sm);
+        border: 1.5px solid var(--color-border); font-family: 'Inter', sans-serif; font-size: 0.95rem; resize: vertical;
+        background: var(--color-bg); color: var(--color-text); transition: border-color .15s ease, box-shadow .15s ease;
+    }
+    .form-field textarea:focus, .form-field input:focus {
+        outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(45,27,105,0.1);
     }
     .submit-status { font-size: 0.88rem; margin-top: 0.8rem; min-height: 1.2em; }
     .submit-status.success { color: var(--color-success); }
     .submit-status.error { color: var(--color-error); }
+
+    .gradient-submit {
+        width: 100%; border: none; cursor: pointer;
+        background: linear-gradient(135deg, var(--color-accent), var(--color-primary));
+        color: #fff; font-weight: 700; font-size: 0.98rem; padding: 0.9rem; border-radius: 999px;
+        display: flex; align-items: center; justify-content: center; gap: 0.6rem;
+        box-shadow: 0 10px 24px rgba(255,107,91,0.3);
+        transition: transform .2s cubic-bezier(.34,1.56,.64,1), box-shadow .2s ease;
+    }
+    .gradient-submit:hover { transform: scale(1.02); box-shadow: 0 14px 30px rgba(255,107,91,0.4); }
+    .gradient-submit:active { transform: scale(.96); }
+
+    @media (max-width: 560px) {
+        .support-shell { margin: 1.4rem auto; padding: 0 1rem 2.5rem; }
+        .support-card { padding: 1.6rem 1.3rem; }
+    }
 </style>
 </head>
 <body>
@@ -51,7 +78,7 @@
           <path d="M -30 0 A 20 36 0 0 1 11 0" fill="none" stroke="#2D1B69" stroke-width="10" stroke-linecap="round"/>
         </g>
       </g>
-      <text x="95" y="53" font-size="34" font-weight="700" fill="#2D1B69" font-family="Poppins, -apple-system, sans-serif">Bir<tspan fill="#FF6B5B">Millat</tspan></text>
+      <text x="95" y="53" font-size="34" font-weight="700" fill="#2D1B69" font-family="Sora, -apple-system, sans-serif">Bir<tspan fill="#FF6B5B">Millat</tspan></text>
     </svg></a>
         <button class="nav-toggle" id="navToggle" aria-label="Menyu"><i class="fas fa-bars"></i></button>
         <div class="nav-links" id="navLinks">
@@ -62,9 +89,10 @@
 </nav>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-    <div class="support-shell">
+    <div class="support-shell reveal">
         <div class="support-card card">
-            <h1><i class="fas fa-headset"></i> Yordam</h1>
+            <div class="support-icon"><i class="fas fa-headset"></i></div>
+            <h1>Yordam</h1>
             <p>Savolingiz bo'lsa yoki muammoga duch kelsangiz, shu yerga yozing. Agar kerak bo'lsa, skrinshot ham qo'shing.</p>
 
             <div class="replies-list" id="repliesList"></div>
@@ -72,7 +100,7 @@
             <form id="supportForm">
                 <div class="form-field" id="usernameField" style="display:none;">
                     <label for="usernameInput">Foydalanuvchi nomingiz</label>
-                    <input type="text" id="usernameInput" placeholder="Tizimga kira olmasangiz, shu yerga yozing" style="width:100%; padding:0.75rem 1rem; border-radius:var(--radius-sm); border:1px solid var(--color-border); font-family:var(--font-body); font-size:0.95rem;">
+                    <input type="text" id="usernameInput" placeholder="Tizimga kira olmasangiz, shu yerga yozing">
                 </div>
                 <div class="form-field">
                     <label for="messageInput">Xabaringiz</label>
@@ -82,7 +110,7 @@
                     <label for="screenshotInput">Skrinshot (ixtiyoriy)</label>
                     <input type="file" id="screenshotInput" accept="image/*">
                 </div>
-                <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">
+                <button type="submit" class="gradient-submit">
                     <i class="fas fa-paper-plane"></i> Yuborish
                 </button>
                 <div class="submit-status" id="submitStatus"></div>
@@ -116,7 +144,7 @@
                 if (replies.length === 0) { list.innerHTML = ''; return; }
                 list.innerHTML = replies.map(r => `
                     <div class="reply-bubble">
-                        <span class="reply-label">BirMillat jamoasi</span>
+                        <span class="reply-label"><i class="fas fa-shield-heart"></i> BirMillat jamoasi</span>
                         ${r.content}
                     </div>
                 `).join('');
