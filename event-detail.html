@@ -7,16 +7,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BirMillat – Tadbir</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="/style.css">
 <style>
-    .detail-shell { max-width: 720px; margin: 2rem auto; padding: 0 1.5rem; }
+    body { font-family: 'Inter', sans-serif; }
+    .detail-shell { max-width: 720px; margin: 2.2rem auto; padding: 0 1.5rem; }
 
     .event-hero {
-        border-radius: var(--radius-md);
-        padding: 2rem;
-        margin-bottom: 1.2rem;
+        border-radius: 22px;
+        padding: 2.1rem;
+        margin-bottom: 1.3rem;
         background: linear-gradient(145deg, var(--color-primary) 0%, #4A2F9E 100%);
         color: #FAF7F2;
         position: relative;
@@ -27,16 +28,16 @@
         width: 220px; height: 220px; opacity: 0.18; pointer-events: none;
     }
     .event-hero > * { position: relative; z-index: 1; }
-    .event-badges { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .event-badges { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 1.1rem; }
     .event-badge {
         display: inline-flex; align-items: center; gap: 0.4rem;
         background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.2);
         padding: 0.35rem 0.9rem; border-radius: var(--radius-pill);
-        font-size: 0.78rem; font-weight: 600;
+        font-size: 0.78rem; font-weight: 700;
     }
-    .event-hero h1 { color: #FAF7F2; font-size: 1.6rem; margin-bottom: 0.3rem; }
+    .event-hero h1 { color: #FAF7F2; font-family: 'Sora', sans-serif; font-size: clamp(1.5rem, 4vw, 1.9rem); margin-bottom: 0.4rem; line-height: 1.28; }
     .event-hero .organizer-line { font-size: 0.88rem; color: rgba(250,247,242,0.8); display: flex; align-items: center; gap: 0.5rem; }
-    .event-hero .organizer-line a { color: #FAF7F2; font-weight: 600; text-decoration: underline; }
+    .event-hero .organizer-line a { color: #FAF7F2; font-weight: 700; text-decoration: underline; }
 
     .stat-strip {
         display: flex; gap: 1rem; padding: 1.2rem; margin-bottom: 1.2rem;
@@ -47,7 +48,7 @@
         display: flex; align-items: center; justify-content: center; margin: 0 auto 0.5rem;
         color: var(--color-primary); font-size: 1.05rem;
     }
-    .stat-block .stat-num { font-family: var(--font-display); font-weight: 700; font-size: 1.3rem; color: var(--color-primary); }
+    .stat-block .stat-num { font-family: 'Sora', sans-serif; font-weight: 700; font-size: 1.3rem; color: var(--color-primary); }
     .stat-block .stat-label { font-size: 0.75rem; color: var(--color-text-muted); }
     .stat-divider { width: 1px; background: var(--color-border); }
 
@@ -60,24 +61,26 @@
         color: var(--color-primary); font-size: 0.95rem;
     }
     .info-row-text .info-label { font-size: 0.75rem; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 0.15rem; }
-    .info-row-text .info-value { font-size: 0.95rem; color: var(--color-text); font-weight: 500; }
+    .info-row-text .info-value { font-size: 0.95rem; color: var(--color-text); font-weight: 600; }
 
-    .description-card { padding: 1.6rem; margin-bottom: 1.2rem; line-height: 1.7; color: var(--color-text); }
+    .description-card { padding: 1.6rem; margin-bottom: 1.2rem; line-height: 1.75; color: var(--color-text); }
     .description-card .section-label { margin-bottom: 0.8rem; }
 
     .action-row { display: flex; gap: 0.8rem; flex-wrap: wrap; margin-bottom: 1.2rem; }
     .join-btn {
-        flex: 1; min-width: 180px;
+        flex: 1; min-width: 200px;
         display: inline-flex; align-items: center; justify-content: center; gap: 0.6rem;
-        padding: 0.9rem 1.4rem; border-radius: var(--radius-pill);
-        font-weight: 700; font-size: 0.95rem; cursor: pointer; border: none;
-        background: var(--color-accent); color: white;
-        transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+        padding: 1rem 1.4rem; border-radius: 999px;
+        font-weight: 700; font-size: 0.96rem; cursor: pointer; border: none;
+        background: linear-gradient(135deg, var(--color-accent), var(--color-accent-light));
+        color: white; box-shadow: 0 10px 24px rgba(255,107,91,0.32);
+        transition: transform 0.2s cubic-bezier(.34,1.56,.64,1), box-shadow 0.2s ease, background 0.2s ease;
     }
-    .join-btn:hover { background: var(--color-accent-light); transform: translateY(-1px); box-shadow: 0 8px 20px rgba(255,107,91,0.3); }
+    .join-btn:hover { transform: scale(1.03); box-shadow: 0 14px 30px rgba(255,107,91,0.42); }
+    .join-btn:active { transform: scale(.96); }
     .join-btn.joined {
         background: var(--color-success-bg); color: var(--color-success);
-        border: 1.5px solid var(--color-success);
+        border: 1.5px solid var(--color-success); box-shadow: none;
     }
     .join-btn.joined:hover { background: var(--color-error-bg); color: var(--color-error); border-color: var(--color-error); }
     .join-btn.joined:hover .join-btn-label::after { content: " (bekor qilish)"; }
@@ -85,16 +88,17 @@
     .creator-note {
         flex: 1; min-width: 180px; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
         padding: 0.9rem 1.4rem; border-radius: var(--radius-pill);
-        background: #EFEAF8; color: var(--color-primary); font-weight: 600; font-size: 0.9rem;
+        background: #EFEAF8; color: var(--color-primary); font-weight: 700; font-size: 0.9rem;
     }
     .social-btn {
         display: inline-flex; align-items: center; justify-content: center; gap: 0.6rem;
         padding: 0.9rem 1.4rem; border-radius: var(--radius-pill);
         font-weight: 700; font-size: 0.95rem; text-decoration: none;
         border: 1.5px solid var(--color-border); color: var(--color-text);
-        transition: all 0.15s ease;
+        transition: transform .18s cubic-bezier(.34,1.56,.64,1), box-shadow .2s ease, background .2s ease, color .2s ease, border-color .2s ease;
     }
-    .social-btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-card); }
+    .social-btn:hover { transform: scale(1.04); box-shadow: var(--shadow-card); }
+    .social-btn:active { transform: scale(.95); }
     .social-btn.telegram { border-color: #29A9EA; color: #29A9EA; }
     .social-btn.telegram:hover { background: #29A9EA; color: white; }
     .social-btn.instagram { border-color: #E1306C; color: #E1306C; }
@@ -109,18 +113,23 @@
     .attendee-chip {
         display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none;
         background: var(--color-bg); padding: 0.4rem 0.9rem 0.4rem 0.4rem; border-radius: var(--radius-pill);
-        font-size: 0.85rem; font-weight: 600; color: var(--color-primary);
-        transition: transform 0.15s ease;
+        font-size: 0.85rem; font-weight: 700; color: var(--color-primary);
+        transition: transform 0.18s cubic-bezier(.34,1.56,.64,1);
     }
-    .attendee-chip:hover { transform: translateY(-2px); }
+    .attendee-chip:hover { transform: translateY(-3px) scale(1.03); }
     .attendee-chip .mini-avatar {
-        width: 26px; height: 26px; border-radius: 50%; background: #EFEAF8;
+        width: 26px; height: 26px; border-radius: 50%; background: linear-gradient(135deg,#EFEAF8,#E4DBF7);
         display: flex; align-items: center; justify-content: center; overflow: hidden;
         font-size: 0.7rem; color: var(--color-primary); font-weight: 700;
     }
     .attendee-chip .mini-avatar img { width: 100%; height: 100%; object-fit: cover; }
 
     .not-found { text-align: center; padding: 4rem 1.5rem; color: var(--color-text-muted); }
+
+    @media (max-width: 560px) {
+        .detail-shell { margin: 1.4rem auto; padding: 0 1rem; }
+        .event-hero { padding: 1.5rem; }
+    }
 </style>
 </head>
 <body>
@@ -137,7 +146,7 @@
           <path d="M -30 0 A 20 36 0 0 1 11 0" fill="none" stroke="#2D1B69" stroke-width="10" stroke-linecap="round"/>
         </g>
       </g>
-      <text x="95" y="53" font-size="34" font-weight="700" fill="#2D1B69" font-family="Poppins, -apple-system, sans-serif">Bir<tspan fill="#FF6B5B">Millat</tspan></text>
+      <text x="95" y="53" font-size="34" font-weight="700" fill="#2D1B69" font-family="Sora, -apple-system, sans-serif">Bir<tspan fill="#FF6B5B">Millat</tspan></text>
     </svg></a>
         <button class="nav-toggle" id="navToggle" aria-label="Menyu"><i class="fas fa-bars"></i></button>
         <div class="nav-links" id="navLinks">
@@ -164,7 +173,7 @@
 </nav>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-    <div class="detail-shell" id="detailRoot">
+    <div class="detail-shell reveal" id="detailRoot">
         <p style="color:var(--color-text-muted); text-align:center; padding:3rem 0;">Yuklanmoqda...</p>
     </div>
 
