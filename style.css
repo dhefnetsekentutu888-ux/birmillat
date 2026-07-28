@@ -253,6 +253,18 @@ a {
   color: var(--color-primary);
 }
 
+/* On narrow phones the logo + username pill + bell + theme toggle don't all
+   fit on one line — and since the page hides horizontal overflow, whatever
+   didn't fit (usually the bell/theme toggle on the far right) was silently
+   clipped off-screen rather than wrapping. Fix: shrink the logo and drop the
+   username text (still visible via the sidebar) so the icons always have
+   room. */
+@media (max-width: 480px) {
+  .navbar { padding: 0.75rem 1rem; gap: 0.5rem; }
+  .navbar .logo svg { width: 120px; height: auto; }
+  .user-badge { display: none; }
+}
+
 /* ---------- Layout shell ---------- */
 .container {
   max-width: 1100px;
