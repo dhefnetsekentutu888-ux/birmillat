@@ -1338,7 +1338,7 @@ function renderRegisterPage(message, isError = true) {
     <link rel="icon" type="image/png" href="/favicon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/style.css">
     <style>
         .pw-field { position: relative; }
@@ -1589,7 +1589,7 @@ function renderLoginPage(message, isError = true, next = '/home') {
     <link rel="icon" type="image/png" href="/favicon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/style.css">
     <style>
         .pw-field { position: relative; }
@@ -1612,7 +1612,7 @@ function renderLoginPage(message, isError = true, next = '/home') {
             <g transform="rotate(18)"><ellipse cx="10" cy="0" rx="20" ry="36" fill="none" stroke="#FF6B5B" stroke-width="10"/></g>
             <g transform="rotate(-18)"><path d="M -30 0 A 20 36 0 0 1 11 0" fill="none" stroke="#2D1B69" stroke-width="10" stroke-linecap="round"/></g>
           </g>
-          <text x="95" y="53" font-size="34" font-weight="700" fill="#2D1B69" font-family="Poppins, -apple-system, sans-serif">Bir<tspan fill="#FF6B5B">Millat</tspan></text>
+          <text x="95" y="53" font-size="34" font-weight="700" fill="#2D1B69" font-family="Sora, -apple-system, sans-serif">Bir<tspan fill="#FF6B5B">Millat</tspan></text>
         </svg>
         <h2>Xush kelibsiz</h2>
         ${message ? `<div class="message ${msgClass}">${message}</div>` : ''}
@@ -1819,7 +1819,7 @@ function renderVerifyPage(identifier, method, message, isError = true, phoneCode
     <link rel="icon" type="image/png" href="/favicon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="/style.css">
     <style>
@@ -2102,7 +2102,7 @@ function renderForgotPasswordPage(message, isError = true) {
     <link rel="icon" type="image/png" href="/favicon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/style.css">
     <style>.auth-logo { height: 40px; margin-bottom: 1rem; }</style>
     </head>
@@ -2125,7 +2125,7 @@ function renderResetPasswordPage(email, message, isError = true) {
     <link rel="icon" type="image/png" href="/favicon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/style.css">
     <style>
         .auth-logo { height: 40px; margin-bottom: 1rem; }
