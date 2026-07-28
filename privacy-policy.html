@@ -7,25 +7,35 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BirMillat – Maxfiylik siyosati</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="/style.css">
 <style>
-    .policy-shell { max-width: 760px; margin: 2rem auto; padding: 0 1.5rem; }
-    .policy-card { padding: 2.5rem; }
-    .policy-card h1 { font-size: 1.6rem; margin-bottom: 0.4rem; }
-    .policy-updated { color: var(--color-text-muted); font-size: 0.85rem; margin-bottom: 2rem; }
-    .policy-card h2 { font-size: 1.1rem; margin: 2rem 0 0.7rem; }
-    .policy-card p, .policy-card li { color: var(--color-text); line-height: 1.7; font-size: 0.95rem; }
+    body { font-family: 'Inter', sans-serif; }
+    .policy-shell { max-width: 760px; margin: 2.2rem auto; padding: 0 1.5rem 3rem; }
+    .policy-card { padding: 2.6rem; }
+    .policy-card h1 { font-family: 'Sora', sans-serif; font-size: 1.7rem; margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.55rem; }
+    .policy-card h1 i { color: var(--color-accent); }
+    .policy-updated { color: var(--color-text-muted); font-size: 0.85rem; margin-bottom: 2.2rem; }
+    .policy-card h2 {
+        font-family: 'Sora', sans-serif; font-size: 1.08rem; margin: 2.2rem 0 0.8rem; padding-left: 0.9rem;
+        border-left: 3px solid var(--color-accent); color: var(--color-text);
+    }
+    .policy-card p, .policy-card li { color: var(--color-text); line-height: 1.75; font-size: 0.95rem; }
     .policy-card ul { padding-left: 1.3rem; margin: 0.5rem 0; }
     .policy-missing {
-        background: var(--color-bg); border: 1px dashed var(--color-border); border-radius: var(--radius-sm);
+        background: var(--color-bg); border: 1px dashed var(--color-border); border-radius: 14px;
         padding: 1rem 1.2rem; color: var(--color-text-muted); font-size: 0.88rem; margin-bottom: 1.5rem;
     }
     .policy-contact {
-        background: #EFEAF8; border-radius: var(--radius-sm); padding: 1.2rem; margin-top: 1.5rem;
+        background: #EFEAF8; border-radius: 14px; padding: 1.3rem; margin-top: 1.5rem;
     }
-    .policy-contact a { color: var(--color-primary); font-weight: 600; }
+    .policy-contact a { color: var(--color-primary); font-weight: 700; }
+
+    @media (max-width: 560px) {
+        .policy-shell { margin: 1.4rem auto; padding: 0 1rem 2.5rem; }
+        .policy-card { padding: 1.7rem 1.3rem; }
+    }
 </style>
 </head>
 <body>
@@ -36,7 +46,7 @@
         <g transform="rotate(18)"><ellipse cx="10" cy="0" rx="20" ry="36" fill="none" stroke="#FF6B5B" stroke-width="10"/></g>
         <g transform="rotate(-18)"><path d="M -30 0 A 20 36 0 0 1 11 0" fill="none" stroke="#2D1B69" stroke-width="10" stroke-linecap="round"/></g>
       </g>
-      <text x="95" y="53" font-size="34" font-weight="700" fill="#2D1B69" font-family="Poppins, -apple-system, sans-serif">Bir<tspan fill="#FF6B5B">Millat</tspan></text>
+      <text x="95" y="53" font-size="34" font-weight="700" fill="#2D1B69" font-family="Sora, -apple-system, sans-serif">Bir<tspan fill="#FF6B5B">Millat</tspan></text>
     </svg></a>
         <button class="nav-toggle" id="navToggle" aria-label="Menyu"><i class="fas fa-bars"></i></button>
         <div class="nav-links" id="navLinks">
@@ -47,7 +57,7 @@
 </nav>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-    <div class="policy-shell">
+    <div class="policy-shell reveal">
         <div class="policy-card card">
             <h1><i class="fas fa-shield-halved"></i> Maxfiylik siyosati</h1>
             <div class="policy-updated">Oxirgi yangilanish: 2026</div>
