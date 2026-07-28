@@ -1321,12 +1321,20 @@ const sessionMiddleware = session({
     secret: process.env.SESSION_SECRET || 'birMillat-secret-key',
     resave: false,
     saveUninitialized: false,
+    rolling: true, // refresh the 30-day expiry on every request, so an
+                    // active user is never logged out — only someone who
+                    // stops visiting for 30 straight days is signed out.
     store: new TursoStore(),
     // 30 days — keeps people logged in across visits ("remember this device")
     // instead of the previous 24h, which was forcing a fresh login every day
     // even though the auto-redirect-if-logged-in logic on GET / was already
     // working correctly the whole time.
-    cookie: { maxAge: 30 * 24 * 60 * 60 * 1000 }
+    cookie: {
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production'
+    }
 });
 app.use(sessionMiddleware);
 app.use(express.static(path.join(__dirname)));
