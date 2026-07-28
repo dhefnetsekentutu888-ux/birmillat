@@ -11,64 +11,96 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="/style.css">
 <style>
-    body { font-family: 'Inter', sans-serif; }
-    .detail-shell { max-width: 720px; margin: 2.2rem auto; padding: 0 1.5rem; }
-    .detail-card { padding: 2.3rem 2.2rem; margin-bottom: 1.5rem; }
-    .detail-card h1 { font-family: 'Sora', sans-serif; font-size: clamp(1.5rem, 3.4vw, 1.9rem); margin-bottom: 1.1rem; line-height: 1.32; }
+/* ==========================================================
+   Article reading view — magazine layout: eyebrow + reading
+   time, drop-cap opening, circular icon action buttons instead
+   of the pill buttons used elsewhere in the app.
+   ========================================================== */
+body { font-family: 'Inter', sans-serif; }
+.detail-shell { max-width: 700px; margin: 0 auto; padding: 2rem 1.5rem 3rem; }
 
-    .author-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.8rem; margin-bottom: 1.6rem; padding-bottom: 1.2rem; border-bottom: 1px solid var(--color-border); }
-    .author-link { display: flex; align-items: center; gap: 0.6rem; text-decoration: none; color: inherit; transition: opacity .15s ease; }
-    .author-link:hover { opacity: .78; }
-    .author-link .avatar {
-        width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg,#EFEAF8,#E4DBF7);
-        display: flex; align-items: center; justify-content: center; font-size: 0.85rem; color: var(--color-primary); overflow: hidden;
-        font-family: 'Sora', sans-serif; font-weight: 700;
-    }
-    .author-link .avatar img { width: 100%; height: 100%; object-fit: cover; }
-    .author-link .author-name { font-weight: 700; color: var(--color-text); font-size: 0.95rem; }
-    .author-link .author-date { font-size: 0.8rem; color: var(--color-text-muted); }
+.back-link { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--color-text-muted); text-decoration: none; font-size: 0.86rem; font-weight: 600; margin-bottom: 1.4rem; transition: gap .15s ease, color .15s ease; }
+.back-link:hover { color: var(--color-primary); gap: 0.75rem; }
 
-    .article-body { line-height: 1.85; color: var(--color-text); white-space: pre-wrap; margin-bottom: 2rem; font-size: 1.02rem; }
+.article-eyebrow { display: flex; align-items: center; gap: 0.7rem; margin-bottom: 0.9rem; font-size: 0.82rem; color: var(--color-text-muted); font-weight: 600; }
+.article-eyebrow .dot { width: 4px; height: 4px; border-radius: 50%; background: var(--color-text-muted); }
+.article-eyebrow .badge { color: var(--color-accent); text-transform: uppercase; letter-spacing: 0.6px; font-size: 0.74rem; }
 
-    .action-row { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; }
-    .like-btn {
-        display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1.2rem;
-        border-radius: var(--radius-pill); border: 1.5px solid var(--color-border); background: var(--color-surface);
-        color: var(--color-text); font-weight: 700; font-size: 0.9rem; cursor: pointer;
-        transition: transform .18s cubic-bezier(.34,1.56,.64,1), border-color .15s ease, background .15s ease, color .15s ease;
-    }
-    .like-btn:hover { border-color: var(--color-accent); transform: scale(1.05); }
-    .like-btn:active { transform: scale(.92); }
-    .like-btn.liked { background: #FFEAE6; border-color: var(--color-accent); color: var(--color-accent); }
-    .like-btn.liked i { color: var(--color-accent); }
-    .like-btn.just-liked i { animation: like-pop .4s cubic-bezier(.34,1.56,.64,1); }
-    @keyframes like-pop { 0% { transform: scale(1); } 45% { transform: scale(1.5); } 100% { transform: scale(1); } }
-    .report-btn, .delete-btn {
-        display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1.2rem;
-        border-radius: var(--radius-pill); border: 1.5px solid var(--color-border); background: transparent;
-        color: var(--color-text-muted); font-weight: 700; font-size: 0.9rem; cursor: pointer;
-        transition: transform .18s cubic-bezier(.34,1.56,.64,1), border-color .15s ease, color .15s ease;
-    }
-    .report-btn:hover, .delete-btn:hover { border-color: var(--color-error); color: var(--color-error); transform: scale(1.04); }
-    .report-btn:active, .delete-btn:active { transform: scale(.93); }
+.detail-card { padding: 0; margin-bottom: 1.5rem; background: transparent; border: none; box-shadow: none; }
+.detail-card h1 { font-family: 'Sora', sans-serif; font-size: clamp(1.6rem, 4vw, 2.3rem); margin-bottom: 1.4rem; line-height: 1.25; letter-spacing: -0.01em; }
 
-    .report-modal {
-        display: none; position: fixed; inset: 0; background: rgba(26,22,37,0.5);
-        z-index: 100; align-items: center; justify-content: center; padding: 1.5rem;
-    }
-    .report-modal.open { display: flex; }
-    .report-modal-card { max-width: 420px; width: 100%; }
-    .report-modal-card h2 { font-family: 'Sora', sans-serif; }
-    .report-modal-card textarea {
-        width: 100%; padding: 0.75rem 1rem; border-radius: var(--radius-sm); margin-top: 0.8rem;
-        border: 1px solid var(--color-border); font-family: 'Inter', sans-serif; font-size: 0.9rem; resize: vertical; min-height: 90px;
-    }
-    .not-found { text-align: center; padding: 4rem 1.5rem; color: var(--color-text-muted); }
+.author-card {
+    display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; flex-wrap: wrap;
+    background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 18px;
+    padding: 0.9rem 1.1rem; margin-bottom: 2rem;
+}
+.author-link { display: flex; align-items: center; gap: 0.7rem; text-decoration: none; color: inherit; transition: opacity .15s ease; }
+.author-link:hover { opacity: .78; }
+.author-link .avatar {
+    width: 42px; height: 42px; border-radius: 50%; padding: 2px;
+    background: linear-gradient(135deg, var(--color-accent), var(--color-primary));
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.author-link .avatar-inner {
+    width: 100%; height: 100%; border-radius: 50%; background: var(--color-surface);
+    display: flex; align-items: center; justify-content: center; font-size: 0.82rem; color: var(--color-primary);
+    font-family: 'Sora', sans-serif; font-weight: 700; overflow: hidden;
+}
+.author-link .avatar-inner img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+.author-link .author-name { font-weight: 700; color: var(--color-text); font-size: 0.94rem; }
+.author-link .author-date { font-size: 0.78rem; color: var(--color-text-muted); }
 
-    @media (max-width: 560px) {
-        .detail-shell { margin: 1.4rem auto; padding: 0 1rem; }
-        .detail-card { padding: 1.5rem 1.3rem; }
-    }
+.article-body {
+    line-height: 1.9; color: var(--color-text); white-space: pre-wrap; margin-bottom: 2.4rem; font-size: 1.05rem;
+}
+.article-body::first-letter {
+    font-family: 'Sora', sans-serif; font-weight: 800; font-size: 3.4em; float: left;
+    line-height: 0.82; padding: 0.05em 0.1em 0 0; color: var(--color-primary);
+}
+
+/* ---------- Circular icon action bar (distinct from the pill buttons elsewhere) ---------- */
+.action-bar { display: flex; align-items: center; gap: 1rem; padding-top: 1.6rem; border-top: 1px solid var(--color-border); }
+.icon-action-btn {
+    position: relative; width: 50px; height: 50px; border-radius: 50%;
+    border: 1.5px solid var(--color-border); background: var(--color-surface);
+    display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
+    color: var(--color-text-muted); cursor: pointer;
+    transition: transform .2s cubic-bezier(.34,1.56,.64,1), border-color .15s ease, background .2s ease, color .15s ease, box-shadow .2s ease;
+}
+.icon-action-btn:hover { transform: scale(1.08); border-color: var(--color-primary); color: var(--color-primary); }
+.icon-action-btn:active { transform: scale(.9); }
+.icon-action-btn.like.liked {
+    background: linear-gradient(135deg, var(--color-accent), var(--color-accent-light));
+    border-color: transparent; color: #fff; box-shadow: 0 8px 20px rgba(255,107,91,0.35);
+}
+.icon-action-btn.like.just-liked i { animation: like-pop .45s cubic-bezier(.34,1.56,.64,1); }
+@keyframes like-pop { 0% { transform: scale(1); } 45% { transform: scale(1.5); } 100% { transform: scale(1); } }
+.like-count-badge {
+    position: absolute; top: -5px; right: -5px; background: var(--color-primary); color: #fff;
+    font-size: 0.64rem; font-weight: 800; padding: 0.14rem 0.36rem; border-radius: 999px; min-width: 18px; text-align: center;
+    border: 2px solid var(--color-bg);
+}
+.icon-action-btn.danger:hover { border-color: var(--color-error); color: var(--color-error); }
+.action-label { font-size: 0.78rem; color: var(--color-text-muted); font-weight: 600; }
+
+.report-modal {
+    display: none; position: fixed; inset: 0; background: rgba(26,22,37,0.5);
+    z-index: 100; align-items: center; justify-content: center; padding: 1.5rem;
+}
+.report-modal.open { display: flex; }
+.report-modal-card { max-width: 420px; width: 100%; padding: 1.6rem; }
+.report-modal-card h2 { font-family: 'Sora', sans-serif; font-size: 1.15rem; }
+.report-modal-card textarea {
+    width: 100%; box-sizing: border-box; padding: 0.75rem 1rem; border-radius: var(--radius-sm); margin-top: 0.8rem;
+    border: 1.5px solid var(--color-border); font-family: 'Inter', sans-serif; font-size: 0.9rem; resize: vertical; min-height: 90px;
+    background: var(--color-bg); color: var(--color-text);
+}
+.not-found { text-align: center; padding: 4rem 1.5rem; color: var(--color-text-muted); }
+
+@media (max-width: 560px) {
+    .detail-shell { padding: 1.4rem 1.1rem 2.5rem; }
+    .icon-action-btn { width: 46px; height: 46px; }
+}
 </style>
 </head>
 <body>
@@ -109,6 +141,7 @@
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
     <div class="detail-shell reveal" id="detailRoot">
+        <a href="/articles" class="back-link"><i class="fas fa-arrow-left"></i> Maqolalar</a>
         <p style="color:var(--color-text-muted); text-align:center; padding:3rem 0;">Yuklanmoqda...</p>
     </div>
 
@@ -116,11 +149,11 @@
 
     <div class="report-modal" id="reportModal">
         <div class="card report-modal-card">
-            <h2 style="font-size:1.15rem; margin-bottom:0.4rem;"><i class="fas fa-flag"></i> Maqolani shikoyat qilish</h2>
+            <h2 style="margin-bottom:0.4rem;"><i class="fas fa-flag" style="color:var(--color-accent);"></i> Maqolani shikoyat qilish</h2>
             <p style="font-size:0.85rem; color:var(--color-text-muted);">Nima uchun bu maqola qoidalarga zid deb o'ylaysiz?</p>
             <textarea id="reportReason" placeholder="Sabab (ixtiyoriy)"></textarea>
             <div style="display:flex; gap:0.8rem; margin-top:1rem;">
-                <button class="btn btn-primary" id="submitReport" style="flex:1; justify-content:center;">Yuborish</button>
+                <button class="btn btn-primary btn-zoom" id="submitReport" style="flex:1; justify-content:center;">Yuborish</button>
                 <button class="btn btn-cancel" id="closeReportModal" style="border:1.5px solid var(--color-border); background:transparent; color:var(--color-text-muted);">Bekor qilish</button>
             </div>
             <div class="submit-status" id="reportStatus" style="font-size:0.85rem; margin-top:0.6rem;"></div>
@@ -144,6 +177,12 @@
             return formatUzDate(d);
         }
 
+        // Real, computed from the article's own word count — not a placeholder.
+        function estimateReadMinutes(text) {
+            const words = (text || '').trim().split(/\s+/).filter(Boolean).length;
+            return Math.max(1, Math.round(words / 180));
+        }
+
         async function loadMe() {
             const res = await fetch('/api/me');
             if (!res.ok) { window.location.href = '/login'; return null; }
@@ -159,7 +198,7 @@
                 const data = await res.json();
                 const btn = document.getElementById('likeBtn');
                 btn.classList.toggle('liked', data.isLiked);
-                btn.innerHTML = `<i class="fas fa-heart"></i> ${data.likeCount}`;
+                document.getElementById('likeCountBadge').textContent = data.likeCount;
                 if (data.isLiked) {
                     btn.classList.remove('just-liked');
                     void btn.offsetWidth;
@@ -188,17 +227,24 @@
             try {
                 const res = await fetch(`/api/articles/${articleId}`);
                 if (!res.ok) {
-                    root.innerHTML = `<div class="not-found"><i class="fas fa-file-circle-xmark" style="font-size:2.4rem; color:var(--color-border); display:block; margin-bottom:1rem;"></i><p>Bu maqola topilmadi yoki o'chirilgan.</p></div>`;
+                    root.innerHTML = `<a href="/articles" class="back-link"><i class="fas fa-arrow-left"></i> Maqolalar</a><div class="not-found"><i class="fas fa-file-circle-xmark" style="font-size:2.4rem; color:var(--color-border); display:block; margin-bottom:1rem;"></i><p>Bu maqola topilmadi yoki o'chirilgan.</p></div>`;
                     return;
                 }
                 const article = await res.json();
+                const readMin = estimateReadMinutes(article.content);
 
                 root.innerHTML = `
-                    <div class="detail-card card">
+                    <a href="/articles" class="back-link"><i class="fas fa-arrow-left"></i> Maqolalar</a>
+                    <div class="detail-card">
+                        <div class="article-eyebrow">
+                            <span class="badge"><i class="fas fa-newspaper"></i> Maqola</span>
+                            <span class="dot"></span>
+                            <span><i class="fas fa-clock"></i> ${readMin} daqiqa o'qish</span>
+                        </div>
                         <h1>${article.title}</h1>
-                        <div class="author-row">
+                        <div class="author-card">
                             <a href="/u/${article.author.username}" class="author-link">
-                                <span class="avatar">${article.author.photoUrl ? `<img src="${article.author.photoUrl}" alt="">` : initials(article.author.name || article.author.username)}</span>
+                                <span class="avatar"><span class="avatar-inner">${article.author.photoUrl ? `<img src="${article.author.photoUrl}" alt="">` : initials(article.author.name || article.author.username)}</span></span>
                                 <span>
                                     <div class="author-name">@${article.author.username}</div>
                                     <div class="author-date">${formatDate(article.createdAt)}</div>
@@ -206,14 +252,16 @@
                             </a>
                         </div>
                         <div class="article-body">${article.content}</div>
-                        <div class="action-row">
-                            <button class="like-btn btn-zoom ${article.isLiked ? 'liked' : ''}" id="likeBtn">
-                                <i class="fas fa-heart"></i> ${article.likeCount}
+                        <div class="action-bar">
+                            <button class="icon-action-btn like ${article.isLiked ? 'liked' : ''}" id="likeBtn" aria-label="Yoqtirish">
+                                <i class="fas fa-heart"></i>
+                                <span class="like-count-badge" id="likeCountBadge">${article.likeCount}</span>
                             </button>
                             ${article.isAuthor
-                                ? `<button class="delete-btn btn-zoom" id="deleteBtn"><i class="fas fa-trash"></i> O'chirish</button>`
-                                : `<button class="report-btn btn-zoom" id="reportBtn"><i class="fas fa-flag"></i> Shikoyat qilish</button>`
+                                ? `<button class="icon-action-btn danger" id="deleteBtn" aria-label="O'chirish"><i class="fas fa-trash"></i></button>`
+                                : `<button class="icon-action-btn danger" id="reportBtn" aria-label="Shikoyat qilish"><i class="fas fa-flag"></i></button>`
                             }
+                            <span class="action-label">${article.isAuthor ? "Maqolani o'chirish" : 'Shikoyat qilish'}</span>
                         </div>
                     </div>
                 `;
@@ -251,7 +299,7 @@
                 };
             } catch (e) {
                 console.error('Failed to load article:', e);
-                root.innerHTML = `<div class="not-found">Yuklab bo'lmadi. Sahifani qaytadan yuklang.</div>`;
+                root.innerHTML = `<a href="/articles" class="back-link"><i class="fas fa-arrow-left"></i> Maqolalar</a><div class="not-found">Yuklab bo'lmadi. Sahifani qaytadan yuklang.</div>`;
             }
         }
 
