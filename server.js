@@ -1,6 +1,7 @@
 const express = require('express');
 const session = require('express-session');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const path = require('path');
 const http = require('http');
 const { Server: SocketIOServer } = require('socket.io');
@@ -260,6 +261,72 @@ async function initDb() {
             PRIMARY KEY (event_id, user_id)
         )
     `);
+
+    // ---------- Event organizing team, team gallery, participant feedback, QR check-in ----------
+    // A coordinator is another user the event's creator has vouched for, with a
+    // free-text role label the creator chooses themselves (e.g. "Moderator",
+    // "Fotosurat"). Coordinators get the same event-management rights as the
+    // creator (posting team updates, scanning check-in QR codes).
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS event_coordinators (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            event_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            role_label TEXT NOT NULL,
+            added_by INTEGER NOT NULL,
+            created_at INTEGER NOT NULL,
+            UNIQUE(event_id, user_id)
+        )
+    `);
+
+    // The organizing team's own gallery/writeup for a past event — this is the
+    // primary, featured content on the "Tashkil qilingan tadbirlar" tab.
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS event_team_posts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            event_id INTEGER NOT NULL,
+            author_id INTEGER NOT NULL,
+            image_url TEXT,
+            caption TEXT,
+            created_at INTEGER NOT NULL
+        )
+    `);
+    await db.execute(`CREATE INDEX IF NOT EXISTS idx_team_posts_event ON event_team_posts (event_id, created_at)`);
+
+    // Participant feedback on a past event — deliberately lighter-weight than
+    // the team's posts (no star rating, just a note + optional photo), shown
+    // secondary to the organizing team's content.
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS event_reviews (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            event_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            text TEXT,
+            image_url TEXT,
+            created_at INTEGER NOT NULL,
+            UNIQUE(event_id, user_id)
+        )
+    `);
+
+    // QR check-in passes. Created only after a participant confirms attendance
+    // AND passes the Turnstile challenge (so a single click can't be spammed
+    // into generating throwaway passes). The token is what's embedded in the
+    // QR code; /checkin/:token is what an organizer's camera opens when they
+    // scan it at the door.
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS event_checkins (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            event_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            token TEXT UNIQUE NOT NULL,
+            status TEXT NOT NULL DEFAULT 'pending',
+            checked_in_at INTEGER,
+            checked_in_by INTEGER,
+            created_at INTEGER NOT NULL,
+            UNIQUE(event_id, user_id)
+        )
+    `);
+    await db.execute(`CREATE INDEX IF NOT EXISTS idx_checkins_token ON event_checkins (token)`);
 
     // Simple session store table (replaces connect-sqlite3, which wrote to local disk)
     await db.execute(`
@@ -994,6 +1061,161 @@ async function isUserAttending(eventId, userId) {
         args: [eventId, userId]
     });
     return result.rows.length > 0;
+}
+
+// ---------- Event organizing team ----------
+async function isEventManager(eventId, userId) {
+    const event = await getEventById(eventId);
+    if (!event) return false;
+    if (event.creator_id === userId) return true;
+    const result = await db.execute({
+        sql: `SELECT 1 FROM event_coordinators WHERE event_id = ? AND user_id = ?`,
+        args: [eventId, userId]
+    });
+    return result.rows.length > 0;
+}
+
+async function getEventCoordinators(eventId) {
+    const result = await db.execute({
+        sql: `SELECT event_coordinators.id, event_coordinators.role_label, users.username, users.name, users.photo_url
+              FROM event_coordinators JOIN users ON users.id = event_coordinators.user_id
+              WHERE event_coordinators.event_id = ?
+              ORDER BY event_coordinators.created_at ASC`,
+        args: [eventId]
+    });
+    return result.rows;
+}
+
+async function addEventCoordinator(eventId, userId, roleLabel, addedBy) {
+    return db.execute({
+        sql: `INSERT INTO event_coordinators (event_id, user_id, role_label, added_by, created_at) VALUES (?, ?, ?, ?, ?)`,
+        args: [eventId, userId, roleLabel, addedBy, Date.now()]
+    });
+}
+
+async function removeEventCoordinator(coordinatorId, eventId) {
+    return db.execute({
+        sql: `DELETE FROM event_coordinators WHERE id = ? AND event_id = ?`,
+        args: [coordinatorId, eventId]
+    });
+}
+
+// ---------- Team posts (organizer gallery) ----------
+async function getEventTeamPosts(eventId) {
+    const result = await db.execute({
+        sql: `SELECT event_team_posts.*, users.username, users.name, users.photo_url
+              FROM event_team_posts JOIN users ON users.id = event_team_posts.author_id
+              WHERE event_team_posts.event_id = ?
+              ORDER BY event_team_posts.created_at DESC`,
+        args: [eventId]
+    });
+    return result.rows;
+}
+
+async function createEventTeamPost(eventId, authorId, imageUrl, caption) {
+    const result = await db.execute({
+        sql: `INSERT INTO event_team_posts (event_id, author_id, image_url, caption, created_at) VALUES (?, ?, ?, ?, ?)`,
+        args: [eventId, authorId, imageUrl || null, caption || null, Date.now()]
+    });
+    return Number(result.lastInsertRowid);
+}
+
+async function deleteEventTeamPost(postId, eventId) {
+    return db.execute({ sql: `DELETE FROM event_team_posts WHERE id = ? AND event_id = ?`, args: [postId, eventId] });
+}
+
+// ---------- Participant feedback ----------
+async function getEventReviews(eventId) {
+    const result = await db.execute({
+        sql: `SELECT event_reviews.*, users.username, users.name, users.photo_url
+              FROM event_reviews JOIN users ON users.id = event_reviews.user_id
+              WHERE event_reviews.event_id = ?
+              ORDER BY event_reviews.created_at DESC`,
+        args: [eventId]
+    });
+    return result.rows;
+}
+
+async function upsertEventReview(eventId, userId, text, imageUrl) {
+    return db.execute({
+        sql: `INSERT INTO event_reviews (event_id, user_id, text, image_url, created_at) VALUES (?, ?, ?, ?, ?)
+              ON CONFLICT(event_id, user_id) DO UPDATE SET text = excluded.text,
+                  image_url = COALESCE(excluded.image_url, event_reviews.image_url)`,
+        args: [eventId, userId, text || null, imageUrl || null, Date.now()]
+    });
+}
+
+// ---------- QR check-in ----------
+function generateCheckinToken() {
+    return crypto.randomBytes(20).toString('hex');
+}
+
+async function createEventCheckin(eventId, userId) {
+    const token = generateCheckinToken();
+    await db.execute({
+        sql: `INSERT INTO event_checkins (event_id, user_id, token, status, created_at) VALUES (?, ?, ?, 'pending', ?)
+              ON CONFLICT(event_id, user_id) DO NOTHING`,
+        args: [eventId, userId, token, Date.now()]
+    });
+    return getEventCheckinByUser(eventId, userId);
+}
+
+async function getEventCheckinByUser(eventId, userId) {
+    const result = await db.execute({
+        sql: `SELECT * FROM event_checkins WHERE event_id = ? AND user_id = ?`,
+        args: [eventId, userId]
+    });
+    return result.rows[0] || null;
+}
+
+async function getEventCheckinByToken(token) {
+    const result = await db.execute({
+        sql: `SELECT event_checkins.*, users.username, users.name, users.photo_url,
+                     events.title AS event_title, events.event_date, events.creator_id
+              FROM event_checkins
+              JOIN users ON users.id = event_checkins.user_id
+              JOIN events ON events.id = event_checkins.event_id
+              WHERE event_checkins.token = ?`,
+        args: [token]
+    });
+    return result.rows[0] || null;
+}
+
+async function markCheckinAsUsed(token, checkedInBy) {
+    return db.execute({
+        sql: `UPDATE event_checkins SET status = 'checked_in', checked_in_at = ?, checked_in_by = ?
+              WHERE token = ? AND status = 'pending'`,
+        args: [Date.now(), checkedInBy, token]
+    });
+}
+
+// Verifies a Cloudflare Turnstile response token server-side before a QR pass
+// is minted, so the check-in flow can't be spammed into generating throwaway
+// passes. Returns true/false; never throws.
+async function verifyTurnstile(token, remoteip) {
+    const secret = process.env.TURNSTILE_SECRET_KEY;
+    if (!secret) {
+        // Not configured — fail open in dev, but log loudly so it's obvious
+        // in production logs that the captcha step isn't actually protecting anything.
+        console.warn('TURNSTILE_SECRET_KEY not set — skipping captcha verification');
+        return true;
+    }
+    if (!token) return false;
+    try {
+        const params = new URLSearchParams();
+        params.append('secret', secret);
+        params.append('response', token);
+        if (remoteip) params.append('remoteip', remoteip);
+        const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+            method: 'POST',
+            body: params
+        });
+        const data = await res.json();
+        return !!data.success;
+    } catch (err) {
+        console.error('Turnstile verification error:', err);
+        return false;
+    }
 }
 
 // ---------- Achievements ----------
@@ -2058,9 +2280,19 @@ app.get('/events/:id/edit', (req, res) => {
     res.sendFile(path.join(__dirname, 'event-edit.html'));
 });
 
+app.get('/events/:id/scan', (req, res) => {
+    if (!req.session.userId) return res.redirect('/login');
+    res.sendFile(path.join(__dirname, 'event-scan.html'));
+});
+
 app.get('/events/:id', (req, res) => {
     if (!req.session.userId) return res.redirect('/login');
     res.sendFile(path.join(__dirname, 'event-detail.html'));
+});
+
+app.get('/checkin/:token', (req, res) => {
+    if (!req.session.userId) return res.redirect('/login');
+    res.sendFile(path.join(__dirname, 'checkin.html'));
 });
 
 app.get('/communities', (req, res) => {
@@ -2231,6 +2463,14 @@ app.get('/api/founders', async (req, res) => {
 // what's already visible on any public listing, and profiles are limited to
 // members who explicitly opted in via the "showcase_public" profile setting
 // — no username, email, phone, or age is ever included here.
+// The Turnstile *site* key is meant to be public (it's embedded in every
+// page that shows the widget) — only the *secret* key must stay server-side,
+// which it does, in verifyTurnstile(). This just avoids hardcoding the site
+// key into every HTML file.
+app.get('/api/config/turnstile', (req, res) => {
+    res.json({ siteKey: process.env.TURNSTILE_SITE_KEY || null });
+});
+
 app.get('/api/public/stats', async (req, res) => {
     try {
         const [userCount, communityCount, eventCount] = await Promise.all([
@@ -3305,7 +3545,12 @@ app.get('/api/events/past', async (req, res) => {
         const category = (req.query.category || '').trim();
         const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 24, 1), 50);
         const events = await getPastEvents(category || null, limit);
-        res.json(events.map(ev => ({ ...ev, isCreator: ev.creator_id === req.session.userId })));
+        const withManagerFlag = await Promise.all(events.map(async ev => ({
+            ...ev,
+            isCreator: ev.creator_id === req.session.userId,
+            isManager: await isEventManager(ev.id, req.session.userId)
+        })));
+        res.json(withManagerFlag);
     } catch (err) {
         console.error('api/events/past error:', err);
         res.status(500).json({ error: 'Server error' });
@@ -3350,7 +3595,20 @@ app.get('/api/events/:id', async (req, res) => {
         }
         const attendees = await getEventAttendees(event.id);
         const isAttending = await isUserAttending(event.id, req.session.userId);
-        res.json({ ...event, attendees, isAttending, isCreator: event.creator_id === req.session.userId });
+        const coordinators = await getEventCoordinators(event.id);
+        const isManager = await isEventManager(event.id, req.session.userId);
+        const myCheckin = await getEventCheckinByUser(event.id, req.session.userId);
+        res.json({
+            ...event,
+            attendees,
+            isAttending,
+            isCreator: event.creator_id === req.session.userId,
+            isManager,
+            coordinators: coordinators.map(c => ({
+                id: c.id, username: c.username, name: c.name, photoUrl: c.photo_url, roleLabel: c.role_label
+            })),
+            myCheckin: myCheckin ? { token: myCheckin.token, status: myCheckin.status } : null
+        });
     } catch (err) {
         console.error('api/events/:id error:', err);
         res.status(500).json({ error: 'Server error' });
@@ -3506,6 +3764,288 @@ app.post('/api/events/:id/leave', async (req, res) => {
         res.json({ success: true });
     } catch (err) {
         console.error('api/events/:id/leave error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// ---------- RSVP with attendance confirmation + captcha + QR pass ----------
+// Flow: person clicks "Qatnashish" -> confirms yes/no to "will you actually be
+// there" -> if yes, solves a Turnstile challenge (so the QR-minting step can't
+// be spammed) -> we create the attendee record + a one-time check-in token,
+// and the frontend renders that token as a QR code.
+app.post('/api/events/:id/rsvp', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const event = await getEventById(req.params.id);
+        if (!event || event.status !== 'approved') {
+            return res.status(404).json({ error: 'Tadbir topilmadi' });
+        }
+        if (event.event_date < Date.now()) {
+            return res.status(400).json({ error: "Bu tadbir allaqachon bo'lib o'tgan" });
+        }
+
+        const { willAttend, turnstileToken } = req.body;
+
+        if (!willAttend) {
+            await leaveEvent(event.id, req.session.userId);
+            return res.json({ success: true, willAttend: false });
+        }
+
+        const alreadyAttending = await isUserAttending(event.id, req.session.userId);
+        if (!alreadyAttending && event.capacity) {
+            const attendees = await getEventAttendees(event.id);
+            if (attendees.length >= event.capacity) {
+                return res.status(400).json({ error: "Afsuski, joylar tugagan" });
+            }
+        }
+
+        const captchaOk = await verifyTurnstile(turnstileToken, req.ip);
+        if (!captchaOk) {
+            return res.status(400).json({ error: "Tekshiruvdan o'ta olmadingiz. Qaytadan urinib ko'ring." });
+        }
+
+        await joinEvent(event.id, req.session.userId);
+        const checkin = await createEventCheckin(event.id, req.session.userId);
+
+        if (!alreadyAttending && event.creator_id !== req.session.userId) {
+            const joiner = await getUserById(req.session.userId);
+            notifyUser(event.creator_id, {
+                type: 'event_join',
+                content: `🎉 @${joiner.username} "${event.title}" tadbiringizga qo'shildi.`,
+                link: `/events/${event.id}`,
+                pushTitle: 'Yangi qatnashuvchi'
+            });
+        }
+
+        res.json({ success: true, willAttend: true, token: checkin.token });
+    } catch (err) {
+        console.error('api/events/:id/rsvp error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// ---------- Organizing team (coordinators) ----------
+app.get('/api/events/:id/coordinators', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const coordinators = await getEventCoordinators(req.params.id);
+        res.json(coordinators.map(c => ({
+            id: c.id, username: c.username, name: c.name, photoUrl: c.photo_url, roleLabel: c.role_label
+        })));
+    } catch (err) {
+        console.error('api/events/:id/coordinators error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.post('/api/events/:id/coordinators', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const event = await getEventById(req.params.id);
+        if (!event) return res.status(404).json({ error: 'Tadbir topilmadi' });
+        if (event.creator_id !== req.session.userId) {
+            return res.status(403).json({ error: 'Faqat tadbir muallifi jamoa a\'zosi qo\'sha oladi' });
+        }
+        const username = (req.body.username || '').replace(/^@/, '').trim();
+        const roleLabel = (req.body.roleLabel || '').trim();
+        if (!username || !roleLabel) {
+            return res.status(400).json({ error: "Foydalanuvchi nomi va rol kerak" });
+        }
+        const user = await getUser(username);
+        if (!user) return res.status(404).json({ error: "Bunday foydalanuvchi topilmadi" });
+        if (user.id === event.creator_id) {
+            return res.status(400).json({ error: "Bu foydalanuvchi allaqachon tadbir muallifi" });
+        }
+        await addEventCoordinator(event.id, user.id, roleLabel, req.session.userId);
+        notifyUser(user.id, {
+            type: 'event_coordinator',
+            content: `✨ Sizni "${event.title}" tadbirida "${roleLabel}" sifatida jamoaga qo'shdilar.`,
+            link: `/events/${event.id}`,
+            pushTitle: 'Tadbir jamoasi'
+        });
+        res.json({ success: true });
+    } catch (err) {
+        if (String(err.message || '').includes('UNIQUE')) {
+            return res.status(400).json({ error: 'Bu foydalanuvchi allaqachon jamoada' });
+        }
+        console.error('api/events/:id/coordinators create error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.delete('/api/events/:id/coordinators/:coordId', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const event = await getEventById(req.params.id);
+        if (!event) return res.status(404).json({ error: 'Tadbir topilmadi' });
+        if (event.creator_id !== req.session.userId) {
+            return res.status(403).json({ error: 'Faqat tadbir muallifi jamoadan chiqara oladi' });
+        }
+        await removeEventCoordinator(req.params.coordId, event.id);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('api/events/:id/coordinators delete error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// ---------- Organizing team's gallery (featured content on the past-events tab) ----------
+app.get('/api/events/:id/team-posts', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const posts = await getEventTeamPosts(req.params.id);
+        res.json(posts.map(p => ({
+            id: p.id, imageUrl: p.image_url, caption: p.caption, createdAt: p.created_at,
+            author: { username: p.username, name: p.name, photoUrl: p.photo_url }
+        })));
+    } catch (err) {
+        console.error('api/events/:id/team-posts error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.post('/api/events/:id/team-posts', upload.single('photo'), async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const event = await getEventById(req.params.id);
+        if (!event) return res.status(404).json({ error: 'Tadbir topilmadi' });
+        const isManager = await isEventManager(event.id, req.session.userId);
+        if (!isManager) return res.status(403).json({ error: "Faqat tashkilotchilar qo'sha oladi" });
+
+        const caption = (req.body.caption || '').trim().slice(0, 1000);
+        let imageUrl = null;
+        if (req.file) {
+            const uploadResult = await uploadImageToFreeimage(req.file.buffer);
+            if (!uploadResult.ok) return res.status(500).json({ error: uploadResult.error });
+            imageUrl = uploadResult.url;
+        }
+        if (!imageUrl && !caption) return res.status(400).json({ error: 'Rasm yoki matn kiriting' });
+
+        const id = await createEventTeamPost(event.id, req.session.userId, imageUrl, caption);
+        res.status(201).json({ success: true, id });
+    } catch (err) {
+        console.error('api/events/:id/team-posts create error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.delete('/api/events/:id/team-posts/:postId', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const event = await getEventById(req.params.id);
+        if (!event) return res.status(404).json({ error: 'Tadbir topilmadi' });
+        const isManager = await isEventManager(event.id, req.session.userId);
+        if (!isManager) return res.status(403).json({ error: "Ruxsat yo'q" });
+        await deleteEventTeamPost(req.params.postId, event.id);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('api/events/:id/team-posts delete error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// ---------- Participant feedback (lighter-weight, shown secondary to team posts) ----------
+app.get('/api/events/:id/reviews', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const reviews = await getEventReviews(req.params.id);
+        res.json(reviews.map(r => ({
+            id: r.id, text: r.text, imageUrl: r.image_url, createdAt: r.created_at,
+            author: { username: r.username, name: r.name, photoUrl: r.photo_url }
+        })));
+    } catch (err) {
+        console.error('api/events/:id/reviews error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.post('/api/events/:id/reviews', upload.single('photo'), async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const event = await getEventById(req.params.id);
+        if (!event) return res.status(404).json({ error: 'Tadbir topilmadi' });
+        if (event.event_date > Date.now()) {
+            return res.status(400).json({ error: "Tadbir hali bo'lib o'tmagan" });
+        }
+        const attended = await isUserAttending(event.id, req.session.userId);
+        if (!attended) return res.status(403).json({ error: "Faqat qatnashganlar fikr qoldira oladi" });
+
+        const text = (req.body.text || '').trim().slice(0, 1000);
+        let imageUrl = null;
+        if (req.file) {
+            const uploadResult = await uploadImageToFreeimage(req.file.buffer);
+            if (!uploadResult.ok) return res.status(500).json({ error: uploadResult.error });
+            imageUrl = uploadResult.url;
+        }
+        if (!text && !imageUrl) return res.status(400).json({ error: 'Fikr yoki rasm kiriting' });
+
+        await upsertEventReview(event.id, req.session.userId, text, imageUrl);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('api/events/:id/reviews create error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// ---------- QR check-in: what a scanned pass resolves to ----------
+// GET is intentionally low-detail for anyone who isn't the event's organizing
+// team — scanning someone else's QR code (or just opening the link) should
+// never leak their name to a stranger.
+app.get('/api/checkin/:token', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const checkin = await getEventCheckinByToken(req.params.token);
+        if (!checkin) return res.status(404).json({ error: 'Chipta topilmadi' });
+
+        const isManager = await isEventManager(checkin.event_id, req.session.userId);
+        const isOwner = checkin.user_id === req.session.userId;
+
+        if (!isManager && !isOwner) {
+            return res.json({ restricted: true, eventTitle: checkin.event_title });
+        }
+
+        res.json({
+            restricted: false,
+            status: checkin.status,
+            eventId: checkin.event_id,
+            eventTitle: checkin.event_title,
+            eventDate: checkin.event_date,
+            attendee: { username: checkin.username, name: checkin.name, photoUrl: checkin.photo_url },
+            checkedInAt: checkin.checked_in_at,
+            canCheckIn: isManager
+        });
+    } catch (err) {
+        console.error('api/checkin/:token GET error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.post('/api/checkin/:token', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const checkin = await getEventCheckinByToken(req.params.token);
+        if (!checkin) return res.status(404).json({ error: 'Chipta topilmadi' });
+
+        const isManager = await isEventManager(checkin.event_id, req.session.userId);
+        if (!isManager) return res.status(403).json({ error: "Faqat tashkilotchilar qabul qila oladi" });
+
+        if (checkin.status === 'checked_in') {
+            return res.json({
+                success: true,
+                alreadyUsed: true,
+                attendee: { username: checkin.username, name: checkin.name, photoUrl: checkin.photo_url },
+                checkedInAt: checkin.checked_in_at
+            });
+        }
+
+        await markCheckinAsUsed(req.params.token, req.session.userId);
+        res.json({
+            success: true,
+            alreadyUsed: false,
+            attendee: { username: checkin.username, name: checkin.name, photoUrl: checkin.photo_url }
+        });
+    } catch (err) {
+        console.error('api/checkin/:token POST error:', err);
         res.status(500).json({ error: 'Server error' });
     }
 });
