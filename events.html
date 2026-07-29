@@ -11,81 +11,119 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="/style.css">
 <style>
+/* ==========================================================
+   Events — a genuinely different visual language from the rest
+   of the app: a chronological timeline (date-block cards) for
+   what's coming up, and a photo-led gallery for what's already
+   happened, since organizer photos are the point of that tab.
+   ========================================================== */
 body { font-family: 'Inter', sans-serif; }
-.ev-container { max-width: 1100px; margin: 0 auto; padding: 1.8rem 1.5rem 3rem; }
-.ev-head { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.4rem; }
-.ev-head h1 { font-family: 'Sora', sans-serif; font-size: clamp(1.4rem, 3vw, 1.75rem); margin-bottom: 0.3rem; display: flex; align-items: center; gap: .5rem; }
-.ev-head h1 i { color: var(--color-accent); }
-.ev-head p { color: var(--color-text-muted); margin: 0; }
 
-/* ---------- Tabs: upcoming / past ---------- */
-.ev-tabs { display: flex; gap: .5rem; margin-bottom: 1.4rem; border-bottom: 1px solid var(--color-border); }
-.ev-tab {
-  background: none; border: none; padding: .8rem .3rem; font-size: .95rem; font-weight: 700;
-  color: var(--color-text-muted); cursor: pointer; position: relative; margin-right: 1.2rem;
-  transition: color .15s ease;
+.ev-hero {
+    position: relative; overflow: hidden;
+    background: linear-gradient(150deg, #2D1B69, #4A2F9E 60%, #3a2380);
+    color: #FAF7F2; padding: 2.6rem 1.5rem 2.2rem;
 }
-.ev-tab:hover { color: var(--color-text); }
-.ev-tab.active { color: var(--color-primary); }
-.ev-tab.active::after { content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 3px; border-radius: 3px 3px 0 0; background: var(--color-accent); }
+.ev-hero::before { content:''; position:absolute; width:260px; height:260px; background:#FF6B5B; opacity:.24; filter:blur(80px); border-radius:50%; top:-90px; right:-40px; }
+.ev-hero-inner { max-width: 1000px; margin: 0 auto; position: relative; display: flex; justify-content: space-between; align-items: flex-end; gap: 1.2rem; flex-wrap: wrap; }
+.ev-hero h1 { font-family: 'Sora', sans-serif; font-size: clamp(1.6rem, 4vw, 2.1rem); margin-bottom: 0.4rem; }
+.ev-hero p { color: #D9D2EE; font-size: 0.92rem; max-width: 480px; }
+.ev-new-btn {
+    display: inline-flex; align-items: center; gap: 0.55rem; border: none; cursor: pointer; text-decoration: none;
+    background: linear-gradient(135deg, #FF6B5B, #FF8B7D); color: #fff; font-weight: 700; font-size: 0.95rem;
+    padding: 0.85rem 1.5rem; border-radius: 999px; box-shadow: 0 10px 24px rgba(255,107,91,0.35);
+    transition: transform .2s cubic-bezier(.34,1.56,.64,1), box-shadow .2s ease;
+}
+.ev-new-btn:hover { transform: scale(1.04); box-shadow: 0 14px 30px rgba(255,107,91,0.45); }
+.ev-new-btn:active { transform: scale(.94); }
 
-.filter-bar { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 2rem; }
+.ev-container { max-width: 1000px; margin: 0 auto; padding: 0 1.5rem 3rem; }
+
+/* ---------- Tabs: pill-segmented, sits half-over the hero ---------- */
+.ev-tabs {
+    display: inline-flex; gap: 0.25rem; background: var(--color-surface); border: 1px solid var(--color-border);
+    border-radius: 999px; padding: 0.3rem; margin-top: -1.4rem; position: relative; box-shadow: var(--shadow-hover);
+}
+.ev-tab {
+    border: none; background: transparent; padding: 0.65rem 1.3rem; border-radius: 999px;
+    font-weight: 700; font-size: 0.88rem; color: var(--color-text-muted); cursor: pointer;
+    display: flex; align-items: center; gap: 0.5rem; transition: background .2s ease, color .2s ease;
+}
+.ev-tab.active { background: linear-gradient(135deg, var(--color-primary), #4A2F9E); color: #fff; }
+
+.filter-bar { display: flex; flex-wrap: wrap; gap: 0.55rem; margin: 1.6rem 0 2.2rem; }
 .filter-chip {
     background: var(--color-surface); border: 1.5px solid var(--color-border); color: var(--color-text);
-    padding: 0.5rem 1.1rem; border-radius: var(--radius-pill); font-size: 0.85rem; font-weight: 600;
-    cursor: pointer; transition: transform .18s cubic-bezier(.34,1.56,.64,1), background .15s ease, border-color .15s ease, color .15s ease;
+    padding: 0.45rem 1rem; border-radius: 999px; font-size: 0.82rem; font-weight: 600;
+    cursor: pointer; transition: transform .18s cubic-bezier(.34,1.56,.64,1), border-color .15s ease, background .15s ease, color .15s ease;
 }
 .filter-chip:hover { border-color: var(--color-primary); transform: scale(1.04); }
-.filter-chip:active { transform: scale(.94); }
 .filter-chip.active { background: var(--color-primary); border-color: var(--color-primary); color: white; }
 
-.events-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1.4rem; }
-.event-card { text-decoration: none; color: inherit; display: block; padding: 1.4rem; transition: transform 0.2s cubic-bezier(.16,1,.3,1), box-shadow .2s ease; }
-.event-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-hover); }
-.event-date-badge {
-    display: inline-flex; align-items: center; gap: 0.4rem;
-    background: #EFEAF8; color: var(--color-primary); font-weight: 700;
-    font-size: 0.75rem; padding: 0.3rem 0.8rem; border-radius: var(--radius-pill);
-    margin-bottom: 0.8rem;
+/* ---------- Upcoming: chronological timeline ---------- */
+.timeline { position: relative; }
+.date-group { margin-bottom: 2rem; }
+.date-group-head {
+    display: flex; align-items: baseline; gap: 0.6rem; margin-bottom: 0.9rem;
+    font-family: 'Sora', sans-serif; font-weight: 700; color: var(--color-primary); font-size: 1rem;
 }
-.event-date-badge.past { background: var(--color-bg); color: var(--color-text-muted); }
-.event-card h3 { font-family: 'Sora', sans-serif; font-size: 1.05rem; margin-bottom: 0.4rem; }
-.event-meta { display: flex; flex-direction: column; gap: 0.3rem; color: var(--color-text-muted); font-size: 0.85rem; margin-top: 0.6rem; }
-.event-meta span { display: flex; align-items: center; gap: 0.5rem; }
-.event-meta i { color: var(--color-accent); width: 14px; }
-.empty-state { text-align: center; padding: 3rem 1rem; color: var(--color-text-muted); grid-column: 1 / -1; }
-.empty-state a { color: var(--color-accent); font-weight: 700; text-decoration: none; }
-.empty-state a:hover { text-decoration: underline; }
+.date-group-head .rel { font-size: 0.78rem; font-weight: 700; color: var(--color-accent); text-transform: uppercase; letter-spacing: 0.5px; }
 
-/* ---------- Past-event recap ---------- */
-.recap-thumb { width: 100%; aspect-ratio: 16/9; border-radius: var(--radius-sm); overflow: hidden; margin-bottom: .8rem; background: var(--color-bg); }
-.recap-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.recap-note { font-size: .84rem; color: var(--color-text-muted); line-height: 1.5; margin-top: .5rem; white-space: pre-wrap; }
-.recap-add-btn {
-    display: inline-flex; align-items: center; gap: .4rem; margin-top: .9rem; width: 100%; justify-content: center;
-    background: transparent; border: 1.5px dashed var(--color-border); color: var(--color-primary);
-    padding: .55rem; border-radius: var(--radius-pill); font-size: .82rem; font-weight: 700; cursor: pointer;
-    transition: transform .18s cubic-bezier(.34,1.56,.64,1), border-color .15s ease;
+.date-card {
+    display: flex; gap: 1.1rem; text-decoration: none; color: inherit;
+    padding: 1.1rem; margin-bottom: 0.9rem;
+    transition: transform 0.2s cubic-bezier(.16,1,.3,1), box-shadow 0.2s ease;
 }
-.recap-add-btn:hover { border-color: var(--color-primary); transform: scale(1.03); }
-.recap-add-btn:active { transform: scale(.94); }
+.date-card:hover { transform: translateX(5px); box-shadow: var(--shadow-hover); }
+.date-block {
+    flex-shrink: 0; width: 56px; height: 56px; border-radius: 16px;
+    background: linear-gradient(150deg, #EFEAF8, #E4DBF7);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    color: var(--color-primary);
+}
+.date-block .day { font-family: 'Sora', sans-serif; font-weight: 800; font-size: 1.3rem; line-height: 1; }
+.date-block .time { font-size: 0.66rem; font-weight: 700; margin-top: 0.15rem; }
+.date-card-body { flex: 1; min-width: 0; }
+.date-card-top { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.3rem; flex-wrap: wrap; }
+.cat-pill {
+    font-size: 0.68rem; font-weight: 700; color: var(--color-accent); background: #FFEAE6;
+    padding: 0.15rem 0.55rem; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.3px;
+}
+.date-card h3 { font-size: 1.02rem; margin: 0 0 0.3rem; font-family: 'Sora', sans-serif; }
+.date-card-meta { display: flex; flex-wrap: wrap; gap: 0.9rem; font-size: 0.82rem; color: var(--color-text-muted); }
+.date-card-meta span { display: inline-flex; align-items: center; gap: 0.35rem; }
+.date-card-meta i { color: var(--color-accent); width: 12px; }
+.date-card-arrow { align-self: center; color: var(--color-border); font-size: 1.1rem; transition: transform 0.2s ease, color 0.2s ease; }
+.date-card:hover .date-card-arrow { transform: translateX(4px); color: var(--color-accent); }
 
-.recap-modal { display: none; position: fixed; inset: 0; background: rgba(26,22,37,0.5); z-index: 200; align-items: center; justify-content: center; padding: 1.5rem; }
-.recap-modal.open { display: flex; }
-.recap-modal-card { max-width: 440px; width: 100%; padding: 1.6rem; }
-.recap-modal-card h2 { font-family: 'Sora', sans-serif; font-size: 1.15rem; margin-bottom: .3rem; }
-.recap-modal-card p { font-size: .85rem; color: var(--color-text-muted); margin-bottom: 1rem; }
-.recap-modal-card input[type="file"] { width: 100%; margin-bottom: .9rem; }
-.recap-modal-card textarea {
-    width: 100%; min-height: 90px; padding: .7rem .9rem; border-radius: var(--radius-sm);
-    border: 1.5px solid var(--color-border); font-family: 'Inter', sans-serif; font-size: .9rem; resize: vertical;
-    background: var(--color-bg); color: var(--color-text);
+/* ---------- Organized/past: photo gallery ---------- */
+.gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 1.2rem; }
+.gallery-card { text-decoration: none; color: inherit; display: block; overflow: hidden; padding: 0; transition: transform 0.22s cubic-bezier(.16,1,.3,1), box-shadow 0.22s ease; }
+.gallery-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-hover); }
+.gallery-media { position: relative; width: 100%; aspect-ratio: 4/3; background: linear-gradient(135deg,#EFEAF8,#E4DBF7); overflow: hidden; }
+.gallery-media img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .4s ease; }
+.gallery-card:hover .gallery-media img { transform: scale(1.06); }
+.gallery-media .fallback { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; color: var(--color-primary); opacity: 0.4; }
+.gallery-date-badge {
+    position: absolute; top: 0.6rem; left: 0.6rem; background: rgba(26,16,64,0.72); color: #fff;
+    font-size: 0.68rem; font-weight: 700; padding: 0.28rem 0.65rem; border-radius: 999px;
 }
-.recap-modal-actions { display: flex; gap: .7rem; margin-top: 1rem; }
+.gallery-body { padding: 1rem 1.1rem 1.15rem; }
+.gallery-body h3 { font-family: 'Sora', sans-serif; font-size: 0.98rem; margin-bottom: 0.4rem; }
+.gallery-foot { display: flex; align-items: center; gap: 0.9rem; font-size: 0.78rem; color: var(--color-text-muted); }
+.gallery-foot span { display: inline-flex; align-items: center; gap: 0.3rem; }
+.gallery-foot i { color: var(--color-accent); }
+
+.ev-empty { text-align: center; padding: 3.5rem 1.5rem; color: var(--color-text-muted); }
+.ev-empty a { color: var(--color-accent); font-weight: 700; text-decoration: none; }
+.ev-empty a:hover { text-decoration: underline; }
 
 @media (max-width: 560px) {
-  .ev-container { padding: 1.3rem 1rem 2.5rem; }
-  .events-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; }
+    .ev-hero { padding: 2.1rem 1.1rem 1.8rem; }
+    .ev-container { padding: 0 1.1rem 2.5rem; }
+    .date-card { padding: 0.9rem; gap: 0.85rem; }
+    .date-block { width: 48px; height: 48px; border-radius: 13px; }
+    .date-block .day { font-size: 1.1rem; }
 }
 </style>
 </head>
@@ -93,15 +131,9 @@ body { font-family: 'Inter', sans-serif; }
     <nav class="navbar">
         <a href="/home" class="logo"><svg width="160" height="45" viewBox="0 0 320 90" xmlns="http://www.w3.org/2000/svg" style="display:block;">
       <g transform="translate(45,45)">
-        <g transform="rotate(-18)">
-          <ellipse cx="-10" cy="0" rx="20" ry="36" fill="none" stroke="#2D1B69" stroke-width="10"/>
-        </g>
-        <g transform="rotate(18)">
-          <ellipse cx="10" cy="0" rx="20" ry="36" fill="none" stroke="#FF6B5B" stroke-width="10"/>
-        </g>
-        <g transform="rotate(-18)">
-          <path d="M -30 0 A 20 36 0 0 1 11 0" fill="none" stroke="#2D1B69" stroke-width="10" stroke-linecap="round"/>
-        </g>
+        <g transform="rotate(-18)"><ellipse cx="-10" cy="0" rx="20" ry="36" fill="none" stroke="#2D1B69" stroke-width="10"/></g>
+        <g transform="rotate(18)"><ellipse cx="10" cy="0" rx="20" ry="36" fill="none" stroke="#FF6B5B" stroke-width="10"/></g>
+        <g transform="rotate(-18)"><path d="M -30 0 A 20 36 0 0 1 11 0" fill="none" stroke="#2D1B69" stroke-width="10" stroke-linecap="round"/></g>
       </g>
       <text x="95" y="53" font-size="34" font-weight="700" fill="#2D1B69" font-family="Sora, -apple-system, sans-serif">Bir<tspan fill="#FF6B5B">Millat</tspan></text>
     </svg></a>
@@ -130,18 +162,20 @@ body { font-family: 'Inter', sans-serif; }
 </nav>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-    <div class="ev-container">
-        <div class="ev-head reveal">
+    <div class="ev-hero">
+        <div class="ev-hero-inner">
             <div>
                 <h1><i class="fas fa-calendar-days"></i> Tadbirlar</h1>
-                <p>Yoshlar uchun tadbirlar, klublar va uchrashuvlar</p>
+                <p>O'zbekiston bo'ylab yoshlar uchrashadigan, birga o'sadigan tadbirlar. O'zingiznikini ham qo'shing.</p>
             </div>
-            <a href="/events/create" class="btn btn-primary btn-zoom"><i class="fas fa-plus"></i> Tadbir qo'shish</a>
+            <a href="/events/create" class="ev-new-btn btn-zoom"><i class="fas fa-plus"></i> Tadbir qo'shish</a>
         </div>
+    </div>
 
+    <div class="ev-container">
         <div class="ev-tabs reveal">
-            <button class="ev-tab active" id="tabUpcoming" data-tab="upcoming">Bo'lajak tadbirlar</button>
-            <button class="ev-tab" id="tabPast" data-tab="past">Yaqinda bo'lib o'tgan tadbirlar</button>
+            <button class="ev-tab active" id="tabUpcoming" data-tab="upcoming"><i class="fas fa-hourglass-half"></i> Kelayotgan tadbirlar</button>
+            <button class="ev-tab" id="tabPast" data-tab="past"><i class="fas fa-images"></i> Tashkil qilingan tadbirlar</button>
         </div>
 
         <div class="filter-bar reveal" id="filterBar">
@@ -154,22 +188,11 @@ body { font-family: 'Inter', sans-serif; }
             <button class="filter-chip" data-category="Boshqa">Boshqa</button>
         </div>
 
-        <div class="events-grid reveal-stagger reveal" id="eventsGrid">
-            <p style="color:var(--color-text-muted)">Yuklanmoqda...</p>
+        <div id="upcomingView">
+            <div class="timeline reveal" id="timelineList"><p style="color:var(--color-text-muted)">Yuklanmoqda...</p></div>
         </div>
-    </div>
-
-    <div class="recap-modal" id="recapModal">
-        <div class="card recap-modal-card">
-            <h2><i class="fas fa-image" style="color:var(--color-accent);"></i> Tadbir hisoboti</h2>
-            <p>Bo'lib o'tgan tadbirdan rasm va qisqa izoh qo'shing — boshqalar ko'radi.</p>
-            <input type="file" id="recapPhotoInput" accept="image/*">
-            <textarea id="recapNoteInput" placeholder="Tadbir qanday o'tdi? (ixtiyoriy)" maxlength="1000"></textarea>
-            <div class="recap-modal-actions">
-                <button class="btn btn-primary btn-zoom" id="recapSubmitBtn" style="flex:1; justify-content:center;">Saqlash</button>
-                <button class="btn btn-cancel" id="recapCancelBtn" style="border:1.5px solid var(--color-border); background:transparent; color:var(--color-text-muted);">Bekor qilish</button>
-            </div>
-            <div class="submit-status" id="recapStatus" style="font-size:.85rem; margin-top:.6rem;"></div>
+        <div id="pastView" style="display:none;">
+            <div class="gallery-grid reveal-stagger reveal" id="galleryGrid"></div>
         </div>
     </div>
 
@@ -178,7 +201,6 @@ body { font-family: 'Inter', sans-serif; }
     <script>
         let activeCategory = '';
         let activeTab = 'upcoming';
-        let recapEventId = null;
 
         async function loadMe() {
             try {
@@ -189,104 +211,156 @@ body { font-family: 'Inter', sans-serif; }
             } catch (e) { console.error(e); }
         }
 
-        function formatEventDate(ts) {
-            const d = new Date(ts);
-            return formatUzDate(d, { time: true, year: false });
+        const UZ_MONTHS_SHORT = ['Yan', 'Fev', 'Mar', 'Apr', 'May', 'Iyun', 'Iyul', 'Avg', 'Sen', 'Okt', 'Noy', 'Dek'];
+        const UZ_WEEKDAYS = ['Yakshanba', 'Dushanba', 'Seshanba', 'Chorshanba', 'Payshanba', 'Juma', 'Shanba'];
+
+        function isSameDay(a, b) {
+            return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
         }
 
-        function openRecapModal(eventId) {
-            recapEventId = eventId;
-            document.getElementById('recapPhotoInput').value = '';
-            document.getElementById('recapNoteInput').value = '';
-            document.getElementById('recapStatus').textContent = '';
-            document.getElementById('recapModal').classList.add('open');
+        function relativeDayLabel(d) {
+            const today = new Date();
+            const tomorrow = new Date(); tomorrow.setDate(today.getDate() + 1);
+            if (isSameDay(d, today)) return 'Bugun';
+            if (isSameDay(d, tomorrow)) return 'Ertaga';
+            return UZ_WEEKDAYS[d.getDay()];
         }
-        function closeRecapModal() { document.getElementById('recapModal').classList.remove('open'); }
-        document.getElementById('recapCancelBtn').addEventListener('click', closeRecapModal);
-        document.getElementById('recapModal').addEventListener('click', (e) => {
-            if (e.target.id === 'recapModal') closeRecapModal();
-        });
 
-        document.getElementById('recapSubmitBtn').addEventListener('click', async () => {
-            const statusEl = document.getElementById('recapStatus');
-            const photo = document.getElementById('recapPhotoInput').files[0];
-            const note = document.getElementById('recapNoteInput').value.trim();
-            if (!photo && !note) { statusEl.textContent = 'Rasm yoki matn kiriting.'; statusEl.className = 'submit-status error'; return; }
-            statusEl.textContent = 'Saqlanmoqda...'; statusEl.className = 'submit-status';
+        function loadTurnstileScript() {
+            if (document.getElementById('turnstileScript')) return;
+            const s = document.createElement('script');
+            s.id = 'turnstileScript';
+            s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+            s.async = true; s.defer = true;
+            document.head.appendChild(s);
+        }
+        loadTurnstileScript(); // warm it up for the detail page / RSVP flow
+
+        function renderTimeline(events) {
+            const list = document.getElementById('timelineList');
+            if (events.length === 0) {
+                list.innerHTML = `<div class="ev-empty">Hozircha bu toifada tadbirlar yo'q. <a href="/events/create">Birinchi bo'lib o'zingiz qo'shing →</a></div>`;
+                return;
+            }
+
+            const groups = [];
+            let lastKey = null;
+            events.forEach(ev => {
+                const d = new Date(ev.event_date);
+                const key = d.toDateString();
+                if (key !== lastKey) {
+                    groups.push({ date: d, items: [] });
+                    lastKey = key;
+                }
+                groups[groups.length - 1].items.push(ev);
+            });
+
+            list.innerHTML = groups.map(group => {
+                const d = group.date;
+                const dateLabel = `${d.getDate()} ${UZ_MONTHS_SHORT[d.getMonth()]}, ${d.getFullYear()}`;
+                const cards = group.items.map(ev => {
+                    const hh = String(d.getHours()).padStart(2, '0');
+                    const mm = String(new Date(ev.event_date).getMinutes()).padStart(2, '0');
+                    const evTime = new Date(ev.event_date);
+                    const evHH = String(evTime.getHours()).padStart(2, '0');
+                    const evMM = String(evTime.getMinutes()).padStart(2, '0');
+                    return `
+                        <a class="date-card card" href="/events/${ev.id}">
+                            <div class="date-block">
+                                <div class="day">${evTime.getDate()}</div>
+                                <div class="time">${UZ_MONTHS_SHORT[evTime.getMonth()]}</div>
+                            </div>
+                            <div class="date-card-body">
+                                <div class="date-card-top"><span class="cat-pill">${ev.category || 'Tadbir'}</span></div>
+                                <h3>${ev.title}</h3>
+                                <div class="date-card-meta">
+                                    <span><i class="fas fa-clock"></i> ${evHH}:${evMM}</span>
+                                    <span><i class="fas ${ev.mode === 'online' ? 'fa-video' : 'fa-location-dot'}"></i> ${ev.mode === 'online' ? 'Onlayn' : (ev.location || "Joy ko'rsatilmagan")}</span>
+                                    <span><i class="fas fa-users"></i> ${ev.attendee_count}${ev.capacity ? '/' + ev.capacity : ''}</span>
+                                </div>
+                            </div>
+                            <i class="fas fa-chevron-right date-card-arrow"></i>
+                        </a>`;
+                }).join('');
+                return `
+                    <div class="date-group">
+                        <div class="date-group-head"><span class="rel">${relativeDayLabel(d)}</span> · ${dateLabel}</div>
+                        ${cards}
+                    </div>`;
+            }).join('');
+        }
+
+        function renderGallery(events) {
+            const grid = document.getElementById('galleryGrid');
+            if (events.length === 0) {
+                grid.innerHTML = `<div class="ev-empty">Hozircha o'tgan tadbirlar yo'q.</div>`;
+                return;
+            }
+            grid.innerHTML = events.map(ev => {
+                const d = new Date(ev.event_date);
+                const dateLabel = `${d.getDate()} ${UZ_MONTHS_SHORT[d.getMonth()]}`;
+                const media = ev.coverImageUrl
+                    ? `<img src="${ev.coverImageUrl}" alt="" loading="lazy">`
+                    : `<div class="fallback"><i class="fas fa-calendar-check"></i></div>`;
+                return `
+                    <a class="gallery-card card" href="/events/${ev.id}">
+                        <div class="gallery-media">${media}<span class="gallery-date-badge">${dateLabel}</span></div>
+                        <div class="gallery-body">
+                            <h3>${ev.title}</h3>
+                            <div class="gallery-foot">
+                                <span><i class="fas fa-users"></i> ${ev.attendee_count}</span>
+                                <span><i class="fas fa-camera"></i> ${ev.teamPostCount} rasm</span>
+                            </div>
+                        </div>
+                    </a>`;
+            }).join('');
+        }
+
+        async function loadUpcoming(category) {
+            const list = document.getElementById('timelineList');
+            list.innerHTML = `<p style="color:var(--color-text-muted)">Yuklanmoqda...</p>`;
             try {
-                const data = new FormData();
-                if (photo) data.append('photo', photo);
-                data.append('note', note);
-                const res = await fetch(`/api/events/${recapEventId}/recap`, { method: 'POST', body: data });
-                const body = await res.json().catch(() => ({}));
-                if (!res.ok) throw new Error(body.error || 'Xatolik');
-                statusEl.textContent = 'Saqlandi!'; statusEl.className = 'submit-status success';
-                setTimeout(() => { closeRecapModal(); loadEvents(activeCategory, activeTab); }, 700);
+                const url = category ? `/api/events?category=${encodeURIComponent(category)}` : '/api/events';
+                const res = await fetch(url);
+                if (!res.ok) { list.innerHTML = ''; return; }
+                const events = await res.json();
+                renderTimeline(events);
             } catch (e) {
-                statusEl.textContent = e.message || "Saqlab bo'lmadi."; statusEl.className = 'submit-status error';
+                console.error('Failed to load upcoming events:', e);
+                list.innerHTML = `<div class="ev-empty">Yuklab bo'lmadi. Sahifani qaytadan yuklang.</div>`;
             }
-        });
-
-        function eventCardHtml(ev, isPast) {
-            const badgeClass = isPast ? 'event-date-badge past' : 'event-date-badge';
-            const meta = `
-                <div class="event-meta">
-                    <span><i class="fas fa-tag"></i> ${ev.category}</span>
-                    <span><i class="fas ${ev.mode === 'online' ? 'fa-video' : 'fa-location-dot'}"></i> ${ev.mode === 'online' ? 'Onlayn' : (ev.location || 'Joylashuv ko\'rsatilmagan')}</span>
-                    <span><i class="fas fa-users"></i> ${ev.attendee_count} qatnashuvchi</span>
-                </div>`;
-            if (!isPast) {
-                return `<div class="${badgeClass}"><i class="fas fa-calendar"></i> ${formatEventDate(ev.event_date)}</div><h3>${ev.title}</h3>${meta}`;
-            }
-            const recap = ev.recap_image_url
-                ? `<div class="recap-thumb"><img src="${ev.recap_image_url}" alt="" loading="lazy"></div>`
-                : '';
-            const note = ev.recap_note ? `<div class="recap-note">${ev.recap_note}</div>` : '';
-            return `<div class="${badgeClass}"><i class="fas fa-calendar-check"></i> ${formatEventDate(ev.event_date)}</div>` +
-                recap + `<h3>${ev.title}</h3>${meta}${note}`;
         }
 
-        async function loadEvents(category = '', tab = 'upcoming') {
-            const grid = document.getElementById('eventsGrid');
+        async function loadPast(category) {
+            const grid = document.getElementById('galleryGrid');
             grid.innerHTML = `<p style="color:var(--color-text-muted)">Yuklanmoqda...</p>`;
             try {
-                const base = tab === 'past' ? '/api/events/past' : '/api/events';
-                const url = category ? `${base}?category=${encodeURIComponent(category)}` : base;
+                const url = category ? `/api/events/past?category=${encodeURIComponent(category)}` : '/api/events/past';
                 const res = await fetch(url);
                 if (!res.ok) { grid.innerHTML = ''; return; }
                 const events = await res.json();
 
-                if (events.length === 0) {
-                    grid.innerHTML = tab === 'past'
-                        ? `<div class="empty-state">Hozircha bu toifada o'tgan tadbirlar yo'q.</div>`
-                        : `<div class="empty-state">Hozircha bu toifada tadbirlar yo'q. <a href="/events/create">Birinchi bo'lib o'zingiz qo'shing →</a></div>`;
-                    return;
-                }
-
-                grid.innerHTML = '';
-                events.forEach(ev => {
-                    const card = document.createElement('a');
-                    card.className = 'event-card card';
-                    card.href = `/events/${ev.id}`;
-                    card.innerHTML = eventCardHtml(ev, tab === 'past');
-
-                    if (tab === 'past' && ev.isCreator && !ev.recap_image_url && !ev.recap_note) {
-                        const btn = document.createElement('button');
-                        btn.type = 'button';
-                        btn.className = 'recap-add-btn';
-                        btn.innerHTML = '<i class="fas fa-plus"></i> Hisobot qo\'shish';
-                        btn.addEventListener('click', (e) => {
-                            e.preventDefault(); e.stopPropagation();
-                            openRecapModal(ev.id);
-                        });
-                        card.appendChild(btn);
+                // Cover image + photo count come from each event's team gallery.
+                const withCovers = await Promise.all(events.map(async ev => {
+                    try {
+                        const postsRes = await fetch(`/api/events/${ev.id}/team-posts`);
+                        const posts = postsRes.ok ? await postsRes.json() : [];
+                        const withImage = posts.find(p => p.imageUrl);
+                        return { ...ev, coverImageUrl: withImage ? withImage.imageUrl : null, teamPostCount: posts.length };
+                    } catch (e) {
+                        return { ...ev, coverImageUrl: null, teamPostCount: 0 };
                     }
-                    grid.appendChild(card);
-                });
+                }));
+                renderGallery(withCovers);
             } catch (e) {
-                console.error('Failed to load events:', e);
-                grid.innerHTML = `<div class="empty-state">Yuklab bo'lmadi. Sahifani qaytadan yuklang.</div>`;
+                console.error('Failed to load past events:', e);
+                grid.innerHTML = `<div class="ev-empty">Yuklab bo'lmadi. Sahifani qaytadan yuklang.</div>`;
             }
+        }
+
+        function loadCurrentTab() {
+            if (activeTab === 'upcoming') loadUpcoming(activeCategory);
+            else loadPast(activeCategory);
         }
 
         document.getElementById('filterBar').addEventListener('click', (e) => {
@@ -295,7 +369,7 @@ body { font-family: 'Inter', sans-serif; }
             document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
             chip.classList.add('active');
             activeCategory = chip.getAttribute('data-category');
-            loadEvents(activeCategory, activeTab);
+            loadCurrentTab();
         });
 
         document.querySelectorAll('.ev-tab').forEach(tabBtn => {
@@ -303,13 +377,15 @@ body { font-family: 'Inter', sans-serif; }
                 document.querySelectorAll('.ev-tab').forEach(t => t.classList.remove('active'));
                 tabBtn.classList.add('active');
                 activeTab = tabBtn.getAttribute('data-tab');
-                loadEvents(activeCategory, activeTab);
+                document.getElementById('upcomingView').style.display = activeTab === 'upcoming' ? 'block' : 'none';
+                document.getElementById('pastView').style.display = activeTab === 'past' ? 'block' : 'none';
+                loadCurrentTab();
             });
         });
 
         (async () => {
             await loadMe();
-            loadEvents();
+            loadUpcoming('');
         })();
     </script>
 </body>
