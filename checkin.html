@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<script src="/theme.js"></script>
+<meta charset="UTF-8">
+<link rel="icon" type="image/png" href="/favicon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BirMillat – Kirish chiptasi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="/style.css">
+<style>
+body { font-family: 'Inter', sans-serif; }
+.pass-shell { max-width: 420px; margin: 0 auto; padding: 2.5rem 1.5rem 3rem; }
+.pass-card { padding: 2rem; text-align: center; }
+.pass-icon { width: 60px; height: 60px; border-radius: 18px; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+.pass-icon.neutral { background: #EFEAF8; color: var(--color-primary); }
+.pass-icon.ok { background: var(--color-success-bg); color: var(--color-success); }
+.pass-icon.warn { background: #FFF4E5; color: #B7791F; }
+.pass-card h1 { font-family: 'Sora', sans-serif; font-size: 1.3rem; margin-bottom: 0.5rem; }
+.pass-card p { color: var(--color-text-muted); font-size: 0.92rem; line-height: 1.6; }
+.pass-attendee { margin: 1.2rem 0; padding: 1rem; background: var(--color-bg); border-radius: 14px; }
+.pass-attendee .name { font-weight: 700; font-size: 1.02rem; }
+.pass-attendee .sub { font-size: 0.82rem; color: var(--color-text-muted); }
+.pass-confirm-btn {
+    width: 100%; border: none; cursor: pointer; margin-top: 1rem;
+    background: linear-gradient(135deg, var(--color-accent), var(--color-primary)); color: #fff;
+    font-weight: 700; font-size: 0.98rem; padding: 0.9rem; border-radius: 999px;
+    box-shadow: 0 10px 22px rgba(255,107,91,0.28);
+    transition: transform .2s cubic-bezier(.34,1.56,.64,1);
+}
+.pass-confirm-btn:hover { transform: scale(1.02); }
+.pass-confirm-btn:active { transform: scale(.96); }
+</style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/home" class="logo"><svg width="160" height="45" viewBox="0 0 320 90" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+      <g transform="translate(45,45)">
+        <g transform="rotate(-18)"><ellipse cx="-10" cy="0" rx="20" ry="36" fill="none" stroke="#2D1B69" stroke-width="10"/></g>
+        <g transform="rotate(18)"><ellipse cx="10" cy="0" rx="20" ry="36" fill="none" stroke="#FF6B5B" stroke-width="10"/></g>
+        <g transform="rotate(-18)"><path d="M -30 0 A 20 36 0 0 1 11 0" fill="none" stroke="#2D1B69" stroke-width="10" stroke-linecap="round"/></g>
+      </g>
+      <text x="95" y="53" font-size="34" font-weight="700" fill="#2D1B69" font-family="Sora, -apple-system, sans-serif">Bir<tspan fill="#FF6B5B">Millat</tspan></text>
+    </svg></a>
+        <button class="nav-toggle" id="navToggle" aria-label="Menyu"><i class="fas fa-bars"></i></button>
+        <div class="nav-links" id="navLinks">
+            <button class="sidebar-close" id="sidebarClose" aria-label="Yopish"><i class="fas fa-xmark"></i></button>
+            <a href="/home"><i class="fas fa-house"></i> Bosh sahifa</a>
+            <a href="/events"><i class="fas fa-calendar-days"></i> Tadbirlar</a>
+        </div>
+        <button class="theme-toggle" id="themeToggle" aria-label="Mavzuni almashtirish"><i class="fas fa-moon"></i></button>
+</nav>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <div class="pass-shell reveal">
+        <div class="pass-card card" id="passCard">
+            <p style="text-align:center; color:var(--color-text-muted);">Yuklanmoqda...</p>
+        </div>
+    </div>
+
+    <script>
+        function getToken() {
+            const parts = window.location.pathname.split('/').filter(Boolean);
+            return parts[1]; // /checkin/:token
+        }
+
+        async function loadMe() {
+            const res = await fetch('/api/me');
+            if (!res.ok) { window.location.href = '/login'; return null; }
+            return res.json();
+        }
+
+        async function confirmCheckin(token) {
+            const card = document.getElementById('passCard');
+            try {
+                const res = await fetch(`/api/checkin/${token}`, { method: 'POST' });
+                const data = await res.json();
+                if (!res.ok) { card.innerHTML = `<p>${data.error || "Xatolik yuz berdi"}</p>`; return; }
+
+                const name = data.attendee.name || data.attendee.username;
+                if (data.alreadyUsed) {
+                    card.innerHTML = `
+                        <div class="pass-icon warn"><i class="fas fa-triangle-exclamation"></i></div>
+                        <h1>Allaqachon kirgan</h1>
+                        <div class="pass-attendee"><div class="name">${name}</div><div class="sub">@${data.attendee.username}</div></div>
+                        <p>Bu chipta avvalroq ishlatilgan.</p>`;
+                } else {
+                    card.innerHTML = `
+                        <div class="pass-icon ok"><i class="fas fa-circle-check"></i></div>
+                        <h1>Kirishga ruxsat berildi</h1>
+                        <div class="pass-attendee"><div class="name">${name}</div><div class="sub">@${data.attendee.username}</div></div>
+                        <p>Xush kelibsiz!</p>`;
+                }
+            } catch (e) {
+                card.innerHTML = `<p>Xatolik yuz berdi. Qaytadan urinib ko'ring.</p>`;
+            }
+        }
+
+        async function init() {
+            const token = getToken();
+            const card = document.getElementById('passCard');
+            const me = await loadMe();
+            if (!me) return;
+
+            try {
+                const res = await fetch(`/api/checkin/${token}`);
+                if (!res.ok) {
+                    card.innerHTML = `
+                        <div class="pass-icon neutral"><i class="fas fa-qrcode"></i></div>
+                        <h1>Chipta topilmadi</h1>
+                        <p>Bu havola yaroqsiz yoki muddati o'tgan.</p>`;
+                    return;
+                }
+                const data = await res.json();
+
+                if (data.restricted) {
+                    // Someone other than the event's organizing team scanned/opened
+                    // this — don't leak the attendee's identity to them.
+                    card.innerHTML = `
+                        <div class="pass-icon neutral"><i class="fas fa-ticket"></i></div>
+                        <h1>Shaxsiy kirish chiptasi</h1>
+                        <p>Bu — "${data.eventTitle}" tadbiriga kirish chiptasi. Uni faqat tashkilotchilar tekshira oladi.</p>`;
+                    return;
+                }
+
+                const name = data.attendee.name || data.attendee.username;
+                if (data.status === 'checked_in') {
+                    card.innerHTML = `
+                        <div class="pass-icon ok"><i class="fas fa-circle-check"></i></div>
+                        <h1>Kirish qayd etilgan</h1>
+                        <div class="pass-attendee"><div class="name">${name}</div><div class="sub">@${data.attendee.username} · ${data.eventTitle}</div></div>
+                        <p>Bu chipta allaqachon ishlatilgan.</p>`;
+                    return;
+                }
+
+                if (data.canCheckIn) {
+                    card.innerHTML = `
+                        <div class="pass-icon neutral"><i class="fas fa-ticket"></i></div>
+                        <h1>${data.eventTitle}</h1>
+                        <div class="pass-attendee"><div class="name">${name}</div><div class="sub">@${data.attendee.username}</div></div>
+                        <button class="pass-confirm-btn btn-zoom" id="confirmBtn"><i class="fas fa-check"></i> Kirishga ruxsat berish</button>`;
+                    document.getElementById('confirmBtn').addEventListener('click', () => confirmCheckin(token));
+                } else {
+                    card.innerHTML = `
+                        <div class="pass-icon neutral"><i class="fas fa-ticket"></i></div>
+                        <h1>${data.eventTitle}</h1>
+                        <div class="pass-attendee"><div class="name">${name}</div><div class="sub">@${data.attendee.username}</div></div>
+                        <p>Sizning chiptangiz — tadbirga kelganingizda buni tashkilotchilarga ko'rsating.</p>`;
+                }
+            } catch (e) {
+                card.innerHTML = `<p>Yuklab bo'lmadi. Sahifani qaytadan yuklang.</p>`;
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>
