@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<script src="/theme.js"></script>
+<meta charset="UTF-8">
+<link rel="icon" type="image/png" href="/favicon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BirMillat – Chiptalarni skanerlash</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="/style.css">
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>
+body { font-family: 'Inter', sans-serif; }
+.scan-shell { max-width: 460px; margin: 0 auto; padding: 1.8rem 1.5rem 3rem; }
+.back-link { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--color-text-muted); text-decoration: none; font-size: 0.86rem; font-weight: 600; margin-bottom: 1.1rem; }
+.back-link:hover { color: var(--color-primary); }
+.scan-head { text-align: center; margin-bottom: 1.4rem; }
+.scan-head h1 { font-family: 'Sora', sans-serif; font-size: 1.4rem; margin-bottom: 0.3rem; }
+.scan-head p { color: var(--color-text-muted); font-size: 0.88rem; }
+
+.reader-card { padding: 1rem; margin-bottom: 1.2rem; }
+#qrReader { border-radius: 16px; overflow: hidden; }
+#qrReader video { border-radius: 16px; }
+
+.scan-result {
+    padding: 1.5rem; text-align: center; margin-bottom: 1.2rem; display: none;
+}
+.scan-result.show { display: block; }
+.scan-result.ok { background: var(--color-success-bg); border: 1.5px solid var(--color-success); }
+.scan-result.warn { background: #FFF4E5; border: 1.5px solid #B7791F; }
+.scan-result.err { background: var(--color-error-bg); border: 1.5px solid var(--color-error); }
+.scan-result-icon { font-size: 2.4rem; margin-bottom: 0.7rem; }
+.scan-result.ok .scan-result-icon { color: var(--color-success); }
+.scan-result.warn .scan-result-icon { color: #B7791F; }
+.scan-result.err .scan-result-icon { color: var(--color-error); }
+.scan-result-name { font-family: 'Sora', sans-serif; font-size: 1.15rem; margin-bottom: 0.3rem; }
+.scan-result-sub { font-size: 0.88rem; color: var(--color-text-muted); }
+.scan-again-btn {
+    margin-top: 1.1rem; border: none; cursor: pointer; background: var(--color-primary); color: #fff;
+    padding: 0.7rem 1.4rem; border-radius: 999px; font-weight: 700; font-size: 0.88rem;
+    transition: transform .18s cubic-bezier(.34,1.56,.64,1);
+}
+.scan-again-btn:hover { transform: scale(1.04); }
+
+.denied-note { text-align: center; padding: 4rem 1.5rem; color: var(--color-text-muted); }
+.manual-toggle { text-align: center; margin-top: 0.5rem; }
+.manual-toggle button { background: none; border: none; color: var(--color-text-muted); font-size: 0.82rem; text-decoration: underline; cursor: pointer; }
+.manual-entry { display: none; gap: 0.6rem; margin-top: 1rem; }
+.manual-entry.show { display: flex; }
+.manual-entry input {
+    flex: 1; padding: 0.65rem 0.9rem; border-radius: 10px; border: 1.5px solid var(--color-border);
+    background: var(--color-bg); color: var(--color-text); font-size: 0.88rem;
+}
+.manual-entry button {
+    background: var(--color-primary); color: #fff; border: none; padding: 0.65rem 1rem; border-radius: 10px;
+    font-weight: 700; font-size: 0.85rem; cursor: pointer;
+}
+</style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/home" class="logo"><svg width="160" height="45" viewBox="0 0 320 90" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+      <g transform="translate(45,45)">
+        <g transform="rotate(-18)"><ellipse cx="-10" cy="0" rx="20" ry="36" fill="none" stroke="#2D1B69" stroke-width="10"/></g>
+        <g transform="rotate(18)"><ellipse cx="10" cy="0" rx="20" ry="36" fill="none" stroke="#FF6B5B" stroke-width="10"/></g>
+        <g transform="rotate(-18)"><path d="M -30 0 A 20 36 0 0 1 11 0" fill="none" stroke="#2D1B69" stroke-width="10" stroke-linecap="round"/></g>
+      </g>
+      <text x="95" y="53" font-size="34" font-weight="700" fill="#2D1B69" font-family="Sora, -apple-system, sans-serif">Bir<tspan fill="#FF6B5B">Millat</tspan></text>
+    </svg></a>
+        <button class="nav-toggle" id="navToggle" aria-label="Menyu"><i class="fas fa-bars"></i></button>
+        <div class="nav-links" id="navLinks">
+            <button class="sidebar-close" id="sidebarClose" aria-label="Yopish"><i class="fas fa-xmark"></i></button>
+            <a href="/home"><i class="fas fa-house"></i> Bosh sahifa</a>
+            <a href="/events" class="active"><i class="fas fa-calendar-days"></i> Tadbirlar</a>
+            <a href="/profile"><i class="fas fa-user"></i> Profil</a>
+            <a href="/logout"><i class="fas fa-right-from-bracket"></i> Chiqish</a>
+        </div>
+        <div class="user-badge" id="userBadge"><img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ...</div>
+        <button class="theme-toggle" id="themeToggle" aria-label="Mavzuni almashtirish"><i class="fas fa-moon"></i></button>
+</nav>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <div class="scan-shell reveal" id="scanRoot">
+        <p style="color:var(--color-text-muted); text-align:center; padding:3rem 0;">Yuklanmoqda...</p>
+    </div>
+
+    <script>
+        function getEventId() {
+            const parts = window.location.pathname.split('/').filter(Boolean);
+            return parts[1]; // /events/:id/scan
+        }
+
+        function extractToken(decodedText) {
+            try {
+                const url = new URL(decodedText);
+                const parts = url.pathname.split('/').filter(Boolean);
+                if (parts[0] === 'checkin' && parts[1]) return parts[1];
+            } catch (e) { /* not a URL — treat as a raw token */ }
+            return decodedText.trim();
+        }
+
+        let scanner = null;
+        let processing = false;
+
+        async function loadMe() {
+            const res = await fetch('/api/me');
+            if (!res.ok) { window.location.href = '/login'; return null; }
+            const me = await res.json();
+            document.getElementById('userBadge').innerHTML = '<img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ' + me.username;
+            return me;
+        }
+
+        function showResult(kind, iconClass, name, sub) {
+            const el = document.getElementById('scanResult');
+            el.className = `scan-result card show ${kind}`;
+            el.innerHTML = `
+                <i class="fas ${iconClass} scan-result-icon"></i>
+                <div class="scan-result-name">${name}</div>
+                <div class="scan-result-sub">${sub}</div>
+                <button class="scan-again-btn" id="scanAgainBtn">Yana skanerlash</button>
+            `;
+            document.getElementById('scanAgainBtn').addEventListener('click', () => {
+                el.classList.remove('show');
+                processing = false;
+            });
+        }
+
+        async function processToken(token) {
+            if (processing) return;
+            processing = true;
+            try {
+                const res = await fetch(`/api/checkin/${token}`, { method: 'POST' });
+                const data = await res.json();
+                if (!res.ok) {
+                    showResult('err', 'fa-circle-xmark', "Chipta yaroqsiz", data.error || "Bu chipta topilmadi yoki noto'g'ri");
+                    return;
+                }
+                const name = data.attendee.name || data.attendee.username;
+                if (data.alreadyUsed) {
+                    showResult('warn', 'fa-triangle-exclamation', `@${data.attendee.username}`, `${name} — allaqachon kirgan`);
+                } else {
+                    showResult('ok', 'fa-circle-check', `@${data.attendee.username}`, `${name} — kirishga ruxsat berildi`);
+                }
+            } catch (e) {
+                showResult('err', 'fa-circle-xmark', 'Xatolik', "Tekshirib bo'lmadi. Qaytadan urinib ko'ring.");
+            }
+        }
+
+        function initScanner() {
+            scanner = new Html5Qrcode('qrReader');
+            scanner.start(
+                { facingMode: 'environment' },
+                { fps: 10, qrbox: { width: 240, height: 240 } },
+                (decodedText) => {
+                    if (processing) return;
+                    processToken(extractToken(decodedText));
+                },
+                () => {} // per-frame scan failure — ignore, this fires constantly while aiming
+            ).catch(() => {
+                document.getElementById('qrReaderWrap').innerHTML = `
+                    <div class="denied-note">
+                        <i class="fas fa-camera" style="font-size:2rem; display:block; margin-bottom:0.8rem; color:var(--color-border);"></i>
+                        Kameraga ruxsat berilmadi. Brauzer sozlamalaridan ruxsat bering yoki quyida qo'lda kod kiriting.
+                    </div>`;
+            });
+        }
+
+        async function init() {
+            const root = document.getElementById('scanRoot');
+            const eventId = getEventId();
+            await loadMe();
+
+            try {
+                const res = await fetch(`/api/events/${eventId}`);
+                if (!res.ok) { root.innerHTML = `<div class="denied-note">Tadbir topilmadi.</div>`; return; }
+                const event = await res.json();
+
+                if (!event.isManager) {
+                    root.innerHTML = `<div class="denied-note"><i class="fas fa-lock" style="font-size:2rem; display:block; margin-bottom:0.8rem; color:var(--color-border);"></i>Bu sahifa faqat tadbir tashkilotchilari uchun.</div>`;
+                    return;
+                }
+
+                root.innerHTML = `
+                    <a href="/events/${event.id}" class="back-link"><i class="fas fa-arrow-left"></i> ${event.title}</a>
+                    <div class="scan-head">
+                        <h1><i class="fas fa-qrcode" style="color:var(--color-accent);"></i> Chiptalarni skanerlash</h1>
+                        <p>Kamerani ishtirokchining QR koddiga qarating</p>
+                    </div>
+                    <div class="reader-card card" id="qrReaderWrap">
+                        <div id="qrReader"></div>
+                    </div>
+                    <div class="scan-result" id="scanResult"></div>
+                    <div class="manual-toggle">
+                        <button id="manualToggleBtn">Kamera ishlamayaptimi? Qo'lda kiriting</button>
+                    </div>
+                    <div class="manual-entry" id="manualEntry">
+                        <input type="text" id="manualTokenInput" placeholder="Chipta kodi">
+                        <button id="manualSubmitBtn">Tekshirish</button>
+                    </div>
+                `;
+
+                document.getElementById('manualToggleBtn').addEventListener('click', () => {
+                    document.getElementById('manualEntry').classList.toggle('show');
+                });
+                document.getElementById('manualSubmitBtn').addEventListener('click', () => {
+                    const val = document.getElementById('manualTokenInput').value.trim();
+                    if (val) processToken(extractToken(val));
+                });
+
+                initScanner();
+            } catch (e) {
+                console.error('Scanner init failed:', e);
+                root.innerHTML = `<div class="denied-note">Yuklab bo'lmadi. Sahifani qaytadan yuklang.</div>`;
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>
