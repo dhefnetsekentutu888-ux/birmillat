@@ -166,7 +166,7 @@ body { font-family: 'Inter', sans-serif; }
         <div class="ev-hero-inner">
             <div>
                 <h1><i class="fas fa-calendar-days"></i> Tadbirlar</h1>
-                <p>O'zbekiston bo'ylab yoshlar uchrashadigan, birga o'sadigan tadbirlar. O'zingiznikini ham qo'shing.</p>
+                <p>O'zbekiston bo'ylab yoshlar uchrashadigan, birga rivojlanadigan tadbirlar. Tadbiringizni siz ham qo'shing.</p>
             </div>
             <a href="/events/create" class="ev-new-btn btn-zoom"><i class="fas fa-plus"></i> Tadbir qo'shish</a>
         </div>
@@ -345,8 +345,8 @@ body { font-family: 'Inter', sans-serif; }
                     try {
                         const postsRes = await fetch(`/api/events/${ev.id}/team-posts`);
                         const posts = postsRes.ok ? await postsRes.json() : [];
-                        const withImage = posts.find(p => p.imageUrl);
-                        return { ...ev, coverImageUrl: withImage ? withImage.imageUrl : null, teamPostCount: posts.length };
+                        const withImage = posts.find(p => p.imageUrls && p.imageUrls.length);
+                        return { ...ev, coverImageUrl: withImage ? withImage.imageUrls[0] : null, teamPostCount: posts.length };
                     } catch (e) {
                         return { ...ev, coverImageUrl: null, teamPostCount: 0 };
                     }
