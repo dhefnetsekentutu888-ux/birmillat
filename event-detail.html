@@ -549,11 +549,13 @@ body { font-family: 'Inter', sans-serif; }
             return turnstileSiteKey;
         }
 
-        function waitForTurnstile() {
+        function waitForTurnstile(timeoutMs) {
             return new Promise(resolve => {
-                if (window.turnstile) return resolve();
+                if (window.turnstile) return resolve(true);
+                const start = Date.now();
                 const check = setInterval(() => {
-                    if (window.turnstile) { clearInterval(check); resolve(); }
+                    if (window.turnstile) { clearInterval(check); resolve(true); }
+                    else if (Date.now() - start > timeoutMs) { clearInterval(check); resolve(false); }
                 }, 150);
             });
         }
@@ -581,17 +583,35 @@ body { font-family: 'Inter', sans-serif; }
         document.getElementById('rsvpYesBtn').addEventListener('click', async () => {
             document.getElementById('rsvpStepConfirm').style.display = 'none';
             document.getElementById('rsvpStepCaptcha').style.display = 'block';
+            document.getElementById('turnstileContainer').innerHTML = '<p style="color:var(--color-text-muted); font-size:0.85rem;">Yuklanmoqda...</p>';
+            document.getElementById('rsvpModalStatus').textContent = '';
+
             const siteKey = await ensureTurnstileKey();
             if (!siteKey) {
-                // No captcha configured — skip straight to submitting.
+                // No captcha configured on the server at all — nothing to wait for.
+                document.getElementById('turnstileContainer').innerHTML = '';
                 submitRsvp(true, null);
                 return;
             }
-            await waitForTurnstile();
+
+            const ok = await waitForTurnstile(6000);
+            if (!ok) {
+                document.getElementById('turnstileContainer').innerHTML = `
+                    <p style="color:var(--color-error); font-size:0.85rem; text-align:center;">
+                        Tekshiruv vositasi yuklanmadi. Agar Telegram yoki boshqa ilova ichidagi brauzerdan foydalanayotgan bo'lsangiz,
+                        havolani telefoningizning odatiy brauzerida (Safari/Chrome) oching va qaytadan urinib ko'ring.
+                    </p>`;
+                return;
+            }
+
             document.getElementById('turnstileContainer').innerHTML = '';
             turnstileWidgetId = window.turnstile.render('#turnstileContainer', {
                 sitekey: siteKey,
-                callback: (token) => submitRsvp(true, token)
+                callback: (token) => submitRsvp(true, token),
+                'error-callback': () => {
+                    document.getElementById('rsvpModalStatus').textContent = "Tekshiruv muvaffaqiyatsiz. Qaytadan urinib ko'ring yoki boshqa brauzerda oching.";
+                    document.getElementById('rsvpModalStatus').className = 'rsvp-modal-status error';
+                }
             });
         });
 
