@@ -10,6 +10,13 @@ const multer = require('multer');
 const webpush = require('web-push');
 
 const app = express();
+// Render (like virtually every PaaS) terminates HTTPS at a proxy and forwards
+// requests to this app over plain HTTP internally, signaling the original
+// protocol via X-Forwarded-Proto. Without this line, Express can't tell the
+// request was actually HTTPS, so it refuses to send the `secure` session
+// cookie at all — which breaks login completely, for everyone, since the
+// browser never receives a session cookie to log in with.
+app.set('trust proxy', 1);
 const httpServer = http.createServer(app);
 const io = new SocketIOServer(httpServer);
 const PORT = process.env.PORT || 3000;
@@ -291,6 +298,10 @@ async function initDb() {
             created_at INTEGER NOT NULL
         )
     `);
+    // Instagram-style multi-photo posts — image_url (singular) is kept only so
+    // older rows created before this still have a cover image; every post
+    // created from now on stores its full photo set here instead.
+    try { await db.execute(`ALTER TABLE event_team_posts ADD COLUMN image_urls TEXT`); } catch (e) {}
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_team_posts_event ON event_team_posts (event_id, created_at)`);
 
     // Participant feedback on a past event — deliberately lighter-weight than
@@ -1022,6 +1033,15 @@ async function setEventStatus(id, status) {
     return db.execute({ sql: 'UPDATE events SET status = ? WHERE id = ?', args: [status, id] });
 }
 
+async function deleteEventCascade(id) {
+    await db.execute({ sql: 'DELETE FROM event_reviews WHERE event_id = ?', args: [id] });
+    await db.execute({ sql: 'DELETE FROM event_team_posts WHERE event_id = ?', args: [id] });
+    await db.execute({ sql: 'DELETE FROM event_checkins WHERE event_id = ?', args: [id] });
+    await db.execute({ sql: 'DELETE FROM event_coordinators WHERE event_id = ?', args: [id] });
+    await db.execute({ sql: 'DELETE FROM event_attendees WHERE event_id = ?', args: [id] });
+    await db.execute({ sql: 'DELETE FROM events WHERE id = ?', args: [id] });
+}
+
 async function updateEvent(id, { title, description, category, mode, location, eventDate, capacity, socialLink, mapLink, planLink }) {
     return db.execute({
         sql: `UPDATE events SET title = ?, description = ?, category = ?, mode = ?, location = ?,
@@ -1046,7 +1066,7 @@ async function leaveEvent(eventId, userId) {
 
 async function getEventAttendees(eventId) {
     const result = await db.execute({
-        sql: `SELECT users.username, users.name, users.photo_url FROM event_attendees
+        sql: `SELECT users.id, users.username, users.name, users.photo_url FROM event_attendees
               JOIN users ON users.id = event_attendees.user_id
               WHERE event_attendees.event_id = ?
               ORDER BY event_attendees.joined_at ASC`,
@@ -1112,10 +1132,11 @@ async function getEventTeamPosts(eventId) {
     return result.rows;
 }
 
-async function createEventTeamPost(eventId, authorId, imageUrl, caption) {
+async function createEventTeamPost(eventId, authorId, imageUrls, caption) {
+    const urls = imageUrls || [];
     const result = await db.execute({
-        sql: `INSERT INTO event_team_posts (event_id, author_id, image_url, caption, created_at) VALUES (?, ?, ?, ?, ?)`,
-        args: [eventId, authorId, imageUrl || null, caption || null, Date.now()]
+        sql: `INSERT INTO event_team_posts (event_id, author_id, image_url, image_urls, caption, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
+        args: [eventId, authorId, urls[0] || null, urls.length ? JSON.stringify(urls) : null, caption || null, Date.now()]
     });
     return Number(result.lastInsertRowid);
 }
@@ -3824,6 +3845,52 @@ app.post('/api/events/:id/rsvp', async (req, res) => {
     }
 });
 
+// ---------- Organizer: cancel or delete their own event ----------
+app.post('/api/events/:id/cancel', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const event = await getEventById(req.params.id);
+        if (!event) return res.status(404).json({ error: 'Tadbir topilmadi' });
+        if (event.creator_id !== req.session.userId) {
+            return res.status(403).json({ error: 'Faqat tadbir muallifi bekor qila oladi' });
+        }
+        await setEventStatus(event.id, 'cancelled');
+
+        const attendees = await getEventAttendees(event.id);
+        attendees.forEach(a => {
+            if (a.id && a.id !== req.session.userId) {
+                notifyUser(a.id, {
+                    type: 'event_cancelled',
+                    content: `⚠️ "${event.title}" tadbiri tashkilotchi tomonidan bekor qilindi.`,
+                    link: `/events`,
+                    pushTitle: 'Tadbir bekor qilindi'
+                });
+            }
+        });
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error('api/events/:id/cancel error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.delete('/api/events/:id', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const event = await getEventById(req.params.id);
+        if (!event) return res.status(404).json({ error: 'Tadbir topilmadi' });
+        if (event.creator_id !== req.session.userId) {
+            return res.status(403).json({ error: 'Faqat tadbir muallifi o\'chira oladi' });
+        }
+        await deleteEventCascade(event.id);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('api/events/:id delete error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 // ---------- Organizing team (coordinators) ----------
 app.get('/api/events/:id/coordinators', async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
@@ -3894,17 +3961,24 @@ app.get('/api/events/:id/team-posts', async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
     try {
         const posts = await getEventTeamPosts(req.params.id);
-        res.json(posts.map(p => ({
-            id: p.id, imageUrl: p.image_url, caption: p.caption, createdAt: p.created_at,
-            author: { username: p.username, name: p.name, photoUrl: p.photo_url }
-        })));
+        res.json(posts.map(p => {
+            let imageUrls = [];
+            if (p.image_urls) {
+                try { imageUrls = JSON.parse(p.image_urls); } catch (e) { imageUrls = []; }
+            }
+            if (!imageUrls.length && p.image_url) imageUrls = [p.image_url];
+            return {
+                id: p.id, imageUrls, caption: p.caption, createdAt: p.created_at,
+                author: { username: p.username, name: p.name, photoUrl: p.photo_url }
+            };
+        }));
     } catch (err) {
         console.error('api/events/:id/team-posts error:', err);
         res.status(500).json({ error: 'Server error' });
     }
 });
 
-app.post('/api/events/:id/team-posts', upload.single('photo'), async (req, res) => {
+app.post('/api/events/:id/team-posts', upload.array('photos', 10), async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
     try {
         const event = await getEventById(req.params.id);
@@ -3913,15 +3987,16 @@ app.post('/api/events/:id/team-posts', upload.single('photo'), async (req, res) 
         if (!isManager) return res.status(403).json({ error: "Faqat tashkilotchilar qo'sha oladi" });
 
         const caption = (req.body.caption || '').trim().slice(0, 1000);
-        let imageUrl = null;
-        if (req.file) {
-            const uploadResult = await uploadImageToFreeimage(req.file.buffer);
+        const files = req.files || [];
+        const imageUrls = [];
+        for (const file of files) {
+            const uploadResult = await uploadImageToFreeimage(file.buffer);
             if (!uploadResult.ok) return res.status(500).json({ error: uploadResult.error });
-            imageUrl = uploadResult.url;
+            imageUrls.push(uploadResult.url);
         }
-        if (!imageUrl && !caption) return res.status(400).json({ error: 'Rasm yoki matn kiriting' });
+        if (!imageUrls.length && !caption) return res.status(400).json({ error: 'Rasm yoki matn kiriting' });
 
-        const id = await createEventTeamPost(event.id, req.session.userId, imageUrl, caption);
+        const id = await createEventTeamPost(event.id, req.session.userId, imageUrls, caption);
         res.status(201).json({ success: true, id });
     } catch (err) {
         console.error('api/events/:id/team-posts create error:', err);
@@ -4055,7 +4130,17 @@ app.post('/api/checkin/:token', async (req, res) => {
 app.get('/admin/events/:id/approve', async (req, res) => {
     if (req.query.token !== ADMIN_SECRET) return res.status(403).send('Forbidden');
     await setEventStatus(req.params.id, 'approved');
-    res.send('✅ Tadbir tasdiqlandi. Bu oynani yopishingiz mumkin.');
+    const event = await getEventById(req.params.id);
+    const isPast = event && event.event_date < Date.now();
+    const dateStr = event ? formatUzDateServer(event.event_date) : '';
+    res.send(
+        `✅ Tadbir tasdiqlandi: <b>${event ? escapeHtmlForTelegram(event.title) : ''}</b>\n` +
+        `Sana: ${dateStr}\n\n` +
+        (isPast
+            ? `⚠️ Bu sana allaqachon o'tgan — tadbir "Tashkil qilingan tadbirlar" (o'tgan tadbirlar) bo'limida ko'rinadi, "Kelayotgan tadbirlar"da emas.`
+            : `Tadbir "Kelayotgan tadbirlar" bo'limida darhol ko'rinadi.`) +
+        `\n\nBu oynani yopishingiz mumkin.`
+    );
 });
 
 app.get('/admin/events/:id/reject', async (req, res) => {
