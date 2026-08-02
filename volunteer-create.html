@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<script src="/theme.js"></script>
+<meta charset="UTF-8">
+<link rel="icon" type="image/png" href="/favicon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BirMillat – Volontyorlik e'loni</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="/style.css">
+<style>
+body { font-family: 'Inter', sans-serif; }
+.form-shell { max-width: 580px; margin: 2.2rem auto; padding: 0 1.5rem 3rem; }
+.form-shell h1 { font-family: 'Sora', sans-serif; font-size: 1.6rem; margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.55rem; }
+.form-shell h1 i { color: var(--color-accent); }
+.form-shell > p { color: var(--color-text-muted); margin-bottom: 1.5rem; font-size: 0.92rem; }
+
+.form-section { padding: 1.6rem; margin-bottom: 1.1rem; }
+.form-section-title {
+    display: flex; align-items: center; gap: 0.5rem; font-size: 0.82rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-primary); margin-bottom: 1.1rem;
+}
+.form-section-title i { color: var(--color-accent); }
+
+.form-field { margin-bottom: 1.1rem; }
+.form-field:last-child { margin-bottom: 0; }
+.form-field label { display: block; font-size: 0.8rem; font-weight: 700; color: var(--color-text-muted); margin-bottom: 0.4rem; }
+.form-field .hint { font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--color-text-muted); font-size: 0.76rem; display: block; margin-top: 0.3rem; }
+.form-field input, .form-field textarea, .form-field select {
+    width: 100%; box-sizing: border-box; padding: 0.75rem 1rem; border-radius: var(--radius-sm);
+    border: 1.5px solid var(--color-border); font-family: 'Inter', sans-serif; font-size: 0.95rem; resize: vertical;
+    background: var(--color-bg); color: var(--color-text); transition: border-color .15s ease, box-shadow .15s ease;
+}
+.form-field input:focus, .form-field textarea:focus, .form-field select:focus {
+    outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(45,27,105,0.1);
+}
+
+.mode-toggle {
+    display: flex; gap: 0.3rem; padding: 0.3rem; background: var(--color-bg);
+    border-radius: 999px; border: 1px solid var(--color-border);
+}
+.mode-btn {
+    flex: 1; padding: 0.6rem; border-radius: 999px; border: none;
+    background: transparent; color: var(--color-text-muted); font-weight: 700; font-size: 0.88rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+    transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+.mode-btn.active { background: var(--color-surface); color: var(--color-primary); box-shadow: 0 2px 8px rgba(45,27,105,0.12); }
+
+.submit-status { font-size: 0.88rem; margin-top: 0.9rem; min-height: 1.2em; }
+.submit-status.success { color: var(--color-success); }
+.submit-status.error { color: var(--color-error); }
+
+.gradient-submit {
+    width: 100%; border: none; cursor: pointer;
+    background: linear-gradient(135deg, var(--color-accent), var(--color-primary));
+    color: #fff; font-weight: 700; font-size: 0.98rem; padding: 0.95rem; border-radius: 999px;
+    display: flex; align-items: center; justify-content: center; gap: 0.6rem;
+    box-shadow: 0 10px 24px rgba(255,107,91,0.3);
+    transition: transform .2s cubic-bezier(.34,1.56,.64,1), box-shadow .2s ease;
+}
+.gradient-submit:hover { transform: scale(1.02); box-shadow: 0 14px 30px rgba(255,107,91,0.4); }
+.gradient-submit:active { transform: scale(.96); }
+
+@media (max-width: 560px) {
+    .form-shell { margin: 1.4rem auto; padding: 0 1rem 2.5rem; }
+    .form-section { padding: 1.2rem 1.1rem; }
+}
+</style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/home" class="logo"><svg width="160" height="45" viewBox="0 0 320 90" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+      <g transform="translate(45,45)">
+        <g transform="rotate(-18)"><ellipse cx="-10" cy="0" rx="20" ry="36" fill="none" stroke="#2D1B69" stroke-width="10"/></g>
+        <g transform="rotate(18)"><ellipse cx="10" cy="0" rx="20" ry="36" fill="none" stroke="#FF6B5B" stroke-width="10"/></g>
+        <g transform="rotate(-18)"><path d="M -30 0 A 20 36 0 0 1 11 0" fill="none" stroke="#2D1B69" stroke-width="10" stroke-linecap="round"/></g>
+      </g>
+      <text x="95" y="53" font-size="34" font-weight="700" fill="#2D1B69" font-family="Sora, -apple-system, sans-serif">Bir<tspan fill="#FF6B5B">Millat</tspan></text>
+    </svg></a>
+        <button class="nav-toggle" id="navToggle" aria-label="Menyu"><i class="fas fa-bars"></i></button>
+        <div class="nav-links" id="navLinks">
+            <button class="sidebar-close" id="sidebarClose" aria-label="Yopish"><i class="fas fa-xmark"></i></button>
+            <a href="/home"><i class="fas fa-house"></i> Bosh sahifa</a>
+            <a href="/events"><i class="fas fa-calendar-days"></i> Tadbirlar</a>
+            <a href="/volunteer" class="active"><i class="fas fa-hand-holding-heart"></i> Volontyorlik</a>
+            <a href="/profile"><i class="fas fa-user"></i> Profil</a>
+            <a href="/logout"><i class="fas fa-right-from-bracket"></i> Chiqish</a>
+        </div>
+        <div class="user-badge" id="userBadge"><img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ...</div>
+        <button class="theme-toggle" id="themeToggle" aria-label="Mavzuni almashtirish"><i class="fas fa-moon"></i></button>
+</nav>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <div class="form-shell reveal">
+        <h1><i class="fas fa-hand-holding-heart"></i> Volontyorlik e'loni</h1>
+        <p>Yordamchi qidirayotgan loyihangizni e'lon qiling — darhol ko'rinadi, tasdiqlash shart emas.</p>
+
+        <form id="volForm">
+            <div class="form-section card">
+                <div class="form-section-title"><i class="fas fa-circle-info"></i> Rol haqida</div>
+                <div class="form-field">
+                    <label for="titleInput">Rol nomi</label>
+                    <input type="text" id="titleInput" placeholder="Masalan: Ijtimoiy tarmoq moderatori" required maxlength="150">
+                </div>
+                <div class="form-field">
+                    <label for="descInput">Tavsif</label>
+                    <textarea id="descInput" rows="5" placeholder="Nima qilish kerak, qancha vaqt talab etiladi, kimni izlayapsiz..." required maxlength="3000"></textarea>
+                </div>
+            </div>
+
+            <div class="form-section card">
+                <div class="form-section-title"><i class="fas fa-location-dot"></i> Format</div>
+                <div class="form-field">
+                    <div class="mode-toggle">
+                        <button type="button" class="mode-btn active" data-mode="offline"><i class="fas fa-location-dot"></i> Oflayn</button>
+                        <button type="button" class="mode-btn" data-mode="online"><i class="fas fa-video"></i> Onlayn</button>
+                    </div>
+                </div>
+                <div class="form-field" id="cityField">
+                    <label for="citySelect">Shahar / viloyat</label>
+                    <select id="citySelect">
+                        <option value="">Tanlanmagan</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-section card">
+                <div class="form-section-title"><i class="fas fa-share-nodes"></i> Bog'lanish (ixtiyoriy)</div>
+                <div class="form-field">
+                    <label for="socialLinkInput">Kanal yoki ijtimoiy tarmoq havolasi</label>
+                    <input type="url" id="socialLinkInput" placeholder="https://t.me/... yoki https://instagram.com/...">
+                    <span class="hint">Qiziqqanlar ko'proq ma'lumot uchun shu havolaga o'tishlari mumkin</span>
+                </div>
+            </div>
+
+            <button type="submit" class="gradient-submit">
+                <i class="fas fa-hand"></i> E'lonni joylash
+            </button>
+            <div class="submit-status" id="submitStatus"></div>
+        </form>
+    </div>
+
+    <script>
+        const UZ_REGIONS = [
+            'Toshkent shahri', 'Toshkent viloyati', 'Andijon', 'Buxoro', "Farg'ona",
+            'Jizzax', 'Xorazm', 'Namangan', 'Navoiy', 'Qashqadaryo', 'Samarqand',
+            'Sirdaryo', 'Surxondaryo', "Qoraqalpog'iston"
+        ];
+        let selectedMode = 'offline';
+
+        function populateCities() {
+            const select = document.getElementById('citySelect');
+            UZ_REGIONS.forEach(r => {
+                const opt = document.createElement('option');
+                opt.value = r; opt.textContent = r;
+                select.appendChild(opt);
+            });
+        }
+
+        async function loadMe() {
+            try {
+                const res = await fetch('/api/me');
+                if (!res.ok) { window.location.href = '/login'; return; }
+                const me = await res.json();
+                document.getElementById('userBadge').innerHTML = '<img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ' + me.username;
+            } catch (e) { console.error(e); }
+        }
+
+        document.querySelectorAll('.mode-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                selectedMode = btn.getAttribute('data-mode');
+                document.getElementById('cityField').style.display = selectedMode === 'online' ? 'none' : 'block';
+            });
+        });
+
+        document.getElementById('volForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const statusEl = document.getElementById('submitStatus');
+            const title = document.getElementById('titleInput').value.trim();
+            const description = document.getElementById('descInput').value.trim();
+            if (!title || !description) return;
+
+            statusEl.textContent = 'Joylanmoqda...';
+            statusEl.className = 'submit-status';
+
+            try {
+                const res = await fetch('/api/volunteer', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title, description, mode: selectedMode,
+                        city: document.getElementById('citySelect').value,
+                        socialLink: document.getElementById('socialLinkInput').value.trim()
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Server error');
+                window.location.href = `/volunteer/${data.id}`;
+            } catch (err) {
+                console.error('Volunteer post failed:', err);
+                statusEl.textContent = err.message || "Xatolik yuz berdi. Qaytadan urinib ko'ring.";
+                statusEl.className = 'submit-status error';
+            }
+        });
+
+        populateCities();
+        loadMe();
+    </script>
+</body>
+</html>
