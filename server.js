@@ -339,6 +339,37 @@ async function initDb() {
     `);
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_checkins_token ON event_checkins (token)`);
 
+    // ---------- Volunteer opportunities board ----------
+    // Deliberately lighter-weight than events: no admin approval, posted and
+    // live immediately — closer to a job-board listing than a public event.
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS volunteer_opportunities (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            creator_id INTEGER NOT NULL,
+            title TEXT NOT NULL,
+            description TEXT NOT NULL,
+            mode TEXT NOT NULL DEFAULT 'offline',
+            city TEXT,
+            social_link TEXT,
+            status TEXT NOT NULL DEFAULT 'active',
+            created_at INTEGER NOT NULL
+        )
+    `);
+    await db.execute(`CREATE INDEX IF NOT EXISTS idx_volunteer_status ON volunteer_opportunities (status, created_at)`);
+
+    // A "hand raise" — someone expressing interest, with an optional short
+    // note. One per person per opportunity.
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS volunteer_responses (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            opportunity_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            message TEXT,
+            created_at INTEGER NOT NULL,
+            UNIQUE(opportunity_id, user_id)
+        )
+    `);
+
     // Simple session store table (replaces connect-sqlite3, which wrote to local disk)
     await db.execute(`
         CREATE TABLE IF NOT EXISTS sessions (
@@ -1237,6 +1268,89 @@ async function verifyTurnstile(token, remoteip) {
         console.error('Turnstile verification error:', err);
         return false;
     }
+}
+
+// ---------- Volunteer opportunities ----------
+async function getVolunteerOpportunities({ mode, city, search, limit = 50 }) {
+    const conditions = [`vo.status = 'active'`];
+    const args = [];
+    if (mode) { conditions.push('vo.mode = ?'); args.push(mode); }
+    if (city) { conditions.push('vo.city = ?'); args.push(city); }
+    if (search) { conditions.push('(vo.title LIKE ? OR vo.description LIKE ?)'); args.push(`%${search}%`, `%${search}%`); }
+    args.push(limit);
+    const result = await db.execute({
+        sql: `SELECT vo.*, users.username AS creator_username, users.name AS creator_name, users.photo_url AS creator_photo,
+                     (SELECT COUNT(*) FROM volunteer_responses WHERE opportunity_id = vo.id) AS response_count
+              FROM volunteer_opportunities vo JOIN users ON users.id = vo.creator_id
+              WHERE ${conditions.join(' AND ')}
+              ORDER BY vo.created_at DESC
+              LIMIT ?`,
+        args
+    });
+    return result.rows;
+}
+
+async function getVolunteerOpportunityById(id) {
+    const result = await db.execute({
+        sql: `SELECT vo.*, users.username AS creator_username, users.name AS creator_name, users.photo_url AS creator_photo
+              FROM volunteer_opportunities vo JOIN users ON users.id = vo.creator_id
+              WHERE vo.id = ?`,
+        args: [id]
+    });
+    return result.rows[0] || null;
+}
+
+async function createVolunteerOpportunity({ creatorId, title, description, mode, city, socialLink }) {
+    const result = await db.execute({
+        sql: `INSERT INTO volunteer_opportunities (creator_id, title, description, mode, city, social_link, status, created_at)
+              VALUES (?, ?, ?, ?, ?, ?, 'active', ?)`,
+        args: [creatorId, title, description, mode, city || null, socialLink || null, Date.now()]
+    });
+    return Number(result.lastInsertRowid);
+}
+
+async function setVolunteerOpportunityStatus(id, status) {
+    return db.execute({ sql: `UPDATE volunteer_opportunities SET status = ? WHERE id = ?`, args: [status, id] });
+}
+
+async function deleteVolunteerOpportunityCascade(id) {
+    await db.execute({ sql: 'DELETE FROM volunteer_responses WHERE opportunity_id = ?', args: [id] });
+    await db.execute({ sql: 'DELETE FROM volunteer_opportunities WHERE id = ?', args: [id] });
+}
+
+async function getVolunteerResponseCount(opportunityId) {
+    const result = await db.execute({
+        sql: `SELECT COUNT(*) AS n FROM volunteer_responses WHERE opportunity_id = ?`,
+        args: [opportunityId]
+    });
+    return Number(result.rows[0].n) || 0;
+}
+
+async function hasUserResponded(opportunityId, userId) {
+    const result = await db.execute({
+        sql: `SELECT 1 FROM volunteer_responses WHERE opportunity_id = ? AND user_id = ?`,
+        args: [opportunityId, userId]
+    });
+    return result.rows.length > 0;
+}
+
+async function createVolunteerResponse(opportunityId, userId, message) {
+    return db.execute({
+        sql: `INSERT INTO volunteer_responses (opportunity_id, user_id, message, created_at) VALUES (?, ?, ?, ?)
+              ON CONFLICT(opportunity_id, user_id) DO NOTHING`,
+        args: [opportunityId, userId, message || null, Date.now()]
+    });
+}
+
+async function getVolunteerResponses(opportunityId) {
+    const result = await db.execute({
+        sql: `SELECT volunteer_responses.*, users.username, users.name, users.photo_url
+              FROM volunteer_responses JOIN users ON users.id = volunteer_responses.user_id
+              WHERE volunteer_responses.opportunity_id = ?
+              ORDER BY volunteer_responses.created_at ASC`,
+        args: [opportunityId]
+    });
+    return result.rows;
 }
 
 // ---------- Achievements ----------
@@ -2316,6 +2430,21 @@ app.get('/checkin/:token', (req, res) => {
     res.sendFile(path.join(__dirname, 'checkin.html'));
 });
 
+app.get('/volunteer', (req, res) => {
+    if (!req.session.userId) return res.redirect('/login');
+    res.sendFile(path.join(__dirname, 'volunteer.html'));
+});
+
+app.get('/volunteer/create', (req, res) => {
+    if (!req.session.userId) return res.redirect('/login');
+    res.sendFile(path.join(__dirname, 'volunteer-create.html'));
+});
+
+app.get('/volunteer/:id', (req, res) => {
+    if (!req.session.userId) return res.redirect('/login');
+    res.sendFile(path.join(__dirname, 'volunteer-detail.html'));
+});
+
 app.get('/communities', (req, res) => {
     if (!req.session.userId) return res.redirect('/login');
     res.sendFile(path.join(__dirname, 'communities.html'));
@@ -2465,6 +2594,145 @@ app.post('/reset-password', async (req, res) => {
 
 // API endpoints
 // ---------- Public founders page data ----------
+// ---------- Volunteer opportunities board ----------
+app.get('/api/volunteer', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const mode = (req.query.mode || '').trim();
+        const city = (req.query.city || '').trim();
+        const search = (req.query.q || '').trim();
+        const opportunities = await getVolunteerOpportunities({
+            mode: mode || null, city: city || null, search: search || null
+        });
+        res.json(opportunities.map(o => ({
+            id: o.id, title: o.title, description: o.description, mode: o.mode, city: o.city,
+            socialLink: o.social_link, createdAt: o.created_at, responseCount: o.response_count,
+            creator: { username: o.creator_username, name: o.creator_name, photoUrl: o.creator_photo }
+        })));
+    } catch (err) {
+        console.error('api/volunteer error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.get('/api/volunteer/:id', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const opp = await getVolunteerOpportunityById(req.params.id);
+        if (!opp || opp.status !== 'active') return res.status(404).json({ error: 'Topilmadi' });
+        const responseCount = await getVolunteerResponseCount(opp.id);
+        const hasResponded = await hasUserResponded(opp.id, req.session.userId);
+        res.json({
+            id: opp.id, title: opp.title, description: opp.description, mode: opp.mode, city: opp.city,
+            socialLink: opp.social_link, createdAt: opp.created_at, responseCount,
+            isCreator: opp.creator_id === req.session.userId, hasResponded,
+            creator: { username: opp.creator_username, name: opp.creator_name, photoUrl: opp.creator_photo }
+        });
+    } catch (err) {
+        console.error('api/volunteer/:id error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.post('/api/volunteer', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const title = (req.body.title || '').trim().slice(0, 150);
+        const description = (req.body.description || '').trim().slice(0, 3000);
+        const mode = req.body.mode === 'online' ? 'online' : 'offline';
+        const city = (req.body.city || '').trim();
+        const socialLink = (req.body.socialLink || '').trim();
+
+        if (!title || !description) return res.status(400).json({ error: "Rol nomi va tavsif kerak" });
+        if (mode === 'offline' && city && !UZ_REGIONS.includes(city)) {
+            return res.status(400).json({ error: "Noto'g'ri viloyat tanlandi" });
+        }
+        if (socialLink && !/^https?:\/\//i.test(socialLink)) {
+            return res.status(400).json({ error: "Havola http:// yoki https:// bilan boshlanishi kerak" });
+        }
+
+        const id = await createVolunteerOpportunity({
+            creatorId: req.session.userId, title, description, mode,
+            city: mode === 'offline' ? city : null, socialLink
+        });
+        res.status(201).json({ success: true, id });
+    } catch (err) {
+        console.error('api/volunteer create error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.post('/api/volunteer/:id/close', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const opp = await getVolunteerOpportunityById(req.params.id);
+        if (!opp) return res.status(404).json({ error: 'Topilmadi' });
+        if (opp.creator_id !== req.session.userId) return res.status(403).json({ error: "Faqat e'lon muallifi yopa oladi" });
+        await setVolunteerOpportunityStatus(opp.id, 'closed');
+        res.json({ success: true });
+    } catch (err) {
+        console.error('api/volunteer/:id/close error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.delete('/api/volunteer/:id', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const opp = await getVolunteerOpportunityById(req.params.id);
+        if (!opp) return res.status(404).json({ error: 'Topilmadi' });
+        if (opp.creator_id !== req.session.userId) return res.status(403).json({ error: "Faqat e'lon muallifi o'chira oladi" });
+        await deleteVolunteerOpportunityCascade(opp.id);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('api/volunteer/:id delete error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.post('/api/volunteer/:id/respond', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const opp = await getVolunteerOpportunityById(req.params.id);
+        if (!opp || opp.status !== 'active') return res.status(404).json({ error: 'Topilmadi' });
+        if (opp.creator_id === req.session.userId) {
+            return res.status(400).json({ error: "O'z e'loningizga qo'l ko'tara olmaysiz" });
+        }
+        const message = (req.body.message || '').trim().slice(0, 500);
+        await createVolunteerResponse(opp.id, req.session.userId, message);
+
+        const responder = await getUserById(req.session.userId);
+        notifyUser(opp.creator_id, {
+            type: 'volunteer_response',
+            content: `✋ @${responder.username} "${opp.title}" e'loningizga qo'l ko'tardi.`,
+            link: `/volunteer/${opp.id}`,
+            pushTitle: 'Yangi qiziqish bildirildi'
+        });
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error('api/volunteer/:id/respond error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.get('/api/volunteer/:id/responses', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const opp = await getVolunteerOpportunityById(req.params.id);
+        if (!opp) return res.status(404).json({ error: 'Topilmadi' });
+        if (opp.creator_id !== req.session.userId) return res.status(403).json({ error: "Ruxsat yo'q" });
+        const responses = await getVolunteerResponses(opp.id);
+        res.json(responses.map(r => ({
+            id: r.id, message: r.message, createdAt: r.created_at,
+            user: { username: r.username, name: r.name, photoUrl: r.photo_url }
+        })));
+    } catch (err) {
+        console.error('api/volunteer/:id/responses error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 app.get('/api/founders', async (req, res) => {
     try {
         const founders = await getFounders();
