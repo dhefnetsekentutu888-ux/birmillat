@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<script src="/theme.js"></script>
+<meta charset="UTF-8">
+<link rel="icon" type="image/png" href="/favicon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BirMillat – Volontyorlik e'loni</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="/style.css">
+<style>
+body { font-family: 'Inter', sans-serif; }
+.detail-shell { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 3rem; }
+.back-link { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--color-text-muted); text-decoration: none; font-size: 0.86rem; font-weight: 600; margin-bottom: 1.2rem; }
+.back-link:hover { color: var(--color-primary); }
+
+.vol-hero-card {
+    border-radius: 24px; padding: 2rem; margin-bottom: 1.3rem; position: relative; overflow: hidden;
+    background: linear-gradient(150deg, #2D1B69, #4A2F9E 55%, #FF6B5B 150%); color: #FAF7F2;
+}
+.vol-hero-card::before { content:'\f0a6'; font-family:'Font Awesome 6 Free'; font-weight:900; position:absolute; top:-20px; right:-10px; font-size:7rem; opacity:0.08; transform:rotate(-10deg); }
+.vol-hero-card > * { position: relative; z-index: 1; }
+.vol-badges { display: flex; gap: 0.55rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.vol-badge { display: inline-flex; align-items: center; gap: 0.4rem; background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.22); padding: 0.32rem 0.85rem; border-radius: 999px; font-size: 0.76rem; font-weight: 700; }
+.vol-hero-card h1 { font-family: 'Sora', sans-serif; font-size: clamp(1.5rem, 4vw, 1.95rem); margin-bottom: 1.1rem; line-height: 1.28; }
+.organizer-chip { display: inline-flex; align-items: center; gap: 0.6rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.18); border-radius: 999px; padding: 0.4rem 0.9rem 0.4rem 0.4rem; font-size: 0.85rem; }
+.organizer-chip .mini-avatar { width: 30px; height: 30px; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 700; overflow: hidden; }
+.organizer-chip .mini-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.social-icon-btn { margin-left: 0.6rem; color: #FAF7F2; opacity: 0.85; text-decoration: none; transition: opacity .15s ease, transform .15s ease; }
+.social-icon-btn:hover { opacity: 1; transform: scale(1.1); }
+
+.section-card { padding: 1.6rem; margin-bottom: 1.2rem; }
+.section-title { display: flex; align-items: center; gap: 0.5rem; font-family: 'Sora', sans-serif; font-size: 1.05rem; margin-bottom: 1.1rem; }
+.section-title i { color: var(--color-accent); }
+.description-text { line-height: 1.75; color: var(--color-text); white-space: pre-wrap; }
+
+/* ---------- Raise-hand action ---------- */
+.hand-btn {
+    width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.65rem;
+    border: none; cursor: pointer; padding: 1.05rem; border-radius: 999px; font-weight: 700; font-size: 1.02rem;
+    background: linear-gradient(135deg, var(--color-accent), var(--color-primary)); color: #fff;
+    box-shadow: 0 10px 24px rgba(255,107,91,0.32);
+    transition: transform .2s cubic-bezier(.34,1.56,.64,1), box-shadow .2s ease;
+}
+.hand-btn i { transition: transform 0.3s ease; }
+.hand-btn:hover i { transform: rotate(-15deg); }
+.hand-btn:hover { transform: scale(1.02); box-shadow: 0 14px 30px rgba(255,107,91,0.42); }
+.hand-btn:active { transform: scale(.96); }
+
+.hand-form { margin-top: 1rem; }
+.hand-form textarea {
+    width: 100%; box-sizing: border-box; padding: 0.75rem 1rem; border-radius: 14px;
+    border: 1.5px solid var(--color-border); background: var(--color-bg); color: var(--color-text);
+    font-family: 'Inter', sans-serif; font-size: 0.92rem; resize: vertical; margin-bottom: 0.8rem;
+}
+.hand-form-actions { display: flex; gap: 0.7rem; }
+
+.responded-state { text-align: center; padding: 0.6rem; }
+.responded-state .icon { font-size: 2rem; color: var(--color-success); margin-bottom: 0.5rem; }
+.responded-state h3 { font-family: 'Sora', sans-serif; font-size: 1.05rem; margin-bottom: 0.3rem; }
+.responded-state p { color: var(--color-text-muted); font-size: 0.86rem; }
+
+.hand-count-line { display: flex; align-items: center; gap: 0.5rem; color: var(--color-text-muted); font-size: 0.85rem; margin-top: 0.9rem; justify-content: center; }
+.hand-count-line i { color: var(--color-accent); }
+
+/* ---------- Responders (creator view) ---------- */
+.responder-row { display: flex; gap: 0.8rem; padding: 0.9rem 0; }
+.responder-row + .responder-row { border-top: 1px solid var(--color-border); }
+.responder-row .mini-avatar { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg,#EFEAF8,#E4DBF7); display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 700; color: var(--color-primary); overflow: hidden; flex-shrink: 0; }
+.responder-row .mini-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.responder-body { flex: 1; }
+.responder-name { font-weight: 700; font-size: 0.92rem; }
+.responder-name a { color: var(--color-text); text-decoration: none; }
+.responder-message { font-size: 0.85rem; color: var(--color-text-muted); margin-top: 0.3rem; line-height: 1.5; }
+.responder-msg-btn {
+    flex-shrink: 0; align-self: center; text-decoration: none; background: #EFEAF8; color: var(--color-primary);
+    font-size: 0.78rem; font-weight: 700; padding: 0.45rem 0.9rem; border-radius: 999px;
+    transition: transform .18s cubic-bezier(.34,1.56,.64,1);
+}
+.responder-msg-btn:hover { transform: scale(1.05); }
+
+.danger-zone { border-color: var(--color-error); }
+.danger-row { display: flex; gap: 0.7rem; flex-wrap: wrap; }
+.danger-btn {
+    flex: 1; min-width: 160px; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+    padding: 0.75rem 1rem; border-radius: 12px; font-weight: 700; font-size: 0.86rem; cursor: pointer;
+    transition: transform .18s cubic-bezier(.34,1.56,.64,1);
+}
+.danger-btn:hover { transform: scale(1.03); }
+.danger-btn.cancel { background: #FFF4E5; color: #B7791F; border: none; }
+.danger-btn.delete { background: var(--color-error-bg); color: var(--color-error); border: none; }
+.danger-hint { font-size: 0.78rem; color: var(--color-text-muted); line-height: 1.5; margin-top: 0.8rem; }
+
+.empty-note { color: var(--color-text-muted); font-size: 0.86rem; text-align: center; padding: 1rem 0; }
+.not-found { text-align: center; padding: 4rem 1.5rem; color: var(--color-text-muted); }
+.submit-status { font-size: 0.85rem; min-height: 1.2em; margin-top: 0.4rem; }
+.submit-status.error { color: var(--color-error); }
+
+@media (max-width: 560px) {
+    .detail-shell { padding: 1.4rem 1.1rem 2.5rem; }
+    .vol-hero-card, .section-card { padding: 1.3rem; border-radius: 18px; }
+}
+</style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/home" class="logo"><svg width="160" height="45" viewBox="0 0 320 90" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+      <g transform="translate(45,45)">
+        <g transform="rotate(-18)"><ellipse cx="-10" cy="0" rx="20" ry="36" fill="none" stroke="#2D1B69" stroke-width="10"/></g>
+        <g transform="rotate(18)"><ellipse cx="10" cy="0" rx="20" ry="36" fill="none" stroke="#FF6B5B" stroke-width="10"/></g>
+        <g transform="rotate(-18)"><path d="M -30 0 A 20 36 0 0 1 11 0" fill="none" stroke="#2D1B69" stroke-width="10" stroke-linecap="round"/></g>
+      </g>
+      <text x="95" y="53" font-size="34" font-weight="700" fill="#2D1B69" font-family="Sora, -apple-system, sans-serif">Bir<tspan fill="#FF6B5B">Millat</tspan></text>
+    </svg></a>
+        <button class="nav-toggle" id="navToggle" aria-label="Menyu"><i class="fas fa-bars"></i></button>
+        <div class="nav-links" id="navLinks">
+            <button class="sidebar-close" id="sidebarClose" aria-label="Yopish"><i class="fas fa-xmark"></i></button>
+            <a href="/home"><i class="fas fa-house"></i> Bosh sahifa</a>
+            <a href="/events"><i class="fas fa-calendar-days"></i> Tadbirlar</a>
+            <a href="/volunteer" class="active"><i class="fas fa-hand-holding-heart"></i> Volontyorlik</a>
+            <a href="/profile"><i class="fas fa-user"></i> Profil</a>
+            <a href="/logout"><i class="fas fa-right-from-bracket"></i> Chiqish</a>
+        </div>
+        <div class="user-badge" id="userBadge"><img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ...</div>
+        <button class="theme-toggle" id="themeToggle" aria-label="Mavzuni almashtirish"><i class="fas fa-moon"></i></button>
+</nav>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <div class="detail-shell reveal" id="detailRoot">
+        <a href="/volunteer" class="back-link"><i class="fas fa-arrow-left"></i> Volontyorlik</a>
+        <p style="color:var(--color-text-muted); text-align:center; padding:3rem 0;">Yuklanmoqda...</p>
+    </div>
+
+    <footer>BirMillat – qiziqishlar asosida do'stlar toping. · <a href="/privacy" style="color:inherit;">Maxfiylik siyosati</a><br><span style="opacity:0.8;">Founder — Bekhruz Ravshanov</span></footer>
+
+    <script>
+        function getOppId() {
+            const parts = window.location.pathname.split('/').filter(Boolean);
+            return parts[parts.length - 1];
+        }
+        function initials(name) {
+            if (!name) return '?';
+            const parts = name.trim().split(/\s+/);
+            return parts.length > 1 ? (parts[0][0] + parts[1][0]).toUpperCase() : parts[0].slice(0, 2).toUpperCase();
+        }
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str == null ? '' : String(str);
+            return div.innerHTML;
+        }
+        function socialIcon(url) {
+            if (/t\.me|telegram/i.test(url)) return 'fa-telegram';
+            if (/instagram/i.test(url)) return 'fa-instagram';
+            if (/facebook/i.test(url)) return 'fa-facebook';
+            if (/youtube/i.test(url)) return 'fa-youtube';
+            return 'fa-arrow-up-right-from-square';
+        }
+        function socialIconClass(url) {
+            return /t\.me|telegram|instagram|facebook|youtube/i.test(url) ? 'fab' : 'fas';
+        }
+
+        let currentOpp = null;
+
+        async function loadMe() {
+            const res = await fetch('/api/me');
+            if (!res.ok) { window.location.href = '/login'; return null; }
+            const me = await res.json();
+            document.getElementById('userBadge').innerHTML = '<img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ' + me.username;
+            return me;
+        }
+
+        function handSectionHtml(opp) {
+            if (opp.isCreator) {
+                return `
+                    <div class="section-card card">
+                        <div class="section-title"><i class="fas fa-hands-holding-child"></i> Qo'l ko'targanlar (${opp.responseCount})</div>
+                        <div id="respondersList"><p class="empty-note">Yuklanmoqda...</p></div>
+                    </div>
+                    <div class="section-card card danger-zone">
+                        <div class="section-title"><i class="fas fa-triangle-exclamation"></i> E'lonni boshqarish</div>
+                        <div class="danger-row">
+                            <button class="danger-btn cancel" id="closeOppBtn"><i class="fas fa-lock"></i> Yopish</button>
+                            <button class="danger-btn delete" id="deleteOppBtn"><i class="fas fa-trash"></i> O'chirish</button>
+                        </div>
+                        <p class="danger-hint">Yopilgan e'lon ro'yxatdan yashiriladi, lekin ma'lumotlari qoladi. O'chirish esa hammasini butunlay yo'q qiladi.</p>
+                        <div class="submit-status" id="dangerStatus"></div>
+                    </div>`;
+            }
+            if (opp.hasResponded) {
+                return `
+                    <div class="section-card card">
+                        <div class="responded-state">
+                            <div class="icon"><i class="fas fa-circle-check"></i></div>
+                            <h3>Siz qo'l ko'tardingiz</h3>
+                            <p>Tashkilotchi siz bilan bog'lanadi.</p>
+                        </div>
+                        <div class="hand-count-line"><i class="fas fa-hand"></i> ${opp.responseCount} kishi qo'l ko'tardi</div>
+                    </div>`;
+            }
+            return `
+                <div class="section-card card">
+                    <button class="hand-btn btn-zoom" id="raiseHandBtn"><i class="fas fa-hand"></i> Qo'l ko'tarish</button>
+                    <div class="hand-form" id="handForm" style="display:none;">
+                        <textarea id="handMessage" rows="3" placeholder="Qisqacha o'zingiz haqingizda yozing (ixtiyoriy)" maxlength="500"></textarea>
+                        <div class="hand-form-actions">
+                            <button type="button" class="btn btn-primary btn-zoom" id="handSubmitBtn" style="flex:1; justify-content:center;">Yuborish</button>
+                        </div>
+                        <div class="submit-status" id="handStatus"></div>
+                    </div>
+                    <div class="hand-count-line"><i class="fas fa-hand"></i> ${opp.responseCount} kishi qo'l ko'tardi</div>
+                </div>`;
+        }
+
+        async function loadResponders(oppId) {
+            const el = document.getElementById('respondersList');
+            if (!el) return;
+            try {
+                const res = await fetch(`/api/volunteer/${oppId}/responses`);
+                if (!res.ok) { el.innerHTML = ''; return; }
+                const responses = await res.json();
+                if (responses.length === 0) {
+                    el.innerHTML = `<p class="empty-note">Hali hech kim qo'l ko'tarmagan.</p>`;
+                    return;
+                }
+                el.innerHTML = responses.map(r => `
+                    <div class="responder-row">
+                        <span class="mini-avatar">${r.user.photoUrl ? `<img src="${r.user.photoUrl}" alt="">` : initials(r.user.name || r.user.username)}</span>
+                        <div class="responder-body">
+                            <div class="responder-name"><a href="/u/${r.user.username}">@${r.user.username}</a></div>
+                            ${r.message ? `<div class="responder-message">${escapeHtml(r.message)}</div>` : ''}
+                        </div>
+                        <a class="responder-msg-btn" href="/messages?with=${encodeURIComponent(r.user.username)}"><i class="fas fa-comment-dots"></i> Yozish</a>
+                    </div>`).join('');
+            } catch (e) {
+                el.innerHTML = `<p class="empty-note">Yuklab bo'lmadi.</p>`;
+            }
+        }
+
+        function wireInteractions(opp) {
+            const raiseBtn = document.getElementById('raiseHandBtn');
+            if (raiseBtn) raiseBtn.addEventListener('click', () => {
+                raiseBtn.style.display = 'none';
+                document.getElementById('handForm').style.display = 'block';
+            });
+
+            const handSubmitBtn = document.getElementById('handSubmitBtn');
+            if (handSubmitBtn) handSubmitBtn.addEventListener('click', async () => {
+                const statusEl = document.getElementById('handStatus');
+                statusEl.textContent = 'Yuborilmoqda...'; statusEl.className = 'submit-status';
+                try {
+                    const res = await fetch(`/api/volunteer/${opp.id}/respond`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ message: document.getElementById('handMessage').value.trim() })
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error);
+                    await loadEverything();
+                } catch (e) {
+                    statusEl.textContent = e.message || 'Xatolik yuz berdi';
+                    statusEl.className = 'submit-status error';
+                }
+            });
+
+            if (opp.isCreator) {
+                loadResponders(opp.id);
+
+                document.getElementById('closeOppBtn').addEventListener('click', async () => {
+                    if (!confirm(`"${opp.title}" e'lonini yopishni tasdiqlaysizmi?`)) return;
+                    const statusEl = document.getElementById('dangerStatus');
+                    statusEl.textContent = 'Yopilmoqda...'; statusEl.className = 'submit-status';
+                    try {
+                        const res = await fetch(`/api/volunteer/${opp.id}/close`, { method: 'POST' });
+                        const data = await res.json();
+                        if (!res.ok) throw new Error(data.error);
+                        window.location.href = '/volunteer';
+                    } catch (e) {
+                        statusEl.textContent = e.message || 'Xatolik yuz berdi';
+                        statusEl.className = 'submit-status error';
+                    }
+                });
+
+                document.getElementById('deleteOppBtn').addEventListener('click', async () => {
+                    if (!confirm(`"${opp.title}" e'lonini BUTUNLAY o'chirishni tasdiqlaysizmi?`)) return;
+                    const statusEl = document.getElementById('dangerStatus');
+                    statusEl.textContent = "O'chirilmoqda..."; statusEl.className = 'submit-status';
+                    try {
+                        const res = await fetch(`/api/volunteer/${opp.id}`, { method: 'DELETE' });
+                        const data = await res.json();
+                        if (!res.ok) throw new Error(data.error);
+                        window.location.href = '/volunteer';
+                    } catch (e) {
+                        statusEl.textContent = e.message || 'Xatolik yuz berdi';
+                        statusEl.className = 'submit-status error';
+                    }
+                });
+            }
+        }
+
+        async function loadEverything() {
+            const root = document.getElementById('detailRoot');
+            const oppId = getOppId();
+            try {
+                const res = await fetch(`/api/volunteer/${oppId}`);
+                if (!res.ok) {
+                    root.innerHTML = `<a href="/volunteer" class="back-link"><i class="fas fa-arrow-left"></i> Volontyorlik</a><div class="not-found"><i class="fas fa-hand-holding-heart" style="font-size:2.2rem; color:var(--color-border); display:block; margin-bottom:1rem;"></i><p>Bu e'lon topilmadi.</p></div>`;
+                    return;
+                }
+                const opp = await res.json();
+                currentOpp = opp;
+
+                root.innerHTML = `
+                    <a href="/volunteer" class="back-link"><i class="fas fa-arrow-left"></i> Volontyorlik</a>
+                    <div class="vol-hero-card">
+                        <div class="vol-badges">
+                            <span class="vol-badge"><i class="fas ${opp.mode === 'online' ? 'fa-video' : 'fa-location-dot'}"></i> ${opp.mode === 'online' ? 'Onlayn' : (opp.city || 'Oflayn')}</span>
+                        </div>
+                        <h1>${opp.title}</h1>
+                        <div class="organizer-chip">
+                            <span class="mini-avatar">${opp.creator.photoUrl ? `<img src="${opp.creator.photoUrl}" alt="">` : initials(opp.creator.name || opp.creator.username)}</span>
+                            @${opp.creator.username}
+                            ${opp.socialLink ? `<a class="social-icon-btn" href="${opp.socialLink}" target="_blank" rel="noopener noreferrer"><i class="${socialIconClass(opp.socialLink)} ${socialIcon(opp.socialLink)}"></i></a>` : ''}
+                        </div>
+                    </div>
+
+                    <div class="section-card card">
+                        <div class="section-title"><i class="fas fa-align-left"></i> Tavsif</div>
+                        <div class="description-text">${escapeHtml(opp.description)}</div>
+                    </div>
+
+                    ${handSectionHtml(opp)}
+                `;
+
+                wireInteractions(opp);
+            } catch (e) {
+                console.error('Failed to load opportunity:', e);
+                root.innerHTML = `<a href="/volunteer" class="back-link"><i class="fas fa-arrow-left"></i> Volontyorlik</a><div class="not-found">Yuklab bo'lmadi. Sahifani qaytadan yuklang.</div>`;
+            }
+        }
+
+        (async () => {
+            await loadMe();
+            loadEverything();
+        })();
+    </script>
+</body>
+</html>
