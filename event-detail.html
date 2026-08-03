@@ -329,7 +329,13 @@ body { font-family: 'Inter', sans-serif; }
 
         async function loadMe() {
             const res = await fetch('/api/me');
-            if (!res.ok) { window.location.href = '/login'; return null; }
+            if (!res.ok) {
+                document.getElementById('userBadge').outerHTML =
+                    '<a href="/register" class="btn btn-primary btn-zoom" style="padding:0.45rem 1.1rem; font-size:0.85rem;">Ro\'yxatdan o\'tish</a>';
+                const bell = document.querySelector('.notif-bell-wrap');
+                if (bell) bell.style.display = 'none';
+                return null;
+            }
             const me = await res.json();
             document.getElementById('userBadge').innerHTML = '<img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ' + me.username;
             return me;
@@ -716,7 +722,10 @@ body { font-family: 'Inter', sans-serif; }
 
         function wireInteractions(event) {
             const rsvpBtn = document.getElementById('rsvpOpenBtn');
-            if (rsvpBtn) rsvpBtn.addEventListener('click', () => openRsvpModal(event));
+            if (rsvpBtn) rsvpBtn.addEventListener('click', () => {
+                if (!currentUser) { window.location.href = '/register'; return; }
+                openRsvpModal(event);
+            });
             if (event.myCheckin) renderQrCanvas(event.myCheckin.token);
 
             const coordAddBtn = document.getElementById('coordAddBtn');
