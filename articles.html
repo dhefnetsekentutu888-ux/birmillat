@@ -100,7 +100,7 @@ body { font-family: 'Inter', sans-serif; }
                 <h1><i class="fas fa-newspaper" style="color:var(--color-accent); font-size:.85em;"></i> Maqolalar</h1>
                 <p>Tadqiqotlaringiz va fikrlaringizni ulashing</p>
             </div>
-            <a href="/articles/create" class="btn btn-primary btn-zoom"><i class="fas fa-plus"></i> Maqola yozish</a>
+            <a href="/articles/create" id="newArticleBtn" class="btn btn-primary btn-zoom"><i class="fas fa-plus"></i> Maqola yozish</a>
         </div>
 
         <div class="ar-list reveal-stagger reveal" id="articlesList">
@@ -125,7 +125,14 @@ body { font-family: 'Inter', sans-serif; }
         async function loadMe() {
             try {
                 const res = await fetch('/api/me');
-                if (!res.ok) { window.location.href = '/login'; return; }
+                if (!res.ok) {
+                    document.getElementById('userBadge').outerHTML =
+                        '<a href="/register" class="btn btn-primary btn-zoom" style="padding:0.45rem 1.1rem; font-size:0.85rem;">Ro\'yxatdan o\'tish</a>';
+                    const bell = document.querySelector('.notif-bell-wrap');
+                    if (bell) bell.style.display = 'none';
+                    document.getElementById('newArticleBtn').setAttribute('href', '/register');
+                    return;
+                }
                 const me = await res.json();
                 document.getElementById('userBadge').innerHTML = '<img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ' + me.username;
             } catch (e) { console.error(e); }
