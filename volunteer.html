@@ -141,7 +141,7 @@ body { font-family: 'Inter', sans-serif; }
                 <h1><i class="fas fa-hand-holding-heart"></i> Volontyorlik</h1>
                 <p>Yordam kerak bo'lgan loyihalar shu yerda joylashadi. Qo'l ko'taring — tashkilotchi siz bilan bog'lanadi.</p>
             </div>
-            <a href="/volunteer/create" class="vol-new-btn btn-zoom"><i class="fas fa-plus"></i> E'lon joylash</a>
+            <a href="/volunteer/create" id="newVolBtn" class="vol-new-btn btn-zoom"><i class="fas fa-plus"></i> E'lon joylash</a>
         </div>
     </div>
 
@@ -210,7 +210,14 @@ body { font-family: 'Inter', sans-serif; }
         async function loadMe() {
             try {
                 const res = await fetch('/api/me');
-                if (!res.ok) { window.location.href = '/login'; return; }
+                if (!res.ok) {
+                    document.getElementById('userBadge').outerHTML =
+                        '<a href="/register" class="btn btn-primary btn-zoom" style="padding:0.45rem 1.1rem; font-size:0.85rem;">Ro\'yxatdan o\'tish</a>';
+                    const bell = document.querySelector('.notif-bell-wrap');
+                    if (bell) bell.style.display = 'none';
+                    document.getElementById('newVolBtn').setAttribute('href', '/register');
+                    return;
+                }
                 const me = await res.json();
                 document.getElementById('userBadge').innerHTML = '<img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ' + me.username;
             } catch (e) { console.error(e); }
