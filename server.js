@@ -470,6 +470,14 @@ async function getUserById(id) {
     return result.rows[0] || null;
 }
 
+async function getUserByTelegramChatId(chatId) {
+    const result = await db.execute({
+        sql: 'SELECT * FROM users WHERE telegram_chat_id = ?',
+        args: [String(chatId)]
+    });
+    return result.rows[0] || null;
+}
+
 async function createUser(username, email, phone, passwordHash, isVerified = 0) {
     const result = await db.execute({
         sql: 'INSERT INTO users (username, email, phone, password, name, is_verified) VALUES (?, ?, ?, ?, ?, ?)',
@@ -1719,145 +1727,17 @@ function renderRegisterPage(message, isError = true) {
         .field-error { color: var(--color-error); font-size: 0.8rem; text-align: left; margin: -0.3rem 0 0.6rem; min-height: 1em; }
         .auth-logo { height: 40px; margin-bottom: 1rem; }
         .field-hint { font-size: 0.78rem; color: var(--color-text-muted); text-align: left; margin: -0.3rem 0 0.6rem; }
-
-        .register-form-wrap {
-            opacity: 0.3;
-            filter: blur(2px);
-            pointer-events: none;
-            transition: opacity 0.3s ease, filter 0.3s ease;
-        }
-        .register-form-wrap.unlocked {
-            opacity: 1;
-            filter: none;
-            pointer-events: auto;
-        }
-
-        .consent-overlay {
-            position: fixed; inset: 0; background: rgba(26,22,37,0.55);
-            display: flex; align-items: center; justify-content: center;
-            z-index: 200; padding: 1.2rem;
-        }
-        .consent-card {
-            background: var(--color-surface); border-radius: var(--radius-md);
-            max-width: 480px; width: 100%;
-            box-shadow: var(--shadow-hover); text-align: left;
-            max-height: 82vh; display: flex; flex-direction: column;
-            overflow: hidden;
-        }
-        .consent-header { padding: 1.6rem 1.6rem 0.8rem; }
-        .consent-header h2 { font-size: 1.15rem; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem; }
-        .consent-header p { font-size: 0.85rem; color: var(--color-text-muted); }
-        .consent-body {
-            flex: 1; overflow-y: auto; padding: 0 1.6rem;
-            border-top: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border);
-        }
-        .consent-body h3 { font-size: 0.92rem; color: var(--color-primary); margin: 1.1rem 0 0.4rem; }
-        .consent-body p, .consent-body li { font-size: 0.85rem; color: var(--color-text); line-height: 1.6; }
-        .consent-body ul { padding-left: 1.2rem; margin: 0.3rem 0; }
-        .consent-missing-note {
-            background: var(--color-bg); border: 1px dashed var(--color-border); border-radius: var(--radius-sm);
-            padding: 0.7rem 0.9rem; font-size: 0.78rem; color: var(--color-text-muted); margin: 1rem 0;
-        }
-        .consent-actions { display: flex; gap: 0.7rem; padding: 1.2rem 1.6rem; }
-        .consent-accept, .consent-decline {
-            flex: 1; padding: 0.75rem; border-radius: var(--radius-pill);
-            font-weight: 600; font-size: 0.9rem; cursor: pointer; text-align: center;
-            transition: transform 0.15s ease, background 0.15s ease;
-            border: none;
-        }
-        .consent-accept { background: var(--color-accent); color: white; }
-        .consent-accept:hover { background: var(--color-accent-light); }
-        .consent-decline { background: var(--color-error-bg); color: var(--color-error); border: 1.5px solid var(--color-error); }
-        .consent-decline:hover { background: var(--color-error); color: white; }
+        .consent-note { font-size: 0.78rem; color: var(--color-text-muted); text-align: left; line-height: 1.5; margin: 0.7rem 0 0; }
+        .consent-note a { color: var(--color-accent); font-weight: 600; }
     </style>
     </head>
     <body class="auth-shell">
-    <div class="consent-overlay" id="consentOverlay">
-        <div class="consent-card">
-            <div class="consent-header">
-                <h2><i class="fas fa-shield-halved"></i> Maxfiylik siyosati</h2>
-                <p>Davom etishdan oldin, quyidagi shartlar bilan tanishib chiqing.</p>
-            </div>
-            <div class="consent-body">
-                <p>BirMillat foydalanuvchilarning shaxsiy ma'lumotlarini himoya qilishga katta ahamiyat beradi. BirMillat.uz'dan foydalanish orqali siz ushbu shartlarga rozilik bildirasiz.</p>
-
-                <h3>1. Biz haqimizda</h3>
-                <p>BirMillat — umumiy qiziqishlarga ega insonlarni birlashtirish, yangi do'stlar topish, jamoalar tuzish, tadbirlarda ishtirok etish va maqolalar ulashish imkonini beruvchi ijtimoiy platforma. Asoschi: Behruzbek Ravshanov. Qo'llab-quvvatlash: <a href="https://t.me/BirMillat_support_bot" target="_blank" rel="noopener">@BirMillat_support_bot</a>.</p>
-
-                <h3>2. Qanday ma'lumotlarni yig'amiz?</h3>
-                <p>Hisob yaratishda: ism (ixtiyoriy), username, email, parol (shifrlangan), profil rasmi (ixtiyoriy). Profilda ixtiyoriy ravishda: bio, qiziqishlar, ta'lim, ijtimoiy tarmoq havolalari, shahar/davlat. Avtomatik: IP manzil, brauzer/qurilma turi, sessiya va faollik statistikasi. Shuningdek: yozgan maqolalar, izohlar, yoqtirishlar, tadbirlardagi ishtirok.</p>
-
-                <h3>3. Cookies</h3>
-                <p>Hisobga kirilgan holatni saqlash, sozlamalarni eslab qolish, xavfsizlik va statistika maqsadida cookies ishlatiladi. Brauzeringiz orqali ularni o'chirishingiz mumkin.</p>
-
-                <h3>4. Ma'lumotlardan qanday foydalanamiz?</h3>
-                <p>Hisobni boshqarish, xizmat ko'rsatish, tavsiyalar berish, xavfsizlikni ta'minlash, spam/firibgarlikni oldini olish va qonuniy talablarni bajarish uchun.</p>
-
-                <h3>5. Tavsiyalar tizimi</h3>
-                <p>Profil va faoliyat ma'lumotlaringiz asosida sizga mos do'stlar, jamoalar, tadbirlar va maqolalar tavsiya qilinadi.</p>
-
-                <h3>6. Ochiq ma'lumotlar</h3>
-                <p>Username, profil rasmi, bio, qiziqishlar, ochiq maqolalar va izohlar boshqa foydalanuvchilarga ko'rinadi.</p>
-
-                <h3>7. Shaxsiy xabarlar</h3>
-                <p>Xabarlar xizmatni ta'minlash uchun serverda saqlanadi. Odatda kuzatilmaydi, lekin qoidabuzarlik shikoyati bo'lsa tekshirilishi mumkin.</p>
-
-                <h3>8. Ma'lumotlarni kim bilan ulashamiz?</h3>
-                <p>Ma'lumotlaringizni sotmaymiz. Faqat texnik xizmat ko'rsatuvchilar (hosting, email), qonuniy talab (sud qarori) yoki platforma xavfsizligi (spam/firibgarlikka qarshi) uchun uchinchi tomonlarga taqdim etilishi mumkin.</p>
-
-                <h3>9. Ma'lumotlarni saqlash</h3>
-                <p>Ma'lumotlar quyidagi hollarda saqlanadi:</p>
-                <ul>
-                    <li>Hisob faol bo'lgan davr mobaynida;</li>
-                    <li>Xizmatlarni ko'rsatish uchun zarur muddat davomida;</li>
-                    <li>Qonuniy talablar asosida;</li>
-                    <li>Zaxira nusxalarida ma'lum vaqt davomida saqlanishi mumkin.</li>
-                </ul>
-
-                <h3>10. Hisobni o'chirish</h3>
-                <p>Foydalanuvchi istalgan vaqtda o'z hisobini o'chirishni so'rashi mumkin. Hisob o'chirilgandan so'ng profil ma'lumotlari o'chiriladi yoki anonimlashtiriladi; ba'zi maqolalar va izohlar anonim holatda saqlanishi mumkin; qonuniy majburiyatlar sabab ayrim ma'lumotlar ma'lum muddat saqlanishi mumkin.</p>
-
-                <h3>11. Foydalanuvchi huquqlari</h3>
-                <p>Siz quyidagi huquqlarga egasiz:</p>
-                <ul>
-                    <li>O'zingiz haqingizdagi ma'lumotlarni ko'rish;</li>
-                    <li>Ma'lumotlarni yangilash va tahrirlash;</li>
-                    <li>Ma'lumotlarni o'chirishni talab qilish;</li>
-                    <li>Rozilikni bekor qilish;</li>
-                    <li>Hisobni yopish;</li>
-                    <li>Ma'lumotlaringiz nusxasini so'rash.</li>
-                </ul>
-
-                <h3>12. Xavfsizlik</h3>
-                <p>Biz HTTPS shifrlash, xavfsiz autentifikatsiya, shifrlangan parollar va server xavfsizligi choralaridan foydalanamiz. Shunga qaramay, internet orqali uzatiladigan ma'lumotlarning mutlaq xavfsizligini kafolatlab bo'lmaydi.</p>
-
-                <h3>13. Voyaga yetmagan foydalanuvchilar</h3>
-                <p>BirMillat yoshlar uchun mo'ljallangan platforma hisoblanadi. 13 yoshdan kichik foydalanuvchilar ota-ona yoki qonuniy vakilining ruxsati bilan platformadan foydalanishlari tavsiya etiladi.</p>
-
-                <h3>14. Uchinchi tomon havolalari</h3>
-                <p>Platformada boshqa veb-saytlar yoki xizmatlarga havolalar bo'lishi mumkin. Biz ushbu uchinchi tomon xizmatlarining maxfiylik siyosati yoki amaliyoti uchun javobgar emasmiz.</p>
-
-                <h3>15. Maxfiylik siyosatiga o'zgartirishlar</h3>
-                <p>Biz ushbu Maxfiylik siyosatini istalgan vaqtda o'zgartirish yoki yangilash huquqini saqlab qolamiz. Muhim o'zgartirishlar platformada e'lon qilinadi va yangi sana ko'rsatiladi.</p>
-
-                <h3>16. Biz bilan bog'lanish</h3>
-                <p>Savol yoki murojaatlaringiz bo'lsa: <a href="https://t.me/BirMillat_support_bot" target="_blank" rel="noopener">@BirMillat_support_bot</a> (Telegram).</p>
-
-                <p style="font-weight:600; color:var(--color-primary); margin:1.2rem 0 1rem;">BirMillat.uz'dan foydalanish orqali siz ushbu shartlarga rozilik bildirganingizni tasdiqlaysiz.</p>
-            </div>
-            <div class="consent-actions">
-                <button class="consent-decline" id="consentDecline">Rad etaman</button>
-                <button class="consent-accept" id="consentAccept">Qabul qilaman</button>
-            </div>
-        </div>
-    </div>
     <div class="auth-card">
         <img src="/logo-full.svg" alt="BirMillat" class="auth-logo">
         <h2>Hisob yaratish</h2>
         ${message ? `<div class="message ${msgClass}">${message}</div>` : ''}
         <div class="register-form-wrap" id="registerFormWrap">
         <form method=post action=/register id="registerForm">
-            <input type="hidden" name="privacyAccepted" id="privacyAcceptedInput" value="">
             <input type="hidden" name="regMethod" id="regMethodInput" value="email">
 
             <div class="mode-toggle" style="display:flex; gap:0.6rem; margin-bottom:0.8rem;">
@@ -1883,6 +1763,7 @@ function renderRegisterPage(message, isError = true) {
             <div class="field-error" id="matchError"></div>
 
             <button type=submit>Ro'yxatdan o'tish</button>
+            <p class="consent-note">Ro'yxatdan o'tish orqali siz bizning <a href="/privacy" target="_blank">Maxfiylik siyosati</a>miz va foydalanish shartlarimizga rozilik bildirasiz.</p>
         </form>
         </div>
         <p>Hisobingiz bormi? <a href=/login>Kirish</a></p>
@@ -1901,18 +1782,6 @@ function renderRegisterPage(message, isError = true) {
         });
         confirmPw.addEventListener('input', () => {
             matchError.textContent = (pw.value && confirmPw.value && pw.value !== confirmPw.value) ? 'Parollar mos kelmadi' : '';
-        });
-
-        // Mandatory privacy policy consent — the form stays dimmed and
-        // non-interactive until Accept is clicked. Server also re-checks
-        // this field, so it can't be bypassed by skipping this script.
-        document.getElementById('consentAccept').addEventListener('click', () => {
-            document.getElementById('privacyAcceptedInput').value = '1';
-            document.getElementById('registerFormWrap').classList.add('unlocked');
-            document.getElementById('consentOverlay').remove();
-        });
-        document.getElementById('consentDecline').addEventListener('click', () => {
-            window.location.href = '/';
         });
 
         // Email/phone method toggle
@@ -2102,13 +1971,10 @@ function isValidPhone(phone) {
 
 app.post('/register', async (req, res) => {
     try {
-        const { username, email, phone, password, confirmPassword, privacyAccepted, regMethod } = req.body;
+        const { username, email, phone, password, confirmPassword, regMethod } = req.body;
         const cleanUsername = (username || '').trim();
         const method = regMethod === 'phone' ? 'phone' : 'email';
 
-        if (privacyAccepted !== '1') {
-            return res.send(renderRegisterPage('Davom etish uchun Maxfiylik siyosatiga rozilik bildirishingiz kerak', true));
-        }
         if (!cleanUsername || !password) {
             return res.send(renderRegisterPage('Barcha maydonlarni to‘ldiring', true));
         }
@@ -2401,7 +2267,6 @@ app.get('/privacy', (req, res) => {
 });
 
 app.get('/events', (req, res) => {
-    if (!req.session.userId) return res.redirect('/login');
     res.sendFile(path.join(__dirname, 'events.html'));
 });
 
@@ -2421,7 +2286,6 @@ app.get('/events/:id/scan', (req, res) => {
 });
 
 app.get('/events/:id', (req, res) => {
-    if (!req.session.userId) return res.redirect('/login');
     res.sendFile(path.join(__dirname, 'event-detail.html'));
 });
 
@@ -2431,7 +2295,6 @@ app.get('/checkin/:token', (req, res) => {
 });
 
 app.get('/volunteer', (req, res) => {
-    if (!req.session.userId) return res.redirect('/login');
     res.sendFile(path.join(__dirname, 'volunteer.html'));
 });
 
@@ -2441,7 +2304,6 @@ app.get('/volunteer/create', (req, res) => {
 });
 
 app.get('/volunteer/:id', (req, res) => {
-    if (!req.session.userId) return res.redirect('/login');
     res.sendFile(path.join(__dirname, 'volunteer-detail.html'));
 });
 
@@ -2455,7 +2317,6 @@ app.get('/communities/:id', (req, res) => {
 });
 
 app.get('/articles', (req, res) => {
-    if (!req.session.userId) return res.redirect('/login');
     res.sendFile(path.join(__dirname, 'articles.html'));
 });
 
@@ -2465,7 +2326,6 @@ app.get('/articles/create', (req, res) => {
 });
 
 app.get('/articles/:id', (req, res) => {
-    if (!req.session.userId) return res.redirect('/login');
     res.sendFile(path.join(__dirname, 'article-detail.html'));
 });
 
@@ -2596,7 +2456,6 @@ app.post('/reset-password', async (req, res) => {
 // ---------- Public founders page data ----------
 // ---------- Volunteer opportunities board ----------
 app.get('/api/volunteer', async (req, res) => {
-    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
     try {
         const mode = (req.query.mode || '').trim();
         const city = (req.query.city || '').trim();
@@ -2616,16 +2475,15 @@ app.get('/api/volunteer', async (req, res) => {
 });
 
 app.get('/api/volunteer/:id', async (req, res) => {
-    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
     try {
         const opp = await getVolunteerOpportunityById(req.params.id);
         if (!opp || opp.status !== 'active') return res.status(404).json({ error: 'Topilmadi' });
         const responseCount = await getVolunteerResponseCount(opp.id);
-        const hasResponded = await hasUserResponded(opp.id, req.session.userId);
+        const hasResponded = req.session.userId ? await hasUserResponded(opp.id, req.session.userId) : false;
         res.json({
             id: opp.id, title: opp.title, description: opp.description, mode: opp.mode, city: opp.city,
             socialLink: opp.social_link, createdAt: opp.created_at, responseCount,
-            isCreator: opp.creator_id === req.session.userId, hasResponded,
+            isCreator: !!req.session.userId && opp.creator_id === req.session.userId, hasResponded,
             creator: { username: opp.creator_username, name: opp.creator_name, photoUrl: opp.creator_photo }
         });
     } catch (err) {
@@ -3524,9 +3382,21 @@ app.post(`/telegram/webhook/${TELEGRAM_BOT_TOKEN}`, async (req, res) => {
         // ---------- Anyone else: treat as an incoming support message ----------
         const fromName = [message.from?.first_name, message.from?.last_name].filter(Boolean).join(' ') ||
             message.from?.username || 'Noma\'lum';
+        const telegramUsername = message.from?.username ? `@${message.from.username}` : null;
+
+        // If this Telegram chat is linked to a BirMillat account, surface that
+        // directly — a clickable link straight to their profile, not just a
+        // Telegram display name that tells you nothing about who they are on
+        // the actual platform.
+        const linkedUser = await getUserByTelegramChatId(fromChatId);
+        const identityLine = linkedUser
+            ? `Kimdan: ${escapeHtmlForTelegram(fromName)}${telegramUsername ? ' (' + escapeHtmlForTelegram(telegramUsername) + ')' : ''}\n` +
+              `Hisob: <a href="${SITE_URL}/u/${encodeURIComponent(linkedUser.username)}">@${escapeHtmlForTelegram(linkedUser.username)}</a>`
+            : `Kimdan: ${escapeHtmlForTelegram(fromName)}${telegramUsername ? ' (' + escapeHtmlForTelegram(telegramUsername) + ')' : ''}\n` +
+              `Hisob: ulanmagan (faqat Telegram orqali yozmoqda)`;
 
         let forwarded;
-        const captionHeader = `💬 <b>Yordam so'rovi</b>\nKimdan: ${escapeHtmlForTelegram(fromName)} (Telegram)`;
+        const captionHeader = `💬 <b>Yordam so'rovi</b>\n${identityLine}`;
 
         if (message.photo && message.photo.length > 0) {
             // Telegram sends multiple resolutions; the last one is the largest.
@@ -3548,7 +3418,7 @@ app.post(`/telegram/webhook/${TELEGRAM_BOT_TOKEN}`, async (req, res) => {
         if (forwarded && forwarded.ok && forwarded.result) {
             await recordSupportMessage({
                 telegramChatId: fromChatId,
-                websiteUsername: null,
+                websiteUsername: linkedUser ? linkedUser.username : null,
                 direction: 'in',
                 content: message.text || message.caption || '[rasm]',
                 adminMessageId: forwarded.result.message_id
@@ -3570,7 +3440,7 @@ app.post('/api/support', upload.single('screenshot'), async (req, res) => {
 
         let identity;
         if (username) {
-            identity = `@${username} (vebsayt, tizimga kirgan)`;
+            identity = `<a href="${SITE_URL}/u/${encodeURIComponent(username)}">@${escapeHtmlForTelegram(username)}</a> (vebsayt, tizimga kirgan)`;
         } else if (claimedUsername && claimedUsername.trim()) {
             // Not logged in (e.g. a blocked account) — they typed their username manually.
             // Label it clearly as unverified since we can't confirm it ourselves.
@@ -3682,7 +3552,6 @@ app.post('/api/contact', async (req, res) => {
 
 // ---------- Articles ("Maqolalar") ----------
 app.get('/api/articles', async (req, res) => {
-    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
     try {
         const rows = await listArticles();
         res.json(rows.map(a => ({
@@ -3718,11 +3587,10 @@ app.post('/api/articles', async (req, res) => {
 });
 
 app.get('/api/articles/:id', async (req, res) => {
-    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
     try {
         const article = await getArticleById(req.params.id);
         if (!article) return res.status(404).json({ error: 'Maqola topilmadi' });
-        const isLiked = await isArticleLiked(article.id, req.session.userId);
+        const isLiked = req.session.userId ? await isArticleLiked(article.id, req.session.userId) : false;
         res.json({
             id: article.id,
             title: article.title,
@@ -3730,7 +3598,7 @@ app.get('/api/articles/:id', async (req, res) => {
             createdAt: article.created_at,
             likeCount: article.like_count,
             isLiked,
-            isAuthor: article.author_id === req.session.userId,
+            isAuthor: !!req.session.userId && article.author_id === req.session.userId,
             author: { username: article.author_username, name: article.author_name, photoUrl: article.author_photo }
         });
     } catch (err) {
@@ -3817,7 +3685,6 @@ const ADMIN_SECRET = process.env.ADMIN_SECRET || 'change-me-admin-secret';
 const SITE_URL = process.env.SITE_URL || 'https://birmillat.uz';
 
 app.get('/api/events', async (req, res) => {
-    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
     try {
         const category = (req.query.category || '').trim();
         const events = await getApprovedEvents(category || null);
@@ -3829,15 +3696,14 @@ app.get('/api/events', async (req, res) => {
 });
 
 app.get('/api/events/past', async (req, res) => {
-    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
     try {
         const category = (req.query.category || '').trim();
         const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 24, 1), 50);
         const events = await getPastEvents(category || null, limit);
         const withManagerFlag = await Promise.all(events.map(async ev => ({
             ...ev,
-            isCreator: ev.creator_id === req.session.userId,
-            isManager: await isEventManager(ev.id, req.session.userId)
+            isCreator: !!req.session.userId && ev.creator_id === req.session.userId,
+            isManager: req.session.userId ? await isEventManager(ev.id, req.session.userId) : false
         })));
         res.json(withManagerFlag);
     } catch (err) {
@@ -3876,22 +3742,21 @@ app.post('/api/events/:id/recap', upload.single('photo'), async (req, res) => {
 });
 
 app.get('/api/events/:id', async (req, res) => {
-    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
     try {
         const event = await getEventById(req.params.id);
         if (!event || event.status !== 'approved') {
             return res.status(404).json({ error: 'Tadbir topilmadi' });
         }
         const attendees = await getEventAttendees(event.id);
-        const isAttending = await isUserAttending(event.id, req.session.userId);
+        const isAttending = req.session.userId ? await isUserAttending(event.id, req.session.userId) : false;
         const coordinators = await getEventCoordinators(event.id);
-        const isManager = await isEventManager(event.id, req.session.userId);
-        const myCheckin = await getEventCheckinByUser(event.id, req.session.userId);
+        const isManager = req.session.userId ? await isEventManager(event.id, req.session.userId) : false;
+        const myCheckin = req.session.userId ? await getEventCheckinByUser(event.id, req.session.userId) : null;
         res.json({
             ...event,
             attendees,
             isAttending,
-            isCreator: event.creator_id === req.session.userId,
+            isCreator: !!req.session.userId && event.creator_id === req.session.userId,
             isManager,
             coordinators: coordinators.map(c => ({
                 id: c.id, username: c.username, name: c.name, photoUrl: c.photo_url, roleLabel: c.role_label
