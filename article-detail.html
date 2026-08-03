@@ -184,9 +184,17 @@ body { font-family: 'Inter', sans-serif; }
             return Math.max(1, Math.round(words / 180));
         }
 
+        let currentUser = null;
+
         async function loadMe() {
             const res = await fetch('/api/me');
-            if (!res.ok) { window.location.href = '/login'; return null; }
+            if (!res.ok) {
+                document.getElementById('userBadge').outerHTML =
+                    '<a href="/register" class="btn btn-primary btn-zoom" style="padding:0.45rem 1.1rem; font-size:0.85rem;">Ro\'yxatdan o\'tish</a>';
+                const bell = document.querySelector('.notif-bell-wrap');
+                if (bell) bell.style.display = 'none';
+                return null;
+            }
             const me = await res.json();
             document.getElementById('userBadge').innerHTML = '<img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ' + me.username;
             return me;
@@ -267,7 +275,10 @@ body { font-family: 'Inter', sans-serif; }
                     </div>
                 `;
 
-                document.getElementById('likeBtn').addEventListener('click', () => toggleLike(article.id));
+                document.getElementById('likeBtn').addEventListener('click', () => {
+                    if (!currentUser) { window.location.href = '/register'; return; }
+                    toggleLike(article.id);
+                });
 
                 const deleteBtn = document.getElementById('deleteBtn');
                 if (deleteBtn) deleteBtn.addEventListener('click', () => deleteOwnArticle(article.id));
@@ -275,6 +286,7 @@ body { font-family: 'Inter', sans-serif; }
                 const reportBtn = document.getElementById('reportBtn');
                 if (reportBtn) {
                     reportBtn.addEventListener('click', () => {
+                        if (!currentUser) { window.location.href = '/register'; return; }
                         document.getElementById('reportModal').classList.add('open');
                     });
                 }
@@ -309,7 +321,7 @@ body { font-family: 'Inter', sans-serif; }
         });
 
         (async () => {
-            await loadMe();
+            currentUser = await loadMe();
             loadArticle();
         })();
     </script>
