@@ -1,0 +1,43 @@
+# BirMillat
+
+> BirMillat (birmillat.uz) — O'zbekiston yoshlari uchun qiziqishlar asosida do'stlar, jamoalar va tadbirlar topadigan ijtimoiy platforma. O'zbek tilida ishlaydi. Asoschisi — Bekhruz Ravshanov.
+
+BirMillat helps young people in Uzbekistan find friends, communities, and events based on shared interests — coding, IELTS prep, startups, sports, volunteering, and more. It combines a social/friend-finding platform, community group chats, an event board with QR-code check-in, a volunteer opportunity board, and a place to publish articles.
+
+The platform is entirely in Uzbek (Latin script) and targets Uzbek youth specifically, though anyone can register.
+
+## What's on the platform
+
+- [Bosh sahifa](https://birmillat.uz/home): Personalized home feed after logging in — recommended people based on shared interests, latest articles, upcoming events, and popular communities.
+- [Tavsiyalar](https://birmillat.uz/recommend): Recommended-people finder — matches users by overlapping interests/tags.
+- [Qidiruv](https://birmillat.uz/search): Search for other users by username, name, or interest, with category filters.
+- [Jamoalar](https://birmillat.uz/communities): Interest-based communities/groups with real-time group chat. Anyone can create a community around a topic (IELTS, IT, Startup, Sport, Sayohat, etc.) and others join to chat.
+- [Tadbirlar](https://birmillat.uz/events): Event listings, split into two views — upcoming events (chronological, with full details, location shown two ways: an embedded map and a direct Google Maps link) and past/organized events (a photo gallery of what the organizing team shared afterward, plus lighter-weight participant feedback). New events go through a Telegram-bot admin approval step before appearing publicly. Attendees confirm their RSVP through a yes/no attendance-confirmation step plus a Cloudflare Turnstile captcha, which generates a one-time QR-code entry pass; event organizers (the creator plus any coordinators they add) scan passes at the door through an in-app camera scanner. Organizers can cancel or delete their own events.
+- [Volontyorlik](https://birmillat.uz/volunteer): A volunteer-opportunity board (similar in spirit to a job board like hh.ru, but for volunteering). Anyone can post a role someone is needed for (title, description, online/offline, city, and a link to their own channel/social media). Instead of a generic "apply" button, interested users "raise their hand" (✋ Qo'l ko'tarish) with an optional short note; the poster sees everyone who responded and can message them directly. Posts don't require admin approval and go live immediately; posters can close or delete their own listing.
+- [Maqolalar](https://birmillat.uz/articles): User-written articles/blog posts that anyone registered can publish; readers can like articles and report inappropriate ones.
+- [Xabarlar](https://birmillat.uz/messages): Direct messaging between users, plus community group chats.
+- [Profil](https://birmillat.uz/profile): User profiles include a photo, bio, birthdate/region, a list of interest tags, and up to four personal achievements (each with its own photo and description) that show on the profile.
+- [Asoschilar / Ijtimoiy tarmoq](https://birmillat.uz/founders.html): The founding team page, with each member's role and their personal social-media links (Instagram/Telegram/LinkedIn), managed by the founder.
+
+Events, volunteer opportunities, and articles (both their list and detail pages) can be browsed by anyone without an account — registration is only required to actually take an action (RSVP, raise your hand, post, message, join a community, etc.).
+
+## About the founder
+
+BirMillat was founded by **Bekhruz Ravshanov**, a youth initiative organizer from Uzbekistan. During his school years he struggled to find people who shared his goals and interests — he wanted to stay active, build new projects, and grow, but the right environment wasn't always easy to find. A turning point came when he took part in the Young Climate Champions program, where he met active, inspiring young people from across Uzbekistan's regions. That experience showed him how much the right environment and a strong community can change a person's thinking, goals, and future. Inspired by it, he built BirMillat — a platform for young people to find each other through shared interests, attend events together, exchange knowledge and experience, find collaborators, and bring their own ideas to life. Today he continues to take part in various youth projects and initiatives, working to build a youth community in Uzbekistan that supports, creates opportunity for, and grows together.
+
+Founder's personal social media:
+- Instagram: https://www.instagram.com/bekhruzeon
+- Facebook: https://www.facebook.com/share/19AYXrWqVJ/
+- LinkedIn: https://www.linkedin.com/in/bexruz-ravshanov-1013a0415
+
+## BirMillat's official channels
+
+- Telegram: https://t.me/birmillatUZB
+- Instagram: https://instagram.com/birmillat.uz
+- Support (Telegram bot): https://t.me/BirMillat_support_bot
+
+## Other
+
+- [Maxfiylik siyosati (Privacy Policy)](https://birmillat.uz/privacy)
+- [Yordam (Support)](https://birmillat.uz/support)
+- [Biz bilan bog'lanish (Contact)](https://birmillat.uz/contact)
