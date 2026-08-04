@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<script src="/theme.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BirMillat nima? — Platforma haqida</title>
+<meta name="description" content="BirMillat — O'zbekiston yoshlari uchun qiziqishlar asosida do'stlar, jamoalar va tadbirlar topadigan ijtimoiy platforma. Asoschisi — Bekhruz Ravshanov.">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="/style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "BirMillat",
+  "url": "https://birmillat.uz",
+  "description": "O'zbekiston yoshlari uchun qiziqishlar asosida do'stlar, jamoalar va tadbirlar topadigan ijtimoiy platforma.",
+  "foundingLocation": "Uzbekistan",
+  "sameAs": [
+    "https://t.me/birmillatUZB",
+    "https://instagram.com/birmillat.uz"
+  ],
+  "founder": {
+    "@type": "Person",
+    "name": "Bekhruz Ravshanov",
+    "sameAs": [
+      "https://www.instagram.com/bekhruzeon",
+      "https://www.facebook.com/share/19AYXrWqVJ/",
+      "https://www.linkedin.com/in/bexruz-ravshanov-1013a0415"
+    ]
+  }
+}
+</script>
+<style>
+body { font-family: 'Inter', sans-serif; }
+
+.about-hero {
+    position: relative; overflow: hidden;
+    background: linear-gradient(150deg, #2D1B69, #4A2F9E 60%, #FF6B5B 150%);
+    color: #FAF7F2; padding: 4rem 1.5rem 3.5rem; text-align: center;
+}
+.about-hero::before { content:''; position:absolute; width:280px; height:280px; background:#FF6B5B; opacity:.2; filter:blur(90px); border-radius:50%; top:-100px; right:-40px; }
+.about-hero > * { position: relative; z-index: 1; }
+.about-hero .eyebrow {
+    display: inline-flex; align-items: center; gap: 0.5rem; background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2); padding: 0.4rem 1rem; border-radius: 999px;
+    font-size: 0.8rem; font-weight: 700; margin-bottom: 1.2rem;
+}
+.about-hero h1 { font-family: 'Sora', sans-serif; font-size: clamp(2rem, 5vw, 2.8rem); margin-bottom: 1rem; }
+.about-hero p { color: #E4DBF7; max-width: 620px; margin: 0 auto; font-size: 1.05rem; line-height: 1.7; }
+
+.about-container { max-width: 900px; margin: 0 auto; padding: 3.2rem 1.5rem; }
+.about-section { margin-bottom: 3.2rem; }
+.section-kicker { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--color-accent); margin-bottom: 0.6rem; text-align: center; display: block; }
+.about-section h2 { font-family: 'Sora', sans-serif; font-size: 1.7rem; text-align: center; margin-bottom: 0.8rem; }
+.about-section > p.lead { text-align: center; color: var(--color-text-muted); max-width: 620px; margin: 0 auto 2rem; line-height: 1.7; }
+
+.feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.2rem; }
+.feature-card { padding: 1.5rem; text-decoration: none; color: inherit; display: block; transition: transform 0.2s cubic-bezier(.16,1,.3,1), box-shadow 0.2s ease; }
+.feature-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-hover); }
+.feature-icon {
+    width: 46px; height: 46px; border-radius: 14px; background: #EFEAF8; color: var(--color-primary);
+    display: flex; align-items: center; justify-content: center; font-size: 1.15rem; margin-bottom: 0.9rem;
+}
+.feature-card h3 { font-family: 'Sora', sans-serif; font-size: 1.02rem; margin-bottom: 0.5rem; }
+.feature-card p { font-size: 0.87rem; color: var(--color-text-muted); line-height: 1.55; margin: 0; }
+
+.founder-card { padding: 2rem; display: flex; gap: 1.6rem; align-items: flex-start; flex-wrap: wrap; }
+.founder-avatar {
+    width: 84px; height: 84px; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--color-primary), #4A2F9E);
+    display: flex; align-items: center; justify-content: center; color: #fff; font-size: 1.8rem;
+    font-family: 'Sora', sans-serif; font-weight: 700;
+}
+.founder-body { flex: 1; min-width: 220px; }
+.founder-body h3 { font-family: 'Sora', sans-serif; font-size: 1.2rem; margin-bottom: 0.2rem; }
+.founder-role { color: var(--color-accent); font-size: 0.85rem; font-weight: 700; margin-bottom: 0.9rem; }
+.founder-body p { color: var(--color-text); font-size: 0.94rem; line-height: 1.75; margin-bottom: 1rem; }
+.founder-socials { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+.founder-social-btn {
+    display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none;
+    padding: 0.55rem 1.05rem; border-radius: 999px; font-weight: 700; font-size: 0.85rem;
+    border: 1.5px solid var(--color-border); color: var(--color-text);
+    transition: transform .18s cubic-bezier(.34,1.56,.64,1), background .2s ease, color .2s ease, border-color .2s ease;
+}
+.founder-social-btn:hover { transform: scale(1.05); }
+.founder-social-btn.instagram:hover { background: linear-gradient(45deg, #F58529, #DD2A7B, #8134AF, #515BD4); color: #fff; border-color: transparent; }
+.founder-social-btn.facebook:hover { background: #1877F2; color: #fff; border-color: transparent; }
+.founder-social-btn.linkedin:hover { background: #0A66C2; color: #fff; border-color: transparent; }
+
+.channel-row { display: flex; flex-wrap: wrap; gap: 0.9rem; justify-content: center; }
+.channel-card {
+    flex: 1; min-width: 220px; max-width: 260px; padding: 1.4rem; text-align: center; text-decoration: none; color: inherit;
+    transition: transform 0.2s cubic-bezier(.16,1,.3,1), box-shadow 0.2s ease;
+}
+.channel-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-hover); }
+.channel-icon { width: 44px; height: 44px; border-radius: 50%; margin: 0 auto 0.8rem; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: #fff; }
+.channel-icon.telegram { background: #29A9EA; }
+.channel-icon.instagram { background: linear-gradient(45deg, #F58529, #DD2A7B, #8134AF, #515BD4); }
+.channel-icon.support { background: var(--color-primary); }
+.channel-card h4 { font-size: 0.95rem; margin-bottom: 0.3rem; }
+.channel-card p { font-size: 0.8rem; color: var(--color-text-muted); margin: 0; }
+
+.about-cta {
+    background: linear-gradient(135deg, #2D1B69, #4A2F9E); border-radius: 26px; padding: 3rem 2rem;
+    text-align: center; color: #fff; position: relative; overflow: hidden;
+}
+.about-cta::before { content:''; position:absolute; width:220px; height:220px; background:#FF6B5B; opacity:.2; filter:blur(80px); border-radius:50%; bottom:-80px; left:-40px; }
+.about-cta > * { position: relative; z-index: 1; }
+.about-cta h2 { color: #fff; font-family: 'Sora', sans-serif; margin-bottom: 0.7rem; }
+.about-cta p { color: #D9D2EE; max-width: 460px; margin: 0 auto 1.6rem; }
+.about-cta-btn {
+    display: inline-flex; align-items: center; gap: 0.6rem; text-decoration: none;
+    background: linear-gradient(135deg, #FF6B5B, #FF8B7D); color: #fff; font-weight: 700; font-size: 0.98rem;
+    padding: 0.9rem 1.8rem; border-radius: 999px; box-shadow: 0 10px 24px rgba(255,107,91,0.35);
+    transition: transform .2s cubic-bezier(.34,1.56,.64,1);
+}
+.about-cta-btn:hover { transform: scale(1.04); }
+
+@media (max-width: 560px) {
+    .about-hero { padding: 3rem 1.1rem 2.6rem; }
+    .about-container { padding: 2.2rem 1.1rem; }
+    .founder-card { flex-direction: column; align-items: center; text-align: center; }
+    .founder-socials { justify-content: center; }
+}
+</style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="logo"><svg width="160" height="45" viewBox="0 0 320 90" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+      <g transform="translate(45,45)">
+        <g transform="rotate(-18)"><ellipse cx="-10" cy="0" rx="20" ry="36" fill="none" stroke="#2D1B69" stroke-width="10"/></g>
+        <g transform="rotate(18)"><ellipse cx="10" cy="0" rx="20" ry="36" fill="none" stroke="#FF6B5B" stroke-width="10"/></g>
+        <g transform="rotate(-18)"><path d="M -30 0 A 20 36 0 0 1 11 0" fill="none" stroke="#2D1B69" stroke-width="10" stroke-linecap="round"/></g>
+      </g>
+      <text x="95" y="53" font-size="34" font-weight="700" fill="#2D1B69" font-family="Sora, -apple-system, sans-serif">Bir<tspan fill="#FF6B5B">Millat</tspan></text>
+    </svg></a>
+        <button class="nav-toggle" id="navToggle" aria-label="Menyu"><i class="fas fa-bars"></i></button>
+        <div class="nav-links" id="navLinks">
+            <button class="sidebar-close" id="sidebarClose" aria-label="Yopish"><i class="fas fa-xmark"></i></button>
+            <a href="/events">Tadbirlar</a>
+            <a href="/volunteer">Volontyorlik</a>
+            <a href="/founders.html">Ijtimoiy tarmoq</a>
+            <a href="/login">Kirish</a>
+            <a href="/register" class="btn btn-primary btn-zoom" style="padding:0.5rem 1.15rem;">Ro'yxatdan o'tish</a>
+        </div>
+        <button class="theme-toggle" id="themeToggle" aria-label="Mavzuni almashtirish"><i class="fas fa-moon"></i></button>
+</nav>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <section class="about-hero">
+        <span class="eyebrow"><i class="fas fa-circle-info"></i> Platforma haqida</span>
+        <h1>BirMillat nima?</h1>
+        <p>BirMillat — O'zbekiston yoshlarini qiziqishlari asosida birlashtiradigan ijtimoiy platforma. Do'stlar toping, jamoalarga qo'shiling, tadbirlarda ishtirok eting, volontyorlik imkoniyatlarini kashf eting va o'z fikringizni maqolalar orqali ulashing.</p>
+    </section>
+
+    <div class="about-container">
+        <div class="about-section reveal">
+            <span class="section-kicker">Platformada nima bor</span>
+            <h2>Bir joyda — qiziqish, jamoa, tadbir</h2>
+            <p class="lead">Har bir bo'lim bitta aniq muammoni hal qiladi: kim bilan gaplashish, qayerga borish, kimga yordam berish kerakligini topish.</p>
+            <div class="feature-grid reveal-stagger reveal">
+                <a href="/recommend" class="feature-card card">
+                    <div class="feature-icon"><i class="fas fa-wand-magic-sparkles"></i></div>
+                    <h3>Tavsiyalar va Qidiruv</h3>
+                    <p>Qiziqishlaringiz bo'yicha mos foydalanuvchilarni tavsiya qiladi yoki ism/qiziqish bo'yicha qidirish imkonini beradi.</p>
+                </a>
+                <a href="/communities" class="feature-card card">
+                    <div class="feature-icon"><i class="fas fa-people-group"></i></div>
+                    <h3>Jamoalar</h3>
+                    <p>IELTS, IT, Startup, Sport va boshqa yo'nalishlarda guruhlar — real vaqtda suhbatlashish bilan.</p>
+                </a>
+                <a href="/events" class="feature-card card">
+                    <div class="feature-icon"><i class="fas fa-calendar-days"></i></div>
+                    <h3>Tadbirlar</h3>
+                    <p>Kelayotgan tadbirlarga QR-chipta orqali ro'yxatdan o'ting; o'tgan tadbirlarning fotolavhasini ko'ring.</p>
+                </a>
+                <a href="/volunteer" class="feature-card card">
+                    <div class="feature-icon"><i class="fas fa-hand-holding-heart"></i></div>
+                    <h3>Volontyorlik</h3>
+                    <p>Yordamchi kerakmi? E'lon joylang. Yordam bermoqchimisiz? Qo'l ko'taring — tashkilotchi siz bilan bog'lanadi.</p>
+                </a>
+                <a href="/articles" class="feature-card card">
+                    <div class="feature-icon"><i class="fas fa-newspaper"></i></div>
+                    <h3>Maqolalar</h3>
+                    <p>Foydalanuvchilar tomonidan yozilgan maqolalar — bilim va tajriba almashish uchun.</p>
+                </a>
+                <a href="/register" class="feature-card card">
+                    <div class="feature-icon"><i class="fas fa-user"></i></div>
+                    <h3>Profil va yutuqlar</h3>
+                    <p>Qiziqishlaringiz, bio va shaxsiy yutuqlaringizni ko'rsatadigan profil sahifasi.</p>
+                </a>
+            </div>
+        </div>
+
+        <div class="about-section reveal">
+            <span class="section-kicker">Asoschi</span>
+            <h2>Bexruz Ravshanov</h2>
+            <div class="founder-card card">
+                <div class="founder-avatar">BR</div>
+                <div class="founder-body">
+                    <h3>Bexruz Ravshanov</h3>
+                    <div class="founder-role">BirMillat asoschisi va yoshlar tashabbuskori</div>
+                    <p>U yoshlarni birlashtirish, ularning o'zaro hamkorligini kuchaytirish hamda rivojlanishi uchun yangi imkoniyatlar yaratishga intiladi.</p>
+                    <p>Maktab yillarida Bexruz o'ziga o'xshash maqsad va qiziqishlarga ega insonlarni topishda ko'p bora qiyinchiliklarga duch kelgan. U faol bo'lishni, yangi loyihalar yaratishni va o'z ustida ishlashni istar, biroq buning uchun mos muhitni topish har doim ham oson bo'lmagan.</p>
+                    <p>Burilish nuqtasi Young Climate Champions dasturida ishtirok etishi bo'ldi. Aynan shu yerda u O'zbekistonning turli hududlaridan kelgan faol va ilhomlantiruvchi yoshlar bilan tanishdi. Bu tajriba unga to'g'ri muhit va kuchli hamjamiyat insonning fikrlashi, maqsadlari va kelajagini o'zgartirishi mumkinligini ko'rsatdi.</p>
+                    <p>Shu tajribadan ilhomlanib, u BirMillat platformasini yaratdi. Platforma yoshlarning qiziqishlari orqali bir-birini topishi, tadbirlarda qatnashishi, bilim va tajriba almashishi, hamkorlar topishi hamda o'z g'oyalarini hayotga tatbiq etishi uchun xizmat qiladi.</p>
+                    <p>Bugungi kunda Bexruz turli yoshlar loyihalari va tashabbuslarida faol ishtirok etib, O'zbekistonda bir-birini qo'llab-quvvatlaydigan, imkoniyatlar yaratadigan va birgalikda rivojlanadigan yoshlar hamjamiyatini shakllantirish ustida ishlamoqda.</p>
+                    <div class="founder-socials">
+                        <a class="founder-social-btn instagram" href="https://www.instagram.com/bekhruzeon?igsh=djRuMTB3bDVtZWlw&utm_source=qr" target="_blank" rel="noopener noreferrer"><i class="fab fa-instagram"></i> Instagram</a>
+                        <a class="founder-social-btn facebook" href="https://www.facebook.com/share/19AYXrWqVJ/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer"><i class="fab fa-facebook"></i> Facebook</a>
+                        <a class="founder-social-btn linkedin" href="https://www.linkedin.com/in/bexruz-ravshanov-1013a0415?utm_source=share_via&utm_content=profile&utm_medium=member_ios" target="_blank" rel="noopener noreferrer"><i class="fab fa-linkedin"></i> LinkedIn</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="about-section reveal">
+            <span class="section-kicker">Bog'lanish</span>
+            <h2>BirMillat'ning rasmiy kanallari</h2>
+            <div class="channel-row reveal-stagger reveal">
+                <a class="channel-card card" href="https://t.me/birmillatUZB" target="_blank" rel="noopener noreferrer">
+                    <div class="channel-icon telegram"><i class="fab fa-telegram"></i></div>
+                    <h4>Telegram</h4>
+                    <p>@birmillatUZB</p>
+                </a>
+                <a class="channel-card card" href="https://instagram.com/birmillat.uz" target="_blank" rel="noopener noreferrer">
+                    <div class="channel-icon instagram"><i class="fab fa-instagram"></i></div>
+                    <h4>Instagram</h4>
+                    <p>@birmillat.uz</p>
+                </a>
+                <a class="channel-card card" href="https://t.me/BirMillat_support_bot" target="_blank" rel="noopener noreferrer">
+                    <div class="channel-icon support"><i class="fas fa-headset"></i></div>
+                    <h4>Yordam boti</h4>
+                    <p>@BirMillat_support_bot</p>
+                </a>
+            </div>
+        </div>
+
+        <div class="about-section reveal" style="margin-bottom:0;">
+            <div class="about-cta">
+                <h2>Qiziqishlaringizga mos odamlarni toping</h2>
+                <p>Ro'yxatdan o'tish bepul — bir necha daqiqa ichida boshlaysiz.</p>
+                <a href="/register" class="about-cta-btn btn-zoom">Bepul boshlash <i class="fas fa-arrow-right"></i></a>
+            </div>
+        </div>
+    </div>
+
+    <footer>© 2026 BirMillat · <a href="/about" style="color:inherit;">BirMillat nima?</a> · <a href="/contact" style="color:inherit;">Biz bilan bog'lanish</a> · <a href="/support" style="color:inherit;">Yordam</a> · <a href="/privacy" style="color:inherit;">Maxfiylik siyosati</a><br><span style="opacity:0.8;">Founder — Bekhruz Ravshanov</span></footer>
+</body>
+</html>
