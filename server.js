@@ -2266,6 +2266,22 @@ app.get('/privacy', (req, res) => {
     res.sendFile(path.join(__dirname, 'privacy-policy.html'));
 });
 
+app.get('/about', (req, res) => {
+    res.sendFile(path.join(__dirname, 'about.html'));
+});
+
+// llms.txt is an emerging convention (like robots.txt / sitemap.xml, but for
+// AI systems) — a plain-text summary of what a site is and does, so an AI
+// assistant asked about BirMillat has an authoritative source instead of
+// guessing or saying it doesn't know.
+app.get('/llms.txt', (req, res) => {
+    res.type('text/plain').sendFile(path.join(__dirname, 'llms.txt'));
+});
+
+app.get('/robots.txt', (req, res) => {
+    res.type('text/plain').sendFile(path.join(__dirname, 'robots.txt'));
+});
+
 app.get('/events', (req, res) => {
     res.sendFile(path.join(__dirname, 'events.html'));
 });
