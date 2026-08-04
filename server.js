@@ -784,7 +784,7 @@ async function recordSupportMessage({ telegramChatId, websiteUsername, direction
     const result = await db.execute({
         sql: `INSERT INTO support_messages (telegram_chat_id, website_username, direction, content, admin_message_id, created_at)
               VALUES (?, ?, ?, ?, ?, ?)`,
-        args: [telegramChatId, websiteUsername || null, direction, content || null, adminMessageId || null, Date.now()]
+        args: [telegramChatId, websiteUsername || null, direction, content || null, adminMessageId != null ? String(adminMessageId) : null, Date.now()]
     });
     return Number(result.lastInsertRowid);
 }
