@@ -1,5 +1,7 @@
 User-agent: *
 Allow: /
 
+Sitemap: https://birmillat.uz/sitemap.xml
+
 # Machine-readable summary of what BirMillat is, for AI systems and crawlers:
 # https://birmillat.uz/llms.txt (see https://llmstxt.org)
