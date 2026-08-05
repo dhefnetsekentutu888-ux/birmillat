@@ -2282,6 +2282,37 @@ app.get('/robots.txt', (req, res) => {
     res.type('text/plain').sendFile(path.join(__dirname, 'robots.txt'));
 });
 
+app.get('/sitemap.xml', async (req, res) => {
+    try {
+        const staticPages = [
+            '', 'about', 'events', 'volunteer', 'articles', 'founders.html',
+            'privacy', 'contact', 'support'
+        ];
+        const [events, opportunities, articles] = await Promise.all([
+            getApprovedEvents(null),
+            getVolunteerOpportunities({}),
+            listArticles()
+        ]);
+
+        const urls = [
+            ...staticPages.map(p => ({ loc: `${SITE_URL}/${p}`, priority: p === '' ? '1.0' : '0.8' })),
+            ...events.map(e => ({ loc: `${SITE_URL}/events/${e.id}`, priority: '0.6' })),
+            ...opportunities.map(o => ({ loc: `${SITE_URL}/volunteer/${o.id}`, priority: '0.6' })),
+            ...articles.map(a => ({ loc: `${SITE_URL}/articles/${a.id}`, priority: '0.6' }))
+        ];
+
+        const xml = `<?xml version="1.0" encoding="UTF-8"?>\n` +
+            `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
+            urls.map(u => `  <url><loc>${u.loc}</loc><priority>${u.priority}</priority></url>`).join('\n') +
+            `\n</urlset>`;
+
+        res.type('application/xml').send(xml);
+    } catch (err) {
+        console.error('sitemap.xml error:', err);
+        res.status(500).send('Server error');
+    }
+});
+
 app.get('/events', (req, res) => {
     res.sendFile(path.join(__dirname, 'events.html'));
 });
