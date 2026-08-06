@@ -446,6 +446,17 @@ async function getUser(username) {
     return result.rows[0] || null;
 }
 
+// "Dilfuza" and "dilfuza" are the same identity as far as uniqueness and
+// login are concerned — only the casing the person originally registered
+// with is kept for display.
+async function getUserCaseInsensitive(username) {
+    const result = await db.execute({
+        sql: 'SELECT * FROM users WHERE username = ? COLLATE NOCASE',
+        args: [username]
+    });
+    return result.rows[0] || null;
+}
+
 async function getUserByEmail(email) {
     const result = await db.execute({
         sql: 'SELECT * FROM users WHERE email = ?',
@@ -592,10 +603,13 @@ async function deletePendingRegistration(identifier) {
 // Username is considered taken if a real account has it, OR if someone else has
 // a *fresh* (non-expired) pending registration holding it.
 async function isUsernameTaken(username, excludeIdentifier = null) {
-    const existing = await getUser(username);
+    const existing = await getUserCaseInsensitive(username);
     if (existing) return true;
 
-    const result = await db.execute({ sql: 'SELECT email, created_at FROM pending_registrations WHERE username = ?', args: [username] });
+    const result = await db.execute({
+        sql: 'SELECT email, created_at FROM pending_registrations WHERE username = ? COLLATE NOCASE',
+        args: [username]
+    });
     for (const row of result.rows) {
         if (excludeIdentifier && row.email === excludeIdentifier) continue; // a person re-submitting their own pending signup is fine
         if (Date.now() - row.created_at <= PENDING_REGISTRATION_TTL_MS) return true;
@@ -1702,7 +1716,13 @@ const sessionMiddleware = session({
     }
 });
 app.use(sessionMiddleware);
-app.use(express.static(path.join(__dirname)));
+// { index: false } is essential here: without it, express.static silently
+// serves the literal index.html file for any GET / request *before* our own
+// app.get('/', ...) route below ever runs — which was the actual reason a
+// logged-in visitor landing on "/" always saw the logged-out page instead of
+// being redirected to /home. The route below is what does that redirect;
+// this line is what lets it actually run.
+app.use(express.static(path.join(__dirname), { index: false }));
 
 // ---------- Helper: render pages ----------
 function renderRegisterPage(message, isError = true) {
@@ -1922,7 +1942,7 @@ app.post('/login', async (req, res) => {
         } else if (/^\+?\d{9,15}$/.test(normalizePhone(clean))) {
             user = await getUserByPhone(normalizePhone(clean));
         } else {
-            user = await getUser(clean);
+            user = await getUserCaseInsensitive(clean);
         }
 
         if (!user) return res.send(renderLoginPage('Login noto‘g‘ri', true, safeNext));
@@ -1955,6 +1975,21 @@ function isValidEmail(email) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+// Strips a leading "@" (people type handles like Instagram/Telegram out of
+// habit — "@fotimaizahro") and surrounding whitespace, so a forgivable typing
+// habit doesn't get stored verbatim into the username itself. Everywhere
+// else in the app already prepends "@" when *displaying* a username, so a
+// stored "@fotimaizahro" was rendering as "@@fotimaizahro".
+function normalizeUsername(raw) {
+    return (raw || '').trim().replace(/^@+/, '');
+}
+
+// Only letters, numbers, and underscore — no "@", spaces, or other symbols
+// can end up in a stored username at all going forward.
+function isValidUsername(username) {
+    return /^[a-zA-Z0-9_]{3,24}$/.test(username);
+}
+
 function normalizePhone(raw) {
     // Strip everything except digits and a leading +, so "+998 90 123-45-67"
     // and "998901234567" both normalize to the same stored value.
@@ -1972,11 +2007,14 @@ function isValidPhone(phone) {
 app.post('/register', async (req, res) => {
     try {
         const { username, email, phone, password, confirmPassword, regMethod } = req.body;
-        const cleanUsername = (username || '').trim();
+        const cleanUsername = normalizeUsername(username);
         const method = regMethod === 'phone' ? 'phone' : 'email';
 
         if (!cleanUsername || !password) {
             return res.send(renderRegisterPage('Barcha maydonlarni to‘ldiring', true));
+        }
+        if (!isValidUsername(cleanUsername)) {
+            return res.send(renderRegisterPage('Foydalanuvchi nomi faqat harflar, raqamlar va pastki chiziqdan iborat bo‘lishi kerak (3–24 belgi)', true));
         }
         if (password.length < 8) {
             return res.send(renderRegisterPage('Parol kamida 8 belgi bo‘lishi kerak', true));
