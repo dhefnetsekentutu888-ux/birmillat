@@ -357,6 +357,20 @@ async function initDb() {
     `);
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_volunteer_status ON volunteer_opportunities (status, created_at)`);
 
+    // Admin-only announcements shown at the top of the home page, managed
+    // entirely through the Telegram admin bot (no web UI for creating these —
+    // by design, only the founder's own Telegram chat can post one).
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS home_posts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            content TEXT NOT NULL,
+            image_url TEXT,
+            created_at INTEGER NOT NULL,
+            is_active INTEGER NOT NULL DEFAULT 1
+        )
+    `);
+    await db.execute(`CREATE INDEX IF NOT EXISTS idx_home_posts_active ON home_posts (is_active, created_at)`);
+
     // A "hand raise" — someone expressing interest, with an optional short
     // note. One per person per opportunity.
     await db.execute(`
@@ -1266,6 +1280,24 @@ async function markCheckinAsUsed(token, checkedInBy) {
 // Verifies a Cloudflare Turnstile response token server-side before a QR pass
 // is minted, so the check-in flow can't be spammed into generating throwaway
 // passes. Returns true/false; never throws.
+// ---------- Home page announcements (admin-only, via Telegram bot) ----------
+async function createHomePost({ content, imageUrl }) {
+    const result = await db.execute({
+        sql: `INSERT INTO home_posts (content, image_url, created_at, is_active) VALUES (?, ?, ?, 1)`,
+        args: [content, imageUrl || null, Date.now()]
+    });
+    return Number(result.lastInsertRowid);
+}
+
+async function getLatestActiveHomePost() {
+    const result = await db.execute(`SELECT * FROM home_posts WHERE is_active = 1 ORDER BY created_at DESC LIMIT 1`);
+    return result.rows[0] || null;
+}
+
+async function deactivateAllHomePosts() {
+    return db.execute(`UPDATE home_posts SET is_active = 0 WHERE is_active = 1`);
+}
+
 async function verifyTurnstile(token, remoteip) {
     const secret = process.env.TURNSTILE_SECRET_KEY;
     if (!secret) {
@@ -2699,6 +2731,19 @@ app.get('/api/founders', async (req, res) => {
 // page that shows the widget) — only the *secret* key must stay server-side,
 // which it does, in verifyTurnstile(). This just avoids hardcoding the site
 // key into every HTML file.
+app.get('/api/home-post', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const post = await getLatestActiveHomePost();
+        res.json(post ? {
+            id: post.id, content: post.content, imageUrl: post.image_url, createdAt: post.created_at
+        } : null);
+    } catch (err) {
+        console.error('api/home-post error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 app.get('/api/config/turnstile', (req, res) => {
     res.json({ siteKey: process.env.TURNSTILE_SITE_KEY || null });
 });
@@ -3253,6 +3298,110 @@ function verificationEmailHtml(code) {
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_ADMIN_CHAT_ID = '8220562180';
 
+// In-memory only — fine for this, since it's a single-admin, low-stakes flow:
+// worst case if the server restarts mid-draft is the admin just runs /post
+// again. chatId -> { step, template, text, imageUrl }
+const adminPostDrafts = new Map();
+
+async function sendHomePostPreview(chatId, draft) {
+    const preview = `<b>Ko'rib chiqish:</b>\n\n${escapeHtmlForTelegram(draft.text)}\n\n` +
+        `Nashr qilish uchun /publish\nBekor qilish uchun /cancel`;
+    if (draft.imageUrl) {
+        try {
+            const imgRes = await fetch(draft.imageUrl);
+            const buffer = Buffer.from(await imgRes.arrayBuffer());
+            const sent = await sendTelegramPhotoTo(chatId, buffer, 'preview.jpg', preview);
+            if (sent && sent.ok) return;
+        } catch (e) {
+            console.error('Home post preview photo failed:', e);
+        }
+    }
+    await sendTelegramMessageTo(chatId, preview);
+}
+
+// Returns true if this message was consumed as part of an in-progress /post
+// draft (so the caller should stop processing it any further), false if
+// there's no draft in progress and the message should fall through to
+// normal admin-command handling.
+async function handleAdminPostDraftMessage(chatId, message) {
+    const draft = adminPostDrafts.get(chatId);
+    if (!draft) return false;
+
+    const text = (message.text || '').trim();
+
+    if (text === '/cancel') {
+        adminPostDrafts.delete(chatId);
+        await sendTelegramMessageTo(chatId, "❌ Bekor qilindi.", { remove_keyboard: true });
+        return true;
+    }
+
+    if (draft.step === 'choose_template') {
+        if (text === '📝 Faqat matn' || text === '🖼 Rasm bilan') {
+            draft.template = text === '🖼 Rasm bilan' ? 'photo' : 'text';
+            draft.step = 'awaiting_text';
+            await sendTelegramMessageTo(chatId, "Matningizni yuboring:", { remove_keyboard: true });
+        } else {
+            await sendTelegramMessageTo(chatId, "Iltimos, tugmalardan birini tanlang yoki /cancel yozing.");
+        }
+        return true;
+    }
+
+    if (draft.step === 'awaiting_text') {
+        if (!text) {
+            await sendTelegramMessageTo(chatId, "Matn kiriting yoki /cancel yozing.");
+            return true;
+        }
+        draft.text = text;
+        if (draft.template === 'photo') {
+            draft.step = 'awaiting_photo';
+            await sendTelegramMessageTo(chatId, "Endi rasmni yuboring:");
+        } else {
+            draft.step = 'awaiting_confirm';
+            await sendHomePostPreview(chatId, draft);
+        }
+        return true;
+    }
+
+    if (draft.step === 'awaiting_photo') {
+        if (message.photo && message.photo.length > 0) {
+            try {
+                const fileId = message.photo[message.photo.length - 1].file_id;
+                const fileRes = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getFile?file_id=${fileId}`);
+                const fileData = await fileRes.json();
+                if (!fileData.ok) throw new Error('getFile failed');
+                const fileUrl = `https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${fileData.result.file_path}`;
+                const imgRes = await fetch(fileUrl);
+                const buffer = Buffer.from(await imgRes.arrayBuffer());
+                const uploadResult = await uploadImageToFreeimage(buffer);
+                if (!uploadResult.ok) throw new Error(uploadResult.error || 'upload failed');
+                draft.imageUrl = uploadResult.url;
+                draft.step = 'awaiting_confirm';
+                await sendHomePostPreview(chatId, draft);
+            } catch (e) {
+                console.error('Home post photo handling failed:', e);
+                await sendTelegramMessageTo(chatId, "❌ Rasmni qayta ishlashda xatolik. Qaytadan yuboring yoki /cancel yozing.");
+            }
+        } else {
+            await sendTelegramMessageTo(chatId, "Iltimos, rasm yuboring yoki /cancel yozing.");
+        }
+        return true;
+    }
+
+    if (draft.step === 'awaiting_confirm') {
+        if (text === '/publish') {
+            await deactivateAllHomePosts();
+            await createHomePost({ content: draft.text, imageUrl: draft.imageUrl || null });
+            adminPostDrafts.delete(chatId);
+            await sendTelegramMessageTo(chatId, "✅ E'lon nashr qilindi! Bosh sahifada darhol ko'rinadi.");
+        } else {
+            await sendTelegramMessageTo(chatId, "Nashr qilish uchun /publish, bekor qilish uchun /cancel deb yozing.");
+        }
+        return true;
+    }
+
+    return false;
+}
+
 async function sendTelegramMessageTo(chatId, text, replyMarkup) {
     if (!TELEGRAM_BOT_TOKEN) {
         console.error('TELEGRAM_BOT_TOKEN is not set — cannot send Telegram notification');
@@ -3398,6 +3547,9 @@ app.post(`/telegram/webhook/${TELEGRAM_BOT_TOKEN}`, async (req, res) => {
 
         // ---------- Admin chat: commands, or a reply to forward back to a user ----------
         if (isAdmin) {
+            const draftConsumed = await handleAdminPostDraftMessage(fromChatId, message);
+            if (draftConsumed) return;
+
             if (message.reply_to_message) {
                 // You replied (Telegram's native Reply) to a message we forwarded —
                 // route your reply back to whichever user that thread belongs to.
@@ -3452,12 +3604,24 @@ app.post(`/telegram/webhook/${TELEGRAM_BOT_TOKEN}`, async (req, res) => {
                     }
                     await sendTelegramMessage(msg);
                 }
+            } else if (text === '/post') {
+                adminPostDrafts.set(fromChatId, { step: 'choose_template' });
+                await sendTelegramMessageTo(fromChatId, "Qanday post yaratmoqchisiz?", {
+                    keyboard: [['📝 Faqat matn'], ['🖼 Rasm bilan']],
+                    resize_keyboard: true,
+                    one_time_keyboard: true
+                });
+            } else if (text === '/post_off') {
+                await deactivateAllHomePosts();
+                await sendTelegramMessage("✅ Joriy e'lon bosh sahifadan olib tashlandi.");
             } else if (text === '/start' || text === '/help') {
                 await sendTelegramMessage(
                     `<b>BirMillat admin buyruqlari</b>\n\n` +
                     `/block foydalanuvchi_nomi — hisobni bloklash\n` +
                     `/unblock foydalanuvchi_nomi — blokdan chiqarish\n` +
-                    `/delete_article ID — maqolani o'chirish va muallifga ogohlantirish berish (3-ogohlantirish = avtomatik blok)\n\n` +
+                    `/delete_article ID — maqolani o'chirish va muallifga ogohlantirish berish (3-ogohlantirish = avtomatik blok)\n` +
+                    `/post — bosh sahifada ko'rinadigan yangi e'lon yaratish\n` +
+                    `/post_off — joriy e'lonni bosh sahifadan olib tashlash\n\n` +
                     `Foydalanuvchiga javob berish uchun, uning xabariga Telegram'ning "Reply" funksiyasidan foydalaning.`
                 );
             }
