@@ -843,3 +843,134 @@ footer {
 @media (prefers-reduced-motion: reduce) {
   .btn-zoom:hover, .btn-zoom:active { transform: none; }
 }
+
+/* =========================================================
+   Micro-interactions — tiered feedback system
+   ---------------------------------------------------------
+   Every clickable element on the site gets feedback on press —
+   but not the same feedback. Intensity is grouped into four
+   families so repeated actions (nav links, filter chips) stay
+   calm while rare, high-stakes actions (publish, join, submit)
+   get a moment that actually feels like something happened.
+   Assigned automatically by interactions.js via event delegation
+   (see that file for the classification rules) — nothing here
+   needed touching per-page markup.
+
+   .bm-low     ambient confirmation — sidebar/nav links, filter
+               chips, tabs, pagination. Clicked constantly, so the
+               nudge stays under the radar.
+   .bm-mid     clear but calm — icon buttons, cards, outline
+               buttons, social links. The site's default "this is
+               clickable" feedback.
+   .bm-high    one real moment per screen — primary CTAs: submit,
+               join, publish, like, register, send. Adds a ripple.
+   .bm-caution destructive actions — delete/cancel/report/leave.
+               A short shake instead of a bounce: "are you sure",
+               not "nice job".
+   .bm-toggle  stateful switches — theme toggle, hamburger, bell,
+               settings toggles. Icon rotates/flips, not the box.
+
+   Deliberately uses `animation`, not `transition`: a running CSS
+   Animation takes visual precedence over a CSS Transition on the
+   same property, so this layers cleanly on top of every page's
+   own local :hover/:active rules with zero specificity conflicts.
+   ========================================================= */
+
+@keyframes bm-press-low {
+  0%   { transform: translateY(0) scale(1); }
+  40%  { transform: translateY(1px) scale(0.985); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+@keyframes bm-press-mid {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(0.94); }
+  65%  { transform: scale(1.045); }
+  100% { transform: scale(1); }
+}
+
+@keyframes bm-press-high {
+  0%   { transform: scale(1); }
+  30%  { transform: scale(0.91); }
+  60%  { transform: scale(1.07); }
+  80%  { transform: scale(0.98); }
+  100% { transform: scale(1); }
+}
+
+@keyframes bm-shake {
+  0%, 100% { transform: translateX(0); }
+  20%      { transform: translateX(-5px) rotate(-1deg); }
+  40%      { transform: translateX(4px) rotate(1deg); }
+  60%      { transform: translateX(-3px); }
+  80%      { transform: translateX(2px); }
+}
+
+@keyframes bm-toggle-spin {
+  0%   { transform: rotate(0deg) scale(1); }
+  50%  { transform: rotate(160deg) scale(0.8); }
+  100% { transform: rotate(180deg) scale(1); }
+}
+
+.bm-anim-low    { animation: bm-press-low 0.15s ease-out; }
+.bm-anim-mid    { animation: bm-press-mid 0.24s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.bm-anim-high   { animation: bm-press-high 0.32s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.bm-anim-caution{ animation: bm-shake 0.34s ease-in-out; }
+.bm-anim-toggle i, .bm-anim-toggle svg, .bm-anim-toggle img { animation: bm-toggle-spin 0.32s cubic-bezier(0.34, 1.56, 0.64, 1); display: inline-block; }
+
+/* Ripple burst — reserved for .bm-high only, so it stays a signal
+   for "this is the important button" instead of visual noise. */
+.bm-ripple-wrap { position: relative; overflow: hidden; }
+.bm-ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.55);
+  transform: scale(0);
+  pointer-events: none;
+  animation: bm-ripple-expand 0.55s ease-out forwards;
+}
+[data-bm-tier="high"]:not(.btn-primary):not(.btn):not(.ev-new-btn) .bm-ripple,
+.btn-outline .bm-ripple, .btn-outline-dark .bm-ripple {
+  background: rgba(45, 27, 105, 0.18);
+}
+@keyframes bm-ripple-expand {
+  to { transform: scale(2.6); opacity: 0; }
+}
+
+/* Loading state — replaces the old "scale stuck mid-transition"
+   frozen look whenever a button is disabled during an async call
+   (the site's existing btn.disabled = true pattern). Three dots
+   fade in in place of the label so waiting reads as "working",
+   not "broken". */
+.bm-loading { position: relative; color: transparent !important; pointer-events: none; }
+.bm-loading * { visibility: hidden; }
+.bm-loading::after {
+  content: '';
+  position: absolute; left: 50%; top: 50%;
+  width: 6px; height: 6px; margin: -3px 0 0 -3px;
+  border-radius: 50%;
+  background: currentColor;
+  color: inherit;
+  box-shadow: -10px 0 0 0 currentColor, 10px 0 0 0 currentColor;
+  opacity: 0.35;
+  animation: bm-loading-dots 0.9s ease-in-out infinite;
+}
+.btn.bm-loading::after, .btn-primary.bm-loading::after { color: #fff; }
+@keyframes bm-loading-dots {
+  0%, 80%, 100% { opacity: 0.35; }
+  40% { opacity: 1; }
+}
+
+/* Logo — the two interlocking rings ease apart and re-interlock
+   on hover, echoing "Bir Millat" (one nation, two rings become one). */
+.navbar .logo svg > g > g { transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); transform-origin: 0 0; }
+.navbar .logo:hover svg > g > g:nth-of-type(1) { transform: rotate(-34deg); }
+.navbar .logo:hover svg > g > g:nth-of-type(2) { transform: rotate(34deg); }
+.navbar .logo:hover svg > g > g:nth-of-type(3) { transform: rotate(-18deg) scale(0.9); opacity: 0.7; }
+
+@media (prefers-reduced-motion: reduce) {
+  .bm-anim-low, .bm-anim-mid, .bm-anim-high, .bm-anim-caution, .bm-anim-toggle i,
+  .bm-anim-toggle svg, .bm-anim-toggle img, .bm-ripple, .bm-loading::after {
+    animation: none !important;
+  }
+  .navbar .logo svg > g > g { transition: none !important; }
+}
