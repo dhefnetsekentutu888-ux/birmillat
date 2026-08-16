@@ -10,6 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="/style.css">
+<script src="/interactions.js" defer></script>
 <style>
 /* ==========================================================
    Profile — two-column identity/settings layout. Genuinely
@@ -56,6 +57,41 @@ body { font-family: 'Inter', sans-serif; }
 .pr-id-meta span { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.82rem; color: var(--color-text-muted); }
 .pr-id-meta i { color: var(--color-accent); width: 13px; }
 .pr-id-edit-btn { width: 100%; justify-content: center; }
+
+.pr-id-stats { display: flex; justify-content: center; gap: 1.4rem; margin-bottom: 1.1rem; padding-top: 0.9rem; border-top: 1px solid var(--color-border); }
+.pr-id-stat { background: none; border: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 0.1rem; padding: 0.2rem 0.4rem; border-radius: var(--radius-sm); color: inherit; transition: transform .18s cubic-bezier(.34,1.56,.64,1); }
+.pr-id-stat:hover { background: var(--color-bg); }
+.pr-id-stat strong { font-family: 'Sora', sans-serif; font-size: 1.15rem; color: var(--color-text); }
+.pr-id-stat span { font-size: 0.72rem; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.3px; }
+
+/* ---------- Follow requests card ---------- */
+.fr-item { display: flex; align-items: center; gap: 0.8rem; padding: 0.7rem 0; border-bottom: 1px solid var(--color-border); }
+.fr-item:last-child { border-bottom: none; }
+.fr-avatar { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; background: linear-gradient(135deg,#EFEAF8,#E4DBF7); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--color-primary); font-family: 'Sora', sans-serif; }
+.fr-info { flex: 1; min-width: 0; }
+.fr-info a { font-weight: 700; color: var(--color-text); text-decoration: none; font-size: 0.92rem; }
+.fr-info a:hover { text-decoration: underline; }
+.fr-info .fr-username { font-size: 0.78rem; color: var(--color-text-muted); }
+.fr-actions { display: flex; gap: 0.4rem; flex-shrink: 0; }
+.fr-accept, .fr-decline {
+    width: 34px; height: 34px; border-radius: 50%; border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; font-size: 0.85rem;
+    transition: transform .18s cubic-bezier(.34,1.56,.64,1);
+}
+.fr-accept { background: var(--color-primary); color: #fff; }
+.fr-decline { background: var(--color-bg); color: var(--color-text-muted); border: 1.5px solid var(--color-border); }
+.fr-accept:hover, .fr-decline:hover { transform: scale(1.08); }
+.fr-empty { color: var(--color-text-muted); font-size: 0.85rem; padding: 0.4rem 0; }
+
+.follow-list-modal { display: none; position: fixed; inset: 0; background: rgba(26,22,37,0.5); z-index: 200; align-items: center; justify-content: center; padding: 1.5rem; }
+.follow-list-modal.open { display: flex; }
+.follow-list-card { max-width: 380px; width: 100%; max-height: 75vh; overflow-y: auto; padding: 1.4rem; }
+.follow-list-card h3 { font-family: 'Sora', sans-serif; font-size: 1.05rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
+.follow-list-card h3 button { background: none; border: none; color: var(--color-text-muted); cursor: pointer; font-size: 1rem; }
+.follow-list-item { display: flex; align-items: center; gap: 0.7rem; padding: 0.6rem 0; text-decoration: none; color: inherit; border-bottom: 1px solid var(--color-border); }
+.follow-list-item:last-child { border-bottom: none; }
+.follow-list-item .fr-avatar { width: 38px; height: 38px; font-size: 0.85rem; }
+.follow-list-item .fr-info a { font-size: 0.88rem; }
 
 /* ---------- Main column cards ---------- */
 .pr-card { margin-bottom: 1.3rem; }
@@ -249,6 +285,10 @@ body { font-family: 'Inter', sans-serif; }
                 <h1 class="pr-id-name" id="viewName">...</h1>
                 <div class="pr-id-username" id="viewUsername">@...</div>
                 <div class="pr-id-meta" id="viewMeta"></div>
+                <div class="pr-id-stats" id="viewStats">
+                    <button type="button" class="pr-id-stat" id="statFollowers"><strong id="followerCountNum">0</strong><span>Kuzatuvchi</span></button>
+                    <button type="button" class="pr-id-stat" id="statFollowing"><strong id="followingCountNum">0</strong><span>Kuzatilmoqda</span></button>
+                </div>
 
                 <button class="btn btn-primary btn-zoom pr-id-edit-btn view-only" id="editBtn">
                     <i class="fas fa-pen"></i> Profilni tahrirlash
@@ -258,6 +298,11 @@ body { font-family: 'Inter', sans-serif; }
 
         <!-- ===== Main column (right) ===== -->
         <main>
+            <div class="pr-card card view-only" id="followRequestsCard" style="display:none;">
+                <div class="section-label"><i class="fas fa-user-clock"></i> Kuzatish so'rovlari</div>
+                <div id="followRequestsList" style="margin-top:0.8rem;"></div>
+            </div>
+
             <div class="pr-card card view-only">
                 <div class="section-label">Bio</div>
                 <p class="profile-bio" id="viewBio"></p>
@@ -351,6 +396,13 @@ body { font-family: 'Inter', sans-serif; }
         </main>
     </div>
 
+    <div class="follow-list-modal" id="followListModal">
+        <div class="follow-list-card card">
+            <h3><span id="followListTitle">Kuzatuvchilar</span> <button type="button" id="followListClose"><i class="fas fa-xmark"></i></button></h3>
+            <div id="followListBody"></div>
+        </div>
+    </div>
+
     <footer>BirMillat – qiziqishlar asosida do'stlar toping. · <a href="/privacy" style="color:inherit;">Maxfiylik siyosati</a><br><span style="opacity:0.8;">Founder — Bekhruz Ravshanov</span></footer>
 
     <script>
@@ -442,6 +494,9 @@ body { font-family: 'Inter', sans-serif; }
                 if (me.age) metaParts.push(`<span><i class="fas fa-cake-candles"></i> ${me.age} yosh</span>`);
                 if (me.region) metaParts.push(`<span><i class="fas fa-location-dot"></i> ${me.region}</span>`);
                 metaEl.innerHTML = metaParts.join('');
+
+                document.getElementById('followerCountNum').textContent = me.followerCount || 0;
+                document.getElementById('followingCountNum').textContent = me.followingCount || 0;
 
                 currentInterests = me.interests || [];
                 renderViewInterests(currentInterests);
@@ -759,7 +814,99 @@ body { font-family: 'Inter', sans-serif; }
 
         refreshPushStatus();
 
-        loadMe().then(() => loadAchievements());
+        // ---------- Follow requests ----------
+        function frAvatar(user) {
+            return user.photoUrl
+                ? `<img src="${user.photoUrl}" alt="" class="fr-avatar">`
+                : `<div class="fr-avatar">${initials(user.name || user.username)}</div>`;
+        }
+
+        async function loadFollowRequests() {
+            try {
+                const res = await fetch('/api/follow-requests');
+                if (!res.ok) return;
+                const requests = await res.json();
+                const card = document.getElementById('followRequestsCard');
+                const list = document.getElementById('followRequestsList');
+
+                if (requests.length === 0) {
+                    card.style.display = 'none';
+                    return;
+                }
+                card.style.display = '';
+                list.innerHTML = requests.map(r => `
+                    <div class="fr-item" data-id="${r.id}">
+                        ${frAvatar(r)}
+                        <div class="fr-info">
+                            <a href="/u/${encodeURIComponent(r.username)}">${r.name || r.username}</a>
+                            <div class="fr-username">@${r.username}</div>
+                        </div>
+                        <div class="fr-actions">
+                            <button class="fr-accept" data-action="accept" aria-label="Qabul qilish"><i class="fas fa-check"></i></button>
+                            <button class="fr-decline" data-action="decline" aria-label="Rad etish"><i class="fas fa-xmark"></i></button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                console.error('Failed to load follow requests:', e);
+            }
+        }
+
+        document.getElementById('followRequestsList').addEventListener('click', async (e) => {
+            const btn = e.target.closest('button[data-action]');
+            if (!btn) return;
+            const item = btn.closest('.fr-item');
+            const id = item.getAttribute('data-id');
+            const action = btn.getAttribute('data-action');
+            btn.disabled = true;
+            try {
+                await fetch(`/api/follow-requests/${id}/${action}`, { method: 'POST' });
+                item.remove();
+                if (!document.getElementById('followRequestsList').children.length) {
+                    document.getElementById('followRequestsCard').style.display = 'none';
+                }
+                if (action === 'accept') loadMe(); // refresh follower count
+            } catch (e) {
+                console.error('Follow request action failed:', e);
+                btn.disabled = false;
+            }
+        });
+
+        // ---------- Followers / following list modal ----------
+        function openFollowListModal(title, items) {
+            document.getElementById('followListTitle').textContent = title;
+            const body = document.getElementById('followListBody');
+            body.innerHTML = items.length
+                ? items.map(u => `
+                    <a href="/u/${encodeURIComponent(u.username)}" class="follow-list-item">
+                        ${frAvatar(u)}
+                        <div class="fr-info">
+                            <a>${u.name || u.username}</a>
+                            <div class="fr-username">@${u.username}</div>
+                        </div>
+                    </a>
+                `).join('')
+                : `<div class="fr-empty">Hali hech kim yo'q.</div>`;
+            document.getElementById('followListModal').classList.add('open');
+        }
+        document.getElementById('followListClose').addEventListener('click', () => {
+            document.getElementById('followListModal').classList.remove('open');
+        });
+        document.getElementById('followListModal').addEventListener('click', (e) => {
+            if (e.target.id === 'followListModal') document.getElementById('followListModal').classList.remove('open');
+        });
+        document.getElementById('statFollowers').addEventListener('click', async () => {
+            if (!me) return;
+            const res = await fetch(`/api/users/${encodeURIComponent(me.username)}/followers`);
+            openFollowListModal('Kuzatuvchilar', res.ok ? await res.json() : []);
+        });
+        document.getElementById('statFollowing').addEventListener('click', async () => {
+            if (!me) return;
+            const res = await fetch(`/api/users/${encodeURIComponent(me.username)}/following`);
+            openFollowListModal('Kuzatilmoqda', res.ok ? await res.json() : []);
+        });
+
+        loadMe().then(() => { loadAchievements(); loadFollowRequests(); });
     </script>
 </body>
 </html>
