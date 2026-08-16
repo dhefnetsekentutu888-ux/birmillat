@@ -230,7 +230,7 @@
             </div>
         </div>
 
-        <div class="hm-interests reveal">
+        <div class="hm-interests card reveal">
             <div class="hm-kicker"><img src="/icons/icon-bolt.svg" alt=""> Sizning qiziqishlaringiz</div>
             <div class="tag-list" id="myInterestsTags">
                 <span class="tag" style="opacity:0.5">Yuklanmoqda...</span>
@@ -355,7 +355,7 @@
                             ${interests.length > 2 ? `<span class="hm-interest-badge">+${interests.length - 2}</span>` : ''}
                             ${interests.length === 0 ? `<span class="hm-interest-badge" style="opacity:0.6">Qiziqish ko'rsatilmagan</span>` : ''}
                         </div>
-                        <button class="hm-follow-btn" data-name="${user.name || user.username}"><i class="fas fa-user-plus"></i> Kuzatish</button>
+                        <button class="hm-follow-btn" data-username="${user.username}" data-name="${user.name || user.username}"><i class="fas fa-user-plus"></i> Kuzatish</button>
                     `;
                     grid.appendChild(card);
                 });
@@ -378,10 +378,24 @@
             if (btn) {
                 e.preventDefault();
                 e.stopPropagation();
-                const name = btn.getAttribute('data-name') || 'foydalanuvchi';
-                btn.innerHTML = '<i class="fas fa-check"></i> So\'rov yuborildi';
+                if (btn.disabled) return;
+                const username = btn.getAttribute('data-username');
+                if (!username) return;
                 btn.disabled = true;
-                btn.style.opacity = '0.6';
+                fetch(`/api/follow/${encodeURIComponent(username)}`, { method: 'POST' })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.status === 'accepted') {
+                            btn.innerHTML = '<i class="fas fa-check"></i> Kuzatilmoqda';
+                            btn.style.opacity = '0.6';
+                        } else if (data.status === 'pending') {
+                            btn.innerHTML = '<i class="fas fa-clock"></i> So\'rov yuborildi';
+                            btn.style.opacity = '0.6';
+                        } else {
+                            btn.disabled = false;
+                        }
+                    })
+                    .catch(() => { btn.disabled = false; });
             }
         });
 
