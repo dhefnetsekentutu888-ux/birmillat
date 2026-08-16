@@ -146,6 +146,25 @@ async function initDb() {
     `);
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_achievements_user ON achievements (user_id)`);
 
+    // Follows — Instagram-style "follow request" model, not a mutual/instant
+    // follow: a row starts 'pending' when A requests to follow B, and only
+    // becomes 'accepted' once B approves it. B doesn't automatically follow
+    // A back. Declining or unfollowing just deletes the row (no need to keep
+    // a rejected-request history around).
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS follows (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            requester_id INTEGER NOT NULL,
+            target_id INTEGER NOT NULL,
+            status TEXT NOT NULL DEFAULT 'pending',
+            created_at INTEGER NOT NULL,
+            responded_at INTEGER,
+            UNIQUE(requester_id, target_id)
+        )
+    `);
+    await db.execute(`CREATE INDEX IF NOT EXISTS idx_follows_target ON follows (target_id, status)`);
+    await db.execute(`CREATE INDEX IF NOT EXISTS idx_follows_requester ON follows (requester_id, status)`);
+
     // Founders and core team members are public records managed only by the
     // account named in FOUNDER_ADMIN_USERNAME (configured in the host).
     await db.execute(`
@@ -553,6 +572,16 @@ async function updateUserPassword(email, passwordHash) {
     });
 }
 
+// Generic version of updateUserPassword for the phone/Telegram reset flow,
+// where the identifier lives in the `phone` column instead of `email`.
+async function updateUserPasswordByIdentifier(method, identifier, passwordHash) {
+    const column = method === 'phone' ? 'phone' : 'email';
+    return db.execute({
+        sql: `UPDATE users SET password = ? WHERE ${column} = ?`,
+        args: [passwordHash, identifier]
+    });
+}
+
 function generateSixDigitCode() {
     return String(Math.floor(100000 + Math.random() * 900000));
 }
@@ -805,6 +834,88 @@ function notifyUser(userId, { type, content, link, pushTitle }) {
     createNotification(userId, type, content, link).catch(e => console.error('createNotification failed:', e));
     sendPushToUser(userId, { title: pushTitle || 'BirMillat', body: content, link });
     notifyUserViaTelegram(userId, escapeHtmlForTelegram(content));
+}
+
+// ---------- Follows (Instagram-style follow requests) ----------
+// A request is created 'pending' and only becomes a real follow once the
+// target accepts it. See the `follows` table comment in initDb for why.
+async function createFollowRequest(requesterId, targetId) {
+    const now = Date.now();
+    await db.execute({
+        sql: `INSERT INTO follows (requester_id, target_id, status, created_at)
+              VALUES (?, ?, 'pending', ?)
+              ON CONFLICT(requester_id, target_id) DO NOTHING`,
+        args: [requesterId, targetId, now]
+    });
+    const result = await db.execute({
+        sql: 'SELECT * FROM follows WHERE requester_id = ? AND target_id = ?',
+        args: [requesterId, targetId]
+    });
+    return result.rows[0] || null;
+}
+
+async function getFollowRow(requesterId, targetId) {
+    const result = await db.execute({
+        sql: 'SELECT * FROM follows WHERE requester_id = ? AND target_id = ?',
+        args: [requesterId, targetId]
+    });
+    return result.rows[0] || null;
+}
+
+async function getFollowRequestById(id) {
+    const result = await db.execute({ sql: 'SELECT * FROM follows WHERE id = ?', args: [id] });
+    return result.rows[0] || null;
+}
+
+async function acceptFollowRequest(id) {
+    await db.execute({
+        sql: `UPDATE follows SET status = 'accepted', responded_at = ? WHERE id = ? AND status = 'pending'`,
+        args: [Date.now(), id]
+    });
+}
+
+// Used for: target declining a pending request, requester cancelling their
+// own pending request, and either side unfollowing an accepted one — all the
+// same operation (delete the row) with different callers checking permission.
+async function deleteFollowRow(id) {
+    await db.execute({ sql: 'DELETE FROM follows WHERE id = ?', args: [id] });
+}
+
+async function getPendingRequestsForUser(userId) {
+    const result = await db.execute({
+        sql: `SELECT f.id, f.created_at, u.username, u.name, u.photo_url
+              FROM follows f JOIN users u ON u.id = f.requester_id
+              WHERE f.target_id = ? AND f.status = 'pending'
+              ORDER BY f.created_at DESC`,
+        args: [userId]
+    });
+    return result.rows;
+}
+
+async function getFollowCounts(userId) {
+    const [followers, following] = await Promise.all([
+        db.execute({ sql: `SELECT COUNT(*) as count FROM follows WHERE target_id = ? AND status = 'accepted'`, args: [userId] }),
+        db.execute({ sql: `SELECT COUNT(*) as count FROM follows WHERE requester_id = ? AND status = 'accepted'`, args: [userId] })
+    ]);
+    return { followers: followers.rows[0].count, following: following.rows[0].count };
+}
+
+async function getFollowersList(userId) {
+    const result = await db.execute({
+        sql: `SELECT u.username, u.name, u.photo_url FROM follows f JOIN users u ON u.id = f.requester_id
+              WHERE f.target_id = ? AND f.status = 'accepted' ORDER BY f.responded_at DESC`,
+        args: [userId]
+    });
+    return result.rows;
+}
+
+async function getFollowingList(userId) {
+    const result = await db.execute({
+        sql: `SELECT u.username, u.name, u.photo_url FROM follows f JOIN users u ON u.id = f.target_id
+              WHERE f.requester_id = ? AND f.status = 'accepted' ORDER BY f.responded_at DESC`,
+        args: [userId]
+    });
+    return result.rows;
 }
 
 // ---------- Support chat helpers ----------
@@ -2463,37 +2574,76 @@ app.get('/logout', (req, res) => {
 });
 
 // ---------- Forgot password flow ----------
-function renderForgotPasswordPage(message, isError = true) {
+// Supports both account types: email accounts get a code by email as
+// before; phone/Telegram accounts get the code as a Telegram DM from the
+// support bot (they never had an email on file to send anything to).
+function renderForgotPasswordPage(message, isError = true, method = 'email') {
     const msgClass = isError ? 'error' : 'success';
+    const isPhone = method === 'phone';
     return `<!DOCTYPE html><html><head><script src="/theme.js"></script><title>Parolni tiklash - BirMillat</title>
     <link rel="icon" type="image/png" href="/favicon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="/interactions.js" defer></script>
     <style>.auth-logo { height: 40px; margin-bottom: 1rem; }</style>
     </head>
     <body class="auth-shell"><div class="auth-card">
         <img src="/logo-full.svg" alt="BirMillat" class="auth-logo">
         <h2>Parolni tiklash</h2>
-        <p style="color:var(--color-text-muted); font-size:0.9rem; margin-bottom:1rem;">Ro'yxatdan o'tgan email manzilingizni kiriting — kod yuboramiz.</p>
+        <p style="color:var(--color-text-muted); font-size:0.9rem; margin-bottom:1rem;">Qaysi usulda ro'yxatdan o'tgansiz?</p>
+        <div style="display:flex; gap:0.5rem; margin-bottom:1rem;">
+            <button type="button" class="mode-btn" data-method="email" id="fpMethodEmailBtn" style="flex:1; padding:0.65rem; border-radius:var(--radius-sm); border:1.5px solid ${!isPhone ? 'var(--color-primary)' : 'var(--color-border)'}; background:${!isPhone ? '#EFEAF8' : 'transparent'}; color:${!isPhone ? 'var(--color-primary)' : 'var(--color-text)'}; font-weight:600; cursor:pointer;">Email</button>
+            <button type="button" class="mode-btn" data-method="phone" id="fpMethodPhoneBtn" style="flex:1; padding:0.65rem; border-radius:var(--radius-sm); border:1.5px solid ${isPhone ? 'var(--color-primary)' : 'var(--color-border)'}; background:${isPhone ? '#EFEAF8' : 'transparent'}; color:${isPhone ? 'var(--color-primary)' : 'var(--color-text)'}; font-weight:600; cursor:pointer;">Telefon</button>
+        </div>
         ${message ? `<div class="message ${msgClass}">${message}</div>` : ''}
         <form method=post action=/forgot-password>
-            <input type=email name=email placeholder="Email manzilingiz" required>
+            <input type=hidden name=regMethod id="fpMethodInput" value="${method}">
+            <input type=email name=email id="fpEmailInput" placeholder="Email manzilingiz" style="${isPhone ? 'display:none;' : ''}" ${isPhone ? '' : 'required'}>
+            <input type=tel name=phone id="fpPhoneInput" placeholder="+998 90 123 45 67" style="${isPhone ? '' : 'display:none;'}" ${isPhone ? 'required' : ''}>
+            ${isPhone ? `<div class="field-hint" style="font-size:0.8rem; color:var(--color-text-muted); margin:-0.4rem 0 0.8rem;">Kod Telegramdagi <strong>@BirMillat_support_bot</strong> orqali yuboriladi — bu botni avval ro'yxatdan o'tishda ulagan bo'lishingiz kerak.</div>` : ''}
             <button type=submit>Kod yuborish</button>
         </form>
         <p><a href=/login style="font-size:0.85rem;">Kirishga qaytish</a></p>
-    </div></body></html>`;
+    </div>
+    <script>
+        const fpEmailBtn = document.getElementById('fpMethodEmailBtn');
+        const fpPhoneBtn = document.getElementById('fpMethodPhoneBtn');
+        const fpEmailInput = document.getElementById('fpEmailInput');
+        const fpPhoneInput = document.getElementById('fpPhoneInput');
+        const fpMethodInput = document.getElementById('fpMethodInput');
+        function setFpMethod(method) {
+            const isPhone = method === 'phone';
+            fpMethodInput.value = method;
+            fpEmailInput.style.display = isPhone ? 'none' : 'block';
+            fpEmailInput.required = !isPhone;
+            fpPhoneInput.style.display = isPhone ? 'block' : 'none';
+            fpPhoneInput.required = isPhone;
+            fpEmailBtn.style.borderColor = !isPhone ? 'var(--color-primary)' : 'var(--color-border)';
+            fpEmailBtn.style.background = !isPhone ? '#EFEAF8' : 'transparent';
+            fpEmailBtn.style.color = !isPhone ? 'var(--color-primary)' : 'var(--color-text)';
+            fpPhoneBtn.style.borderColor = isPhone ? 'var(--color-primary)' : 'var(--color-border)';
+            fpPhoneBtn.style.background = isPhone ? '#EFEAF8' : 'transparent';
+            fpPhoneBtn.style.color = isPhone ? 'var(--color-primary)' : 'var(--color-text)';
+        }
+        fpEmailBtn.addEventListener('click', () => setFpMethod('email'));
+        fpPhoneBtn.addEventListener('click', () => setFpMethod('phone'));
+    </script>
+    </body></html>`;
 }
 
-function renderResetPasswordPage(email, message, isError = true) {
+function renderResetPasswordPage(identifier, method, message, isError = true) {
     const msgClass = isError ? 'error' : 'success';
+    const isPhone = method === 'phone';
     return `<!DOCTYPE html><html><head><script src="/theme.js"></script><title>Yangi parol - BirMillat</title>
     <link rel="icon" type="image/png" href="/favicon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/style.css">
+    <script src="/interactions.js" defer></script>
     <style>
         .auth-logo { height: 40px; margin-bottom: 1rem; }
         .code-input { font-size: 1.4rem; letter-spacing: 4px; text-align: center; font-weight: 700; color: var(--color-primary); }
@@ -2502,10 +2652,11 @@ function renderResetPasswordPage(email, message, isError = true) {
     <body class="auth-shell"><div class="auth-card">
         <img src="/logo-full.svg" alt="BirMillat" class="auth-logo">
         <h2>Yangi parol o'rnatish</h2>
-        <p style="color:var(--color-text-muted); font-size:0.9rem; margin-bottom:1rem;"><strong>${email}</strong> manziliga yuborilgan kodni kiriting.</p>
+        <p style="color:var(--color-text-muted); font-size:0.9rem; margin-bottom:1rem;">${isPhone ? `<strong>${identifier}</strong> raqamiga bog'langan Telegram orqali yuborilgan kodni kiriting.` : `<strong>${identifier}</strong> manziliga yuborilgan kodni kiriting.`}</p>
         ${message ? `<div class="message ${msgClass}">${message}</div>` : ''}
         <form method=post action=/reset-password>
-            <input type=hidden name=email value="${email}">
+            <input type=hidden name=email value="${identifier}">
+            <input type=hidden name=method value="${method}">
             <input name=code class="code-input" placeholder="000000" maxlength=6 inputmode="numeric" required>
             <input type=password name=password placeholder="Yangi parol (kamida 8 belgi)" minlength=8 required>
             <input type=password name=confirmPassword placeholder="Yangi parolni takrorlang" minlength=8 required>
@@ -2520,6 +2671,29 @@ app.get('/forgot-password', (req, res) => {
 
 app.post('/forgot-password', async (req, res) => {
     try {
+        const method = req.body.regMethod === 'phone' ? 'phone' : 'email';
+
+        if (method === 'phone') {
+            const phone = normalizePhone(req.body.phone || '');
+            const user = phone ? await getUserByPhone(phone) : null;
+
+            // Same generic message either way — this endpoint shouldn't
+            // reveal which phone numbers are registered.
+            if (user && user.telegram_chat_id) {
+                const code = await createVerificationCode(phone, 'reset');
+                await sendTelegramMessageTo(user.telegram_chat_id,
+                    `🔐 <b>BirMillat — parolni tiklash kodi</b>\n\nKodingiz: <b>${code}</b>\n\nBu kod 15 daqiqa amal qiladi. Agar bu so'rovni siz yubormagan bo'lsangiz, xabarni e'tiborsiz qoldiring.`);
+            } else if (user && !user.telegram_chat_id) {
+                // Registered by phone but somehow never linked (shouldn't
+                // normally happen since phone verification links it), or
+                // the link was lost. Nothing we can deliver a code to.
+                return res.send(renderForgotPasswordPage(
+                    'Bu raqam Telegramga ulanmagan. Yordam uchun @BirMillat_support_bot ga yozing.', true, 'phone'));
+            }
+
+            return res.send(renderResetPasswordPage(phone, 'phone', 'Agar bu raqam ro‘yxatdan o‘tgan bo‘lsa, Telegram orqali kod yuborildi.', false));
+        }
+
         const email = (req.body.email || '').trim().toLowerCase();
         const user = await getUserByEmail(email);
 
@@ -2530,7 +2704,7 @@ app.post('/forgot-password', async (req, res) => {
             await sendEmail(email, 'BirMillat — parolni tiklash kodi', verificationEmailHtml(code));
         }
 
-        res.send(renderResetPasswordPage(email, 'Agar bu email ro‘yxatdan o‘tgan bo‘lsa, kod yuborildi.', false));
+        res.send(renderResetPasswordPage(email, 'email', 'Agar bu email ro‘yxatdan o‘tgan bo‘lsa, kod yuborildi.', false));
     } catch (err) {
         console.error('Forgot password error:', err);
         res.send(renderForgotPasswordPage('Server xatosi, qaytadan urinib ko‘ring', true));
@@ -2538,34 +2712,37 @@ app.post('/forgot-password', async (req, res) => {
 });
 
 app.post('/reset-password', async (req, res) => {
+    const method = req.body.method === 'phone' ? 'phone' : 'email';
     try {
-        const email = (req.body.email || '').trim().toLowerCase();
+        const identifier = method === 'phone'
+            ? normalizePhone(req.body.email || '')
+            : (req.body.email || '').trim().toLowerCase();
         const { code, password, confirmPassword } = req.body;
 
         if (password.length < 8) {
-            return res.send(renderResetPasswordPage(email, 'Parol kamida 8 belgi bo‘lishi kerak', true));
+            return res.send(renderResetPasswordPage(identifier, method, 'Parol kamida 8 belgi bo‘lishi kerak', true));
         }
         if (password !== confirmPassword) {
-            return res.send(renderResetPasswordPage(email, 'Parollar mos kelmadi', true));
+            return res.send(renderResetPasswordPage(identifier, method, 'Parollar mos kelmadi', true));
         }
 
-        const result = await verifyCode(email, code, 'reset');
+        const result = await verifyCode(identifier, code, 'reset');
         if (!result.valid) {
-            return res.send(renderResetPasswordPage(email, result.reason, true));
+            return res.send(renderResetPasswordPage(identifier, method, result.reason, true));
         }
 
         const hashed = await bcrypt.hash(password, 10);
-        await updateUserPassword(email, hashed);
-        // Successfully entering a code sent to this email already proves
-        // ownership of the inbox — no reason to make them verify again
+        await updateUserPasswordByIdentifier(method, identifier, hashed);
+        // Successfully entering a code sent to this identifier already
+        // proves ownership of it — no reason to make them verify again
         // separately afterward. This also unsticks any pre-existing account
         // that predates the deferred-verification registration flow.
-        await markUserVerified(email);
+        await markUserVerifiedByIdentifier(method, identifier);
 
         res.send(renderLoginPage('Parolingiz yangilandi. Endi kirishingiz mumkin.', false));
     } catch (err) {
         console.error('Reset password error:', err);
-        res.send(renderResetPasswordPage(req.body.email || '', 'Server xatosi', true));
+        res.send(renderResetPasswordPage(req.body.email || '', method, 'Server xatosi', true));
     }
 });
 
@@ -2888,6 +3065,7 @@ app.get('/api/me', async (req, res) => {
     try {
         const user = await getUserById(req.session.userId);
         if (!user) return res.status(401).json({ error: 'Unauthorized' });
+        const counts = await getFollowCounts(user.id);
         res.json({
             id: user.id,
             username: user.username,
@@ -2901,7 +3079,9 @@ app.get('/api/me', async (req, res) => {
             email: user.email,
             phone: user.phone,
             telegramLinked: !!user.telegram_chat_id,
-            showcasePublic: !!user.showcase_public
+            showcasePublic: !!user.showcase_public,
+            followerCount: counts.followers,
+            followingCount: counts.following
         });
     } catch (err) {
         console.error('api/me error:', err);
@@ -3205,6 +3385,12 @@ app.get('/api/users/:username', async (req, res) => {
     try {
         const user = await getUser(req.params.username);
         if (!user) return res.status(404).json({ error: 'Foydalanuvchi topilmadi' });
+
+        const counts = await getFollowCounts(user.id);
+        const followRow = await getFollowRow(req.session.userId, user.id);
+        // From the viewer's point of view: are *they* following this person?
+        const followStatus = followRow ? followRow.status : null; // null | 'pending' | 'accepted'
+
         res.json({
             username: user.username,
             name: user.name,
@@ -3212,10 +3398,130 @@ app.get('/api/users/:username', async (req, res) => {
             interests: JSON.parse(user.interests || '[]'),
             photoUrl: user.photo_url,
             age: calculateAge(user.birthdate),
-            region: user.region
+            region: user.region,
+            followerCount: counts.followers,
+            followingCount: counts.following,
+            followStatus
         });
     } catch (err) {
         console.error('api/users/:username error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// ---------- Follow requests ----------
+app.post('/api/follow/:username', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const target = await getUser(req.params.username);
+        if (!target) return res.status(404).json({ error: 'Foydalanuvchi topilmadi' });
+        if (target.id === req.session.userId) return res.status(400).json({ error: "O'zingizni kuzatib bo'lmaydi" });
+
+        const existing = await getFollowRow(req.session.userId, target.id);
+        if (existing) {
+            return res.json({ status: existing.status }); // already pending or accepted — idempotent
+        }
+
+        await createFollowRequest(req.session.userId, target.id);
+        const me = await getUserById(req.session.userId);
+        notifyUser(target.id, {
+            type: 'follow_request',
+            content: `@${me.username} sizni kuzatishni so'ramoqda`,
+            link: '/profile',
+            pushTitle: 'Yangi kuzatish so\'rovi'
+        });
+
+        res.json({ status: 'pending' });
+    } catch (err) {
+        console.error('api/follow error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Requester cancels their own outstanding request, or unfollows someone
+// they're already following — same endpoint, the row is just deleted.
+app.post('/api/follow/:username/cancel', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const target = await getUser(req.params.username);
+        if (!target) return res.status(404).json({ error: 'Foydalanuvchi topilmadi' });
+        const row = await getFollowRow(req.session.userId, target.id);
+        if (row) await deleteFollowRow(row.id);
+        res.json({ status: null });
+    } catch (err) {
+        console.error('api/follow/cancel error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.get('/api/follow-requests', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const rows = await getPendingRequestsForUser(req.session.userId);
+        res.json(rows.map(r => ({
+            id: r.id, username: r.username, name: r.name, photoUrl: r.photo_url, createdAt: r.created_at
+        })));
+    } catch (err) {
+        console.error('api/follow-requests error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.post('/api/follow-requests/:id/accept', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const request = await getFollowRequestById(req.params.id);
+        if (!request || request.target_id !== req.session.userId) return res.status(404).json({ error: 'Topilmadi' });
+        await acceptFollowRequest(request.id);
+        const me = await getUserById(req.session.userId);
+        notifyUser(request.requester_id, {
+            type: 'follow_accept',
+            content: `@${me.username} so'rovingizni qabul qildi`,
+            link: `/u/${me.username}`,
+            pushTitle: 'So\'rov qabul qilindi'
+        });
+        res.json({ success: true });
+    } catch (err) {
+        console.error('api/follow-requests/accept error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.post('/api/follow-requests/:id/decline', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const request = await getFollowRequestById(req.params.id);
+        if (!request || request.target_id !== req.session.userId) return res.status(404).json({ error: 'Topilmadi' });
+        await deleteFollowRow(request.id);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('api/follow-requests/decline error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.get('/api/users/:username/followers', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const user = await getUser(req.params.username);
+        if (!user) return res.status(404).json({ error: 'Foydalanuvchi topilmadi' });
+        const rows = await getFollowersList(user.id);
+        res.json(rows.map(r => ({ username: r.username, name: r.name, photoUrl: r.photo_url })));
+    } catch (err) {
+        console.error('api/users/:username/followers error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.get('/api/users/:username/following', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const user = await getUser(req.params.username);
+        if (!user) return res.status(404).json({ error: 'Foydalanuvchi topilmadi' });
+        const rows = await getFollowingList(user.id);
+        res.json(rows.map(r => ({ username: r.username, name: r.name, photoUrl: r.photo_url })));
+    } catch (err) {
+        console.error('api/users/:username/following error:', err);
         res.status(500).json({ error: 'Server error' });
     }
 });
