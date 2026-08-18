@@ -10,6 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="/style.css">
+<script src="/interactions.js" defer></script>
 <script src="/socket.io/socket.io.js"></script>
 <style>
     body { font-family: 'Inter', sans-serif; }
@@ -107,32 +108,42 @@
         flex-direction: column;
         gap: 0.6rem;
     }
+    .msg-wrapper { display: flex; flex-direction: column; max-width: 70%; }
+    .msg-wrapper.mine { align-self: flex-end; align-items: flex-end; }
+    .msg-wrapper.theirs { align-self: flex-start; align-items: flex-start; }
     .msg-bubble {
-        max-width: 70%;
         padding: 0.6rem 0.95rem;
         border-radius: 1rem;
         font-size: 0.92rem;
         line-height: 1.4;
         word-wrap: break-word;
+        cursor: pointer;
     }
     .msg-bubble.theirs {
         background: var(--color-bg);
         color: var(--color-text);
-        align-self: flex-start;
         border-bottom-left-radius: 0.3rem;
     }
     .msg-bubble.mine {
         background: linear-gradient(135deg, var(--color-primary), #4A2F9E);
         color: var(--color-surface);
-        align-self: flex-end;
         border-bottom-right-radius: 0.3rem;
     }
+    .msg-bubble.deleted { opacity: 0.55; font-style: italic; cursor: default; }
     .msg-time {
         font-size: 0.68rem;
         opacity: 0.65;
         margin-top: 0.25rem;
         display: block;
     }
+    .msg-actions { display: none; gap: 0.35rem; margin-top: 0.3rem; }
+    .msg-wrapper.actions-open .msg-actions { display: flex; }
+    .msg-action-btn {
+        background: var(--color-bg); border: 1px solid var(--color-border); color: var(--color-text-muted);
+        cursor: pointer; font-size: 0.7rem; padding: 0.28rem 0.6rem; border-radius: var(--radius-pill);
+        display: inline-flex; align-items: center; gap: 0.3rem; transition: transform .18s cubic-bezier(.34,1.56,.64,1), color .15s ease;
+    }
+    .msg-action-btn:hover { transform: scale(1.06); color: var(--color-error); }
     .date-divider {
         align-self: center;
         background: var(--color-bg);
@@ -394,25 +405,78 @@
             document.getElementById('messageInput').focus();
         }
 
-        function appendMessage(content, isMine, createdAt) {
+        function appendMessage(msg) {
             const messagesEl = document.getElementById('chatMessages');
             if (!messagesEl) return;
 
-            const msgDate = new Date(createdAt);
+            const msgDate = new Date(msg.createdAt);
             if (!lastShownDate || !isSameDay(msgDate, lastShownDate)) {
                 const divider = document.createElement('div');
                 divider.className = 'date-divider';
-                divider.textContent = formatDateDivider(createdAt);
+                divider.textContent = formatDateDivider(msg.createdAt);
                 messagesEl.appendChild(divider);
                 lastShownDate = msgDate;
             }
 
-            const bubble = document.createElement('div');
-            bubble.className = 'msg-bubble ' + (isMine ? 'mine' : 'theirs');
-            bubble.innerHTML = `${escapeHtml(content)}<span class="msg-time">${formatTime(createdAt)}</span>`;
-            messagesEl.appendChild(bubble);
+            const wrapper = document.createElement('div');
+            wrapper.className = 'msg-wrapper ' + (msg.isMine ? 'mine' : 'theirs');
+            if (msg.id != null) wrapper.dataset.messageId = msg.id;
+
+            const bubbleContent = msg.isDeleted
+                ? `<i class="fas fa-ban" style="margin-right:0.35rem; opacity:0.7;"></i>Xabar o'chirildi`
+                : escapeHtml(msg.content);
+
+            const actionsHtml = (msg.isMine && !msg.isDeleted && msg.id != null)
+                ? `<div class="msg-actions"><button class="msg-action-btn" data-action="delete"><i class="fas fa-trash"></i> O'chirish</button></div>`
+                : '';
+
+            wrapper.innerHTML = `
+                <div class="msg-bubble ${msg.isMine ? 'mine' : 'theirs'} ${msg.isDeleted ? 'deleted' : ''}">${bubbleContent}<span class="msg-time">${formatTime(msg.createdAt)}</span></div>
+                ${actionsHtml}
+            `;
+            messagesEl.appendChild(wrapper);
             messagesEl.scrollTop = messagesEl.scrollHeight;
         }
+
+        function markMessageDeleted(id) {
+            const wrapper = document.querySelector(`.msg-wrapper[data-message-id="${id}"]`);
+            if (!wrapper) return;
+            const bubble = wrapper.querySelector('.msg-bubble');
+            if (bubble) {
+                bubble.classList.add('deleted');
+                const timeSpan = bubble.querySelector('.msg-time');
+                bubble.innerHTML = `<i class="fas fa-ban" style="margin-right:0.35rem; opacity:0.7;"></i>Xabar o'chirildi`;
+                if (timeSpan) bubble.appendChild(timeSpan);
+            }
+            const actions = wrapper.querySelector('.msg-actions');
+            if (actions) actions.remove();
+            wrapper.classList.remove('actions-open');
+        }
+
+        document.addEventListener('click', (e) => {
+            const bubble = e.target.closest('.msg-bubble');
+            if (bubble && !bubble.classList.contains('deleted')) {
+                const wrapper = bubble.closest('.msg-wrapper');
+                if (!wrapper || !wrapper.querySelector('.msg-actions')) return;
+                const wasOpen = wrapper.classList.contains('actions-open');
+                document.querySelectorAll('.msg-wrapper.actions-open').forEach(w => w.classList.remove('actions-open'));
+                if (!wasOpen) wrapper.classList.add('actions-open');
+                return;
+            }
+
+            const actionBtn = e.target.closest('.msg-action-btn[data-action="delete"]');
+            if (actionBtn) {
+                const wrapper = actionBtn.closest('.msg-wrapper');
+                const id = wrapper && wrapper.dataset.messageId;
+                if (!id) return;
+                if (!confirm("Bu xabarni o'chirmoqchimisiz?")) return;
+                socket.emit('delete_message', { messageId: id }, (response) => {
+                    if (!response || !response.success) {
+                        alert((response && response.error) || "O'chirib bo'lmadi");
+                    }
+                });
+            }
+        });
 
         function escapeHtml(str) {
             const div = document.createElement('div');
@@ -439,7 +503,7 @@
                 if (data.messages.length === 0) {
                     messagesEl.innerHTML = `<div class="chat-empty-state" style="height:100%;"><i class="fas fa-hand-wave"></i><p>Hali xabar yo'q. Birinchi bo'lib salom ayting!</p></div>`;
                 } else {
-                    data.messages.forEach(m => appendMessage(m.content, m.isMine, m.createdAt));
+                    data.messages.forEach(m => appendMessage(m));
                 }
             } catch (e) {
                 console.error('Failed to load messages:', e);
@@ -469,7 +533,7 @@
                 clearTimeout(reEnableTimeout);
                 sendBtn.disabled = false;
                 if (response && response.success) {
-                    appendMessage(response.message.content, true, response.message.createdAt);
+                    appendMessage({ id: response.message.id, content: response.message.content, isMine: true, createdAt: response.message.createdAt, isDeleted: false });
                     input.value = '';
                     loadConversations();
                 } else {
@@ -491,9 +555,12 @@
             socket.on('new_message', (msg) => {
                 // If this message belongs to the open conversation, show it live
                 if (activeChatWith) {
-                    appendMessage(msg.content, false, msg.createdAt);
+                    appendMessage({ id: msg.id, content: msg.content, isMine: false, createdAt: msg.createdAt, isDeleted: false });
                 }
                 loadConversations();
+            });
+            socket.on('message_deleted', (data) => {
+                markMessageDeleted(data.id);
             });
         }
 
