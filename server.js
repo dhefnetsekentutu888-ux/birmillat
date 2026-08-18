@@ -425,6 +425,8 @@ async function initDb() {
     `);
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_messages_pair ON messages (sender_id, receiver_id)`);
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_messages_pair2 ON messages (receiver_id, sender_id)`);
+    try { await db.execute(`ALTER TABLE messages ADD COLUMN is_deleted INTEGER DEFAULT 0`); } catch (e) {}
+    try { await db.execute(`ALTER TABLE community_messages ADD COLUMN is_deleted INTEGER DEFAULT 0`); } catch (e) {}
 
     // Moderation: counts how many articles this user has had removed for
     // violating rules. Reaching 3 auto-bans the account (reuses setUserBlocked,
@@ -936,6 +938,17 @@ async function findSupportThreadByAdminMessageId(adminMessageId) {
     return result.rows[0] || null;
 }
 
+// The thread the admin most recently received an inbound message on — lets
+// the admin just type a reply without using Telegram's native Reply feature
+// every time, the way anonymous-relay bots work. Reply-to-message still
+// works too, and is the only way to target an older thread.
+async function getMostRecentSupportThread() {
+    const result = await db.execute({
+        sql: `SELECT * FROM support_messages WHERE direction = 'in' ORDER BY created_at DESC LIMIT 1`
+    });
+    return result.rows[0] || null;
+}
+
 function calculateAge(birthdateStr) {
     if (!birthdateStr) return null;
     const birth = new Date(birthdateStr);
@@ -993,7 +1006,7 @@ async function saveMessage(senderId, receiverId, content) {
 
 async function getConversation(userIdA, userIdB) {
     const result = await db.execute({
-        sql: `SELECT id, sender_id, receiver_id, content, created_at, is_read
+        sql: `SELECT id, sender_id, receiver_id, content, created_at, is_read, is_deleted
               FROM messages
               WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?)
               ORDER BY created_at ASC
@@ -1001,6 +1014,17 @@ async function getConversation(userIdA, userIdB) {
         args: [userIdA, userIdB, userIdB, userIdA]
     });
     return result.rows;
+}
+
+// Soft delete — keeps the row (so the conversation's shape/order doesn't
+// shift) but blanks the content and flags it, so the UI can show a
+// "message deleted" placeholder instead of the real text.
+async function deleteMessage(id, requesterId) {
+    const result = await db.execute({
+        sql: `UPDATE messages SET is_deleted = 1, content = '' WHERE id = ? AND sender_id = ?`,
+        args: [id, requesterId]
+    });
+    return result.rowsAffected > 0;
 }
 
 async function getConversationList(userId) {
@@ -1710,6 +1734,26 @@ async function getCommunityMessageById(id) {
         args: [id]
     });
     return result.rows[0] || null;
+}
+
+// Sender can delete their own; a community admin/creator can delete anyone's
+// (moderation). Soft delete, same reasoning as deleteMessage above.
+async function deleteCommunityMessage(id, requesterId, canModerate) {
+    const sql = canModerate
+        ? `UPDATE community_messages SET is_deleted = 1, content = '' WHERE id = ?`
+        : `UPDATE community_messages SET is_deleted = 1, content = '' WHERE id = ? AND sender_id = ?`;
+    const args = canModerate ? [id] : [id, requesterId];
+    const result = await db.execute({ sql, args });
+    return result.rowsAffected > 0;
+}
+
+// Deleting a community is real (not soft) — it's a rare, deliberate action
+// by the creator, so we also clean up its members and message history
+// rather than leaving orphaned rows behind.
+async function deleteCommunityCascade(communityId) {
+    await db.execute({ sql: 'DELETE FROM community_messages WHERE community_id = ?', args: [communityId] });
+    await db.execute({ sql: 'DELETE FROM community_members WHERE community_id = ?', args: [communityId] });
+    await db.execute({ sql: 'DELETE FROM communities WHERE id = ?', args: [communityId] });
 }
 
 async function getCommunityMessages(communityId, limit = 100) {
@@ -3553,7 +3597,8 @@ app.get('/api/messages/:username', async (req, res) => {
                 senderId: m.sender_id,
                 content: m.content,
                 createdAt: m.created_at,
-                isMine: m.sender_id === req.session.userId
+                isMine: m.sender_id === req.session.userId,
+                isDeleted: !!m.is_deleted
             }))
         });
     } catch (err) {
@@ -3851,7 +3896,7 @@ app.post(`/telegram/webhook/${TELEGRAM_BOT_TOKEN}`, async (req, res) => {
             return;
         }
 
-        // ---------- Admin chat: commands, or a reply to forward back to a user ----------
+        // ---------- Admin chat: commands, or a reply/plain message to forward back to a user ----------
         if (isAdmin) {
             const draftConsumed = await handleAdminPostDraftMessage(fromChatId, message);
             if (draftConsumed) return;
@@ -3859,6 +3904,8 @@ app.post(`/telegram/webhook/${TELEGRAM_BOT_TOKEN}`, async (req, res) => {
             if (message.reply_to_message) {
                 // You replied (Telegram's native Reply) to a message we forwarded —
                 // route your reply back to whichever user that thread belongs to.
+                // This is still the only way to target a thread that isn't the
+                // most recent one.
                 const repliedToId = String(message.reply_to_message.message_id);
                 const thread = await findSupportThreadByAdminMessageId(repliedToId);
                 if (!thread) {
@@ -3884,6 +3931,8 @@ app.post(`/telegram/webhook/${TELEGRAM_BOT_TOKEN}`, async (req, res) => {
             const blockMatch = text.match(/^\/block\s+@?(\S+)/i);
             const unblockMatch = text.match(/^\/unblock\s+@?(\S+)/i);
             const deleteArticleMatch = text.match(/^\/delete_article\s+(\d+)/i);
+            const isKnownCommand = blockMatch || unblockMatch || deleteArticleMatch ||
+                text === '/post' || text === '/post_off' || text === '/start' || text === '/help';
 
             if (blockMatch) {
                 const username = blockMatch[1];
@@ -3928,13 +3977,45 @@ app.post(`/telegram/webhook/${TELEGRAM_BOT_TOKEN}`, async (req, res) => {
                     `/delete_article ID — maqolani o'chirish va muallifga ogohlantirish berish (3-ogohlantirish = avtomatik blok)\n` +
                     `/post — bosh sahifada ko'rinadigan yangi e'lon yaratish\n` +
                     `/post_off — joriy e'lonni bosh sahifadan olib tashlash\n\n` +
-                    `Foydalanuvchiga javob berish uchun, uning xabariga Telegram'ning "Reply" funksiyasidan foydalaning.`
+                    `Foydalanuvchiga javob berish uchun, uning xabariga Telegram'ning "Reply" funksiyasidan foydalaning, ` +
+                    `yoki shunchaki yozing — xabaringiz sizga oxirgi murojaat qilgan foydalanuvchiga yuboriladi.`
                 );
+            } else if (!isKnownCommand && (message.text || message.photo)) {
+                // Not a recognized command and not a native Reply — treat it as
+                // a reply to whoever messaged support most recently, so you
+                // never have to prefix a command just to answer someone.
+                const thread = await getMostRecentSupportThread();
+                if (!thread) {
+                    await sendTelegramMessage("ℹ️ Hozircha hech kim yordam so'ramagan — javob berishga hech narsa yo'q.");
+                    return;
+                }
+                const replyText = message.text || message.caption || '';
+                if (thread.telegram_chat_id && thread.telegram_chat_id !== 'website') {
+                    await sendTelegramMessageTo(thread.telegram_chat_id, replyText);
+                }
+                await recordSupportMessage({
+                    telegramChatId: thread.telegram_chat_id,
+                    websiteUsername: thread.website_username,
+                    direction: 'out',
+                    content: replyText
+                });
+                const whoLabel = thread.website_username ? `@${escapeHtmlForTelegram(thread.website_username)}` : "oxirgi murojaatchi";
+                await sendTelegramMessage(`✅ ${whoLabel}ga yuborildi. (Aniq odamga yuborish uchun uning xabariga Reply qiling)`);
             }
             return;
         }
 
         // ---------- Anyone else: treat as an incoming support message ----------
+        // /muammo is the documented entry point (shown in the bot's description /
+        // support.html), but it isn't required — any message from a non-admin
+        // chat is forwarded as-is, so once someone has written /muammo once,
+        // every message after that keeps going through with no prefix needed.
+        if ((message.text || '').trim().toLowerCase() === '/muammo') {
+            await sendTelegramMessageTo(fromChatId,
+                "👋 Yordam bo'limiga xush kelibsiz!\n\nMuammoingizni yoki savolingizni shu yerga yozing — jamoamiz tez orada javob beradi. Rasm ham yuborishingiz mumkin. Boshqa buyruq kiritish shart emas, shunchaki yozavering.");
+            return;
+        }
+
         const fromName = [message.from?.first_name, message.from?.last_name].filter(Boolean).join(' ') ||
             message.from?.username || 'Noma\'lum';
         const telegramUsername = message.from?.username ? `@${message.from.username}` : null;
@@ -5054,6 +5135,7 @@ app.get('/api/communities/:id/messages', async (req, res) => {
             content: m.content,
             createdAt: m.created_at,
             isMine: m.sender_id === req.session.userId,
+            isDeleted: !!m.is_deleted,
             replyTo: m.reply_to_id ? {
                 id: m.reply_to_id,
                 content: m.reply_content,
@@ -5063,6 +5145,23 @@ app.get('/api/communities/:id/messages', async (req, res) => {
         })));
     } catch (err) {
         console.error('api/communities/:id/messages error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.delete('/api/communities/:id', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const community = await getCommunityById(req.params.id);
+        if (!community) return res.status(404).json({ error: 'Jamoa topilmadi' });
+        if (community.creator_id !== req.session.userId) {
+            return res.status(403).json({ error: "Faqat jamoa yaratuvchisi uni o'chirishi mumkin" });
+        }
+        await deleteCommunityCascade(req.params.id);
+        io.to(`community:${req.params.id}`).emit('community_deleted', { communityId: Number(req.params.id) });
+        res.json({ success: true });
+    } catch (err) {
+        console.error('api/communities delete error:', err);
         res.status(500).json({ error: 'Server error' });
     }
 });
@@ -5131,6 +5230,32 @@ io.on('connection', (socket) => {
             if (callback) callback({ success: true, message: payload });
         } catch (err) {
             console.error('send_message error:', err);
+            if (callback) callback({ error: 'Server xatosi' });
+        }
+    });
+
+    socket.on('delete_message', async (data, callback) => {
+        try {
+            const { messageId } = data || {};
+            if (!messageId) { if (callback) callback({ error: 'ID kerak' }); return; }
+            const deleted = await deleteMessage(messageId, userId);
+            if (!deleted) { if (callback) callback({ error: "O'chirib bo'lmadi" }); return; }
+
+            // Need the other party to notify them too — cheap enough to look up.
+            const result = await db.execute({ sql: 'SELECT sender_id, receiver_id FROM messages WHERE id = ?', args: [messageId] });
+            const row = result.rows[0];
+            const payload = { id: Number(messageId) };
+            if (row) {
+                const otherId = Number(row.sender_id) === userId ? Number(row.receiver_id) : Number(row.sender_id);
+                const otherSockets = onlineUsers.get(otherId);
+                if (otherSockets) otherSockets.forEach(sid => io.to(sid).emit('message_deleted', payload));
+            }
+            const mySockets = onlineUsers.get(userId);
+            if (mySockets) mySockets.forEach(sid => io.to(sid).emit('message_deleted', payload));
+
+            if (callback) callback({ success: true });
+        } catch (err) {
+            console.error('delete_message error:', err);
             if (callback) callback({ error: 'Server xatosi' });
         }
     });
@@ -5205,6 +5330,26 @@ io.on('connection', (socket) => {
             if (callback) callback({ success: true, message: payload });
         } catch (err) {
             console.error('send_community_message error:', err);
+            if (callback) callback({ error: 'Server xatosi' });
+        }
+    });
+
+    socket.on('delete_community_message', async (data, callback) => {
+        try {
+            const { communityId, messageId } = data || {};
+            if (!communityId || !messageId) { if (callback) callback({ error: 'Ma\'lumot yetarli emas' }); return; }
+
+            const community = await getCommunityById(communityId);
+            if (!community) { if (callback) callback({ error: 'Jamoa topilmadi' }); return; }
+            const canModerate = await isCommunityAdminOrCreator(communityId, userId, community.creator_id);
+
+            const deleted = await deleteCommunityMessage(messageId, userId, canModerate);
+            if (!deleted) { if (callback) callback({ error: "O'chirib bo'lmadi" }); return; }
+
+            io.to(`community:${communityId}`).emit('community_message_deleted', { id: Number(messageId), communityId: Number(communityId) });
+            if (callback) callback({ success: true });
+        } catch (err) {
+            console.error('delete_community_message error:', err);
             if (callback) callback({ error: 'Server xatosi' });
         }
     });
