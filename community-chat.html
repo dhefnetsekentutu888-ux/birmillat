@@ -10,6 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="/style.css">
+<script src="/interactions.js" defer></script>
 <script src="/socket.io/socket.io.js"></script>
 <style>
     body { font-family: 'Inter', sans-serif; }
@@ -42,17 +43,23 @@
 
     .msg-row { display: flex; gap: 0.6rem; align-items: flex-end; }
     .msg-row.mine { flex-direction: row-reverse; }
+    .msg-avatar-link { flex-shrink: 0; text-decoration: none; }
     .msg-avatar {
         width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg,#EFEAF8,#E4DBF7);
         display: flex; align-items: center; justify-content: center; flex-shrink: 0;
         font-size: 0.7rem; font-weight: 700; color: var(--color-primary); overflow: hidden;
+        transition: transform .18s cubic-bezier(.34,1.56,.64,1);
     }
+    .msg-avatar-link:hover .msg-avatar { transform: scale(1.08); }
     .msg-avatar img { width: 100%; height: 100%; object-fit: cover; }
-    .msg-bubble-wrap { max-width: 65%; }
-    .msg-sender-name { font-size: 0.72rem; font-weight: 700; color: var(--color-primary); margin-bottom: 0.2rem; }
-    .msg-bubble { padding: 0.6rem 0.95rem; border-radius: 1rem; font-size: 0.92rem; line-height: 1.4; word-wrap: break-word; }
+    .msg-bubble-wrap { max-width: 65%; display: flex; flex-direction: column; }
+    .msg-row.mine .msg-bubble-wrap { align-items: flex-end; }
+    .msg-sender-name { font-size: 0.72rem; font-weight: 700; color: var(--color-primary); margin-bottom: 0.2rem; text-decoration: none; }
+    .msg-sender-name:hover { text-decoration: underline; }
+    .msg-bubble { padding: 0.6rem 0.95rem; border-radius: 1rem; font-size: 0.92rem; line-height: 1.4; word-wrap: break-word; cursor: pointer; }
     .msg-bubble.theirs { background: var(--color-bg); color: var(--color-text); border-bottom-left-radius: 0.3rem; }
     .msg-bubble.mine { background: linear-gradient(135deg, var(--color-primary), #4A2F9E); color: var(--color-surface); border-bottom-right-radius: 0.3rem; }
+    .msg-bubble.deleted { opacity: 0.55; font-style: italic; cursor: default; }
     .msg-time { font-size: 0.68rem; opacity: 0.65; margin-top: 0.25rem; display: block; }
 
     .chat-input-row { border-top: 1px solid var(--color-border); padding: 0.9rem 1.2rem; display: flex; gap: 0.7rem; flex-shrink: 0; }
@@ -90,6 +97,7 @@
     .member-kick { background: none; border: none; color: var(--color-text-muted); cursor: pointer; font-size: 0.75rem; }
     .member-kick:hover { color: var(--color-error); }
     .leave-btn { width: 100%; margin-top: 1rem; }
+    .delete-community-btn { width: 100%; margin-top: 0.6rem; }
 
     .member-action {
         background: none; border: none; color: var(--color-text-muted); cursor: pointer;
@@ -105,7 +113,13 @@
     .role-badge.creator { background: #FFEAE6; color: var(--color-accent); }
     .role-badge.admin { background: #EFEAF8; color: var(--color-primary); }
 
-    .member-count-btn:hover { color: var(--color-primary) !important; }
+    .member-count-btn {
+        display: inline-flex; align-items: center; gap: 0.35rem; background: var(--color-bg) !important;
+        border: 1px solid var(--color-border) !important; border-radius: var(--radius-pill) !important;
+        padding: 0.28rem 0.7rem !important; text-decoration: none !important; font-weight: 600;
+        transition: transform .18s cubic-bezier(.34,1.56,.64,1), border-color .15s ease;
+    }
+    .member-count-btn:hover { color: var(--color-primary) !important; border-color: var(--color-primary) !important; }
 
     .members-modal {
         display: none; position: fixed; inset: 0; background: rgba(26,16,64,0.5);
@@ -120,6 +134,7 @@
     .members-modal-head h3 { font-family: 'Sora', sans-serif; font-size: 1rem; }
     .members-modal-head button { background: none; border: none; color: var(--color-text-muted); cursor: pointer; font-size: 1rem; }
     .members-modal-list { padding: 0.6rem; overflow-y: auto; flex: 1; }
+    .members-modal-footer { padding: 0.8rem 1rem 1rem; border-top: 1px solid var(--color-border); }
 
     .reply-preview-row {
         padding: 0.6rem 1.2rem; border-top: 1px solid var(--color-border); background: var(--color-bg);
@@ -134,11 +149,24 @@
         font-size: 0.78rem; opacity: 0.85; border-left: 2px solid currentColor;
         padding-left: 0.5rem; margin-bottom: 0.3rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
     }
-    .msg-reply-btn {
-        background: none; border: none; color: var(--color-text-muted); cursor: pointer;
-        font-size: 0.72rem; opacity: 0; transition: opacity 0.15s ease; padding: 0.2rem 0.4rem; align-self: center;
+
+    /* Actions (reply / delete) — hidden by default, revealed by hovering
+       on desktop OR tapping the bubble on any device (see JS). This
+       replaces the old always-visible reply-arrow icons, which cluttered
+       every single message on mobile. */
+    .msg-actions {
+        display: none; gap: 0.35rem; align-items: center; margin: 0.3rem 0.1rem 0;
     }
-    .msg-row:hover .msg-reply-btn { opacity: 1; }
+    .msg-row.actions-open .msg-actions,
+    .msg-row:hover .msg-actions { display: flex; }
+    .msg-row.mine .msg-actions { justify-content: flex-end; }
+    .msg-action-btn {
+        background: var(--color-bg); border: 1px solid var(--color-border); color: var(--color-text-muted);
+        cursor: pointer; font-size: 0.7rem; padding: 0.28rem 0.6rem; border-radius: var(--radius-pill);
+        display: inline-flex; align-items: center; gap: 0.3rem; transition: transform .18s cubic-bezier(.34,1.56,.64,1), color .15s ease;
+    }
+    .msg-action-btn:hover { transform: scale(1.06); color: var(--color-primary); }
+    .msg-action-btn.danger:hover { color: var(--color-error); }
 
     .connection-banner { font-size: 0.78rem; text-align: center; padding: 0.4rem; background: var(--color-error-bg); color: var(--color-error); display: none; flex-shrink: 0; }
 
@@ -158,7 +186,7 @@
     @media (max-width: 760px) {
         .chat-grid { grid-template-columns: 1fr; }
         .members-panel { display: none; }
-        .msg-reply-btn { opacity: 1; }
+        .msg-bubble-wrap { max-width: 78%; }
     }
 </style>
 </head>
@@ -215,6 +243,7 @@
                 <button id="closeMembersModal" aria-label="Yopish"><i class="fas fa-xmark"></i></button>
             </div>
             <div id="membersModalList" class="members-modal-list"></div>
+            <div id="membersModalFooter" class="members-modal-footer" style="display:none;"></div>
         </div>
     </div>
 
@@ -273,66 +302,120 @@
             const row = document.createElement('div');
             row.className = 'msg-row ' + (isMine ? 'mine' : '');
             row.dataset.messageId = msg.id;
-            messageContentMap.set(String(msg.id), {
-                senderName: msg.senderName || msg.senderUsername,
-                content: msg.content
-            });
+            if (!msg.isDeleted) {
+                messageContentMap.set(String(msg.id), {
+                    senderName: msg.senderName || msg.senderUsername,
+                    content: msg.content
+                });
+            }
 
-            const replyQuoteHtml = msg.replyTo
+            const replyQuoteHtml = (msg.replyTo && !msg.isDeleted)
                 ? `<div class="msg-reply-quote">${msg.replyTo.senderName || msg.replyTo.senderUsername}: ${escapeHtml(msg.replyTo.content)}</div>`
                 : '';
 
+            const bubbleContent = msg.isDeleted
+                ? `<i class="fas fa-ban" style="margin-right:0.35rem; opacity:0.7;"></i>Xabar o'chirildi`
+                : `${replyQuoteHtml}${escapeHtml(msg.content)}`;
+
+            const actionsHtml = msg.isDeleted ? '' : `
+                <div class="msg-actions">
+                    <button class="msg-action-btn" data-action="reply" data-msgid="${msg.id}"><i class="fas fa-reply"></i> Javob</button>
+                    ${(isMine || canManageChat) ? `<button class="msg-action-btn danger" data-action="delete" data-msgid="${msg.id}"><i class="fas fa-trash"></i> O'chirish</button>` : ''}
+                </div>`;
+
             row.innerHTML = `
-                <div class="msg-avatar">${avatarHtml(msg.senderPhoto, msg.senderName || msg.senderUsername)}</div>
-                <button class="msg-reply-btn" data-msgid="${msg.id}" title="Javob berish"><i class="fas fa-reply"></i></button>
+                <a class="msg-avatar-link" href="/u/${encodeURIComponent(msg.senderUsername || '')}">
+                    <div class="msg-avatar">${avatarHtml(msg.senderPhoto, msg.senderName || msg.senderUsername)}</div>
+                </a>
                 <div class="msg-bubble-wrap">
-                    ${!isMine ? `<div class="msg-sender-name">${msg.senderName || msg.senderUsername}</div>` : ''}
-                    <div class="msg-bubble ${isMine ? 'mine' : 'theirs'}">${replyQuoteHtml}${escapeHtml(msg.content)}<span class="msg-time">${formatTime(msg.createdAt)}</span></div>
+                    ${!isMine ? `<a class="msg-sender-name" href="/u/${encodeURIComponent(msg.senderUsername || '')}">${msg.senderName || msg.senderUsername}</a>` : ''}
+                    <div class="msg-bubble ${isMine ? 'mine' : 'theirs'} ${msg.isDeleted ? 'deleted' : ''}">${bubbleContent}<span class="msg-time">${formatTime(msg.createdAt)}</span></div>
+                    ${actionsHtml}
                 </div>
             `;
             messagesEl.appendChild(row);
             messagesEl.scrollTop = messagesEl.scrollHeight;
         }
 
-        document.addEventListener('click', (e) => {
-            const btn = e.target.closest('.msg-reply-btn');
-            if (!btn) return;
-            const msgId = btn.getAttribute('data-msgid');
-            const stored = messageContentMap.get(String(msgId));
-            if (!stored) return;
-
-            replyingTo = { id: msgId, senderName: stored.senderName, content: stored.content };
-            const previewRow = document.getElementById('replyPreviewRow');
-            if (previewRow) {
-                previewRow.style.display = 'flex';
-                const textEl = document.createElement('div');
-                textEl.className = 'reply-preview-text';
-                const strongEl = document.createElement('strong');
-                strongEl.textContent = replyingTo.senderName;
-                textEl.appendChild(strongEl);
-                textEl.appendChild(document.createTextNode("ga javob: " + replyingTo.content));
-
-                previewRow.innerHTML = '';
-                previewRow.appendChild(textEl);
-                const cancelBtn = document.createElement('button');
-                cancelBtn.id = 'cancelReplyBtn';
-                cancelBtn.innerHTML = '<i class="fas fa-xmark"></i>';
-                previewRow.appendChild(cancelBtn);
-
-                cancelBtn.addEventListener('click', () => {
-                    replyingTo = null;
-                    previewRow.style.display = 'none';
-                });
-                document.getElementById('messageInput')?.focus();
+        function markMessageDeleted(id) {
+            const row = document.querySelector(`.msg-row[data-message-id="${id}"]`);
+            if (!row) return;
+            const bubble = row.querySelector('.msg-bubble');
+            if (bubble) {
+                bubble.classList.add('deleted');
+                const timeSpan = bubble.querySelector('.msg-time');
+                bubble.innerHTML = `<i class="fas fa-ban" style="margin-right:0.35rem; opacity:0.7;"></i>Xabar o'chirildi`;
+                if (timeSpan) bubble.appendChild(timeSpan);
             }
-        });
+            const actions = row.querySelector('.msg-actions');
+            if (actions) actions.remove();
+            messageContentMap.delete(String(id));
+        }
 
         let replyingTo = null;
+        let canManageChat = false;
+
+        // Tapping a bubble toggles its action row (reply/delete) — closes any
+        // other open one first, so only one message's actions show at a time.
+        // Hovering does the same on desktop via CSS, this covers touch devices.
+        document.addEventListener('click', (e) => {
+            const bubble = e.target.closest('.msg-bubble');
+            if (bubble && !bubble.classList.contains('deleted')) {
+                const row = bubble.closest('.msg-row');
+                const wasOpen = row.classList.contains('actions-open');
+                document.querySelectorAll('.msg-row.actions-open').forEach(r => r.classList.remove('actions-open'));
+                if (!wasOpen) row.classList.add('actions-open');
+                return;
+            }
+
+            const actionBtn = e.target.closest('.msg-action-btn');
+            if (actionBtn) {
+                const msgId = actionBtn.getAttribute('data-msgid');
+                const action = actionBtn.getAttribute('data-action');
+
+                if (action === 'reply') {
+                    const stored = messageContentMap.get(String(msgId));
+                    if (!stored) return;
+                    replyingTo = { id: msgId, senderName: stored.senderName, content: stored.content };
+                    const previewRow = document.getElementById('replyPreviewRow');
+                    if (previewRow) {
+                        previewRow.style.display = 'flex';
+                        const textEl = document.createElement('div');
+                        textEl.className = 'reply-preview-text';
+                        const strongEl = document.createElement('strong');
+                        strongEl.textContent = replyingTo.senderName;
+                        textEl.appendChild(strongEl);
+                        textEl.appendChild(document.createTextNode(" ga javob: " + replyingTo.content));
+
+                        previewRow.innerHTML = '';
+                        previewRow.appendChild(textEl);
+                        const cancelBtn = document.createElement('button');
+                        cancelBtn.id = 'cancelReplyBtn';
+                        cancelBtn.innerHTML = '<i class="fas fa-xmark"></i>';
+                        previewRow.appendChild(cancelBtn);
+
+                        cancelBtn.addEventListener('click', () => {
+                            replyingTo = null;
+                            previewRow.style.display = 'none';
+                        });
+                        document.getElementById('messageInput')?.focus();
+                    }
+                } else if (action === 'delete') {
+                    if (!confirm("Bu xabarni o'chirmoqchimisiz?")) return;
+                    socket.emit('delete_community_message', { communityId, messageId: msgId }, (response) => {
+                        if (!response || !response.success) {
+                            alert((response && response.error) || "O'chirib bo'lmadi");
+                        }
+                    });
+                }
+            }
+        });
 
         function renderChat(community) {
             const grid = document.getElementById('chatGrid');
             const avatarClickable = community.isCreator;
             const canManage = community.canManage;
+            canManageChat = canManage;
             grid.innerHTML = `
                 <div class="chat-panel">
                     <div class="chat-head">
@@ -343,7 +426,7 @@
                         ${avatarClickable ? `<input type="file" id="commImageInput" accept="image/*" style="display:none;">` : ''}
                         <div>
                             <h2>${community.name}</h2>
-                            <button class="sub member-count-btn" id="memberCountBtn" style="background:none; border:none; padding:0; cursor:pointer; color:var(--color-text-muted); font-size:0.8rem; text-decoration:underline;">${community.memberCount} a'zo · ${community.category}</button>
+                            <button class="sub member-count-btn" id="memberCountBtn"><i class="fas fa-users"></i> ${community.memberCount} a'zo · ${community.category}</button>
                         </div>
                     </div>
                     <div class="chat-messages" id="chatMessages"></div>
@@ -357,11 +440,15 @@
                     <h3>A'zolar (${community.memberCount})</h3>
                     <div id="membersList"></div>
                     ${!community.isCreator ? `<button class="btn btn-cancel leave-btn" id="leaveBtn" style="border:1.5px solid var(--color-border); background:transparent; color:var(--color-text-muted);">Jamoadan chiqish</button>` : ''}
+                    ${community.isCreator ? `<button class="btn btn-cancel delete-community-btn" id="deleteCommunityBtn" style="border:1.5px solid var(--color-error); background:transparent; color:var(--color-error);"><i class="fas fa-trash"></i> Jamoani o'chirish</button>` : ''}
                 </div>
             `;
 
             renderMembersInto(document.getElementById('membersList'), community, canManage);
             document.getElementById('memberCountBtn').addEventListener('click', () => openMembersModal(community, canManage));
+
+            const deleteCommunityBtn = document.getElementById('deleteCommunityBtn');
+            if (deleteCommunityBtn) deleteCommunityBtn.addEventListener('click', () => deleteCommunity(community.name));
 
             if (avatarClickable) {
                 const wrap = document.getElementById('commAvatarWrap');
@@ -457,6 +544,22 @@
             const listEl = document.getElementById('membersModalList');
             document.getElementById('membersModalTitle').textContent = `A'zolar (${community.memberCount})`;
             renderMembersInto(listEl, community, canManage);
+
+            const footer = document.getElementById('membersModalFooter');
+            if (community.isCreator) {
+                footer.style.display = 'block';
+                footer.innerHTML = `<button class="btn btn-cancel" id="modalDeleteCommunityBtn" style="width:100%; border:1.5px solid var(--color-error); background:transparent; color:var(--color-error);"><i class="fas fa-trash"></i> Jamoani o'chirish</button>`;
+                document.getElementById('modalDeleteCommunityBtn').addEventListener('click', () => deleteCommunity(community.name));
+            } else {
+                footer.style.display = 'block';
+                footer.innerHTML = `<button class="btn btn-cancel" id="modalLeaveBtn" style="width:100%; border:1.5px solid var(--color-border); background:transparent; color:var(--color-text-muted);"><i class="fas fa-right-from-bracket"></i> Jamoadan chiqish</button>`;
+                document.getElementById('modalLeaveBtn').addEventListener('click', async () => {
+                    if (!confirm("Jamoadan chiqishni xohlaysizmi?")) return;
+                    const res = await fetch(`/api/communities/${communityId}/leave`, { method: 'POST' });
+                    if (res.ok) window.location.href = '/communities';
+                });
+            }
+
             modal.classList.add('open');
         }
 
@@ -566,6 +669,18 @@
             }
         }
 
+        async function deleteCommunity(name) {
+            if (!confirm(`"${name}" jamoasini butunlay o'chirmoqchimisiz? Bu amalni ortga qaytarib bo'lmaydi.`)) return;
+            try {
+                const res = await fetch(`/api/communities/${communityId}`, { method: 'DELETE' });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(data.error || 'Server xatosi');
+                window.location.href = '/communities';
+            } catch (err) {
+                alert(err.message || "Jamoani o'chirishda xatolik yuz berdi");
+            }
+        }
+
         function setupSocket() {
             socket = io();
             const banner = document.getElementById('connectionBanner');
@@ -575,6 +690,17 @@
             socket.on('new_community_message', (msg) => {
                 if (Number(msg.communityId) === Number(communityId)) {
                     appendMessage(msg);
+                }
+            });
+            socket.on('community_message_deleted', (data) => {
+                if (Number(data.communityId) === Number(communityId)) {
+                    markMessageDeleted(data.id);
+                }
+            });
+            socket.on('community_deleted', (data) => {
+                if (Number(data.communityId) === Number(communityId)) {
+                    alert("Bu jamoa o'chirildi.");
+                    window.location.href = '/communities';
                 }
             });
         }
