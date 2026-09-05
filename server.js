@@ -516,6 +516,55 @@ async function getUserById(id) {
     return result.rows[0] || null;
 }
 
+// Site-wide announcement — new article, new event, an admin update. Sent to
+// every subscribed device on the site (optionally skipping one user, e.g.
+// an article's own author). Same never-throws contract as sendPushToUser.
+async function broadcastPush({ title, body, link }, excludeUserId) {
+    try {
+        const sql = excludeUserId
+            ? 'SELECT * FROM push_subscriptions WHERE user_id != ?'
+            : 'SELECT * FROM push_subscriptions';
+        const result = await db.execute(excludeUserId ? { sql, args: [excludeUserId] } : { sql });
+        const payload = JSON.stringify({ title, body, link: link || '/home' });
+        for (const row of result.rows) {
+            const subscription = { endpoint: row.endpoint, keys: { p256dh: row.p256dh, auth: row.auth } };
+            try {
+                await webpush.sendNotification(subscription, payload);
+            } catch (err) {
+                if (err.statusCode === 404 || err.statusCode === 410) {
+                    await deletePushSubscriptionByEndpoint(row.endpoint);
+                } else {
+                    console.error('Broadcast push send failed (non-fatal):', err.message);
+                }
+            }
+        }
+    } catch (err) {
+        console.error('broadcastPush failed (non-fatal):', err);
+    }
+}
+
+// The Telegram equivalent, deliberately reserved for less frequent, bigger
+// news (new approved events) rather than every article — Telegram is a much
+// more "interruptive" channel than a browser notification, so this is meant
+// to stay rare. Sent only to accounts that have linked Telegram.
+async function broadcastTelegram(text, excludeUserId) {
+    try {
+        const sql = excludeUserId
+            ? 'SELECT telegram_chat_id FROM users WHERE telegram_chat_id IS NOT NULL AND id != ?'
+            : 'SELECT telegram_chat_id FROM users WHERE telegram_chat_id IS NOT NULL';
+        const result = await db.execute(excludeUserId ? { sql, args: [excludeUserId] } : { sql });
+        for (const row of result.rows) {
+            try {
+                await sendTelegramMessageTo(row.telegram_chat_id, text);
+            } catch (err) {
+                console.error('Broadcast telegram send failed (non-fatal):', err.message);
+            }
+        }
+    } catch (err) {
+        console.error('broadcastTelegram failed (non-fatal):', err);
+    }
+}
+
 async function getUserByTelegramChatId(chatId) {
     const result = await db.execute({
         sql: 'SELECT * FROM users WHERE telegram_chat_id = ?',
@@ -3744,6 +3793,11 @@ async function handleAdminPostDraftMessage(chatId, message) {
             await createHomePost({ content: draft.text, imageUrl: draft.imageUrl || null });
             adminPostDrafts.delete(chatId);
             await sendTelegramMessageTo(chatId, "✅ E'lon nashr qilindi! Bosh sahifada darhol ko'rinadi.");
+            broadcastPush({
+                title: '📣 BirMillat e\'lon',
+                body: draft.text.length > 120 ? draft.text.slice(0, 117) + '...' : draft.text,
+                link: '/home'
+            });
         } else {
             await sendTelegramMessageTo(chatId, "Nashr qilish uchun /publish, bekor qilish uchun /cancel deb yozing.");
         }
@@ -3894,6 +3948,24 @@ app.post(`/telegram/webhook/${TELEGRAM_BOT_TOKEN}`, async (req, res) => {
 
             await sendTelegramMessageTo(fromChatId, `✅ Tasdiqlandi! @${escapeHtmlForTelegram(pending.username)} hisobingiz yaratildi. Endi saytga kirishingiz mumkin.`);
             return;
+        }
+
+        // ---------- Bare /start or /help from a non-admin (tapped the bot's own
+        // "Start" button, no linking token) — onboard them without notifying
+        // the admin. Only /muammo further down triggers that.
+        if (!isAdmin) {
+            const bareCommand = (message.text || '').trim().toLowerCase();
+            if (bareCommand === '/start' || bareCommand === '/help') {
+                await sendTelegramMessageTo(fromChatId,
+                    `👋 <b>BirMillat botiga xush kelibsiz!</b>\n\n` +
+                    `Bu bot orqali siz:\n` +
+                    `• Yangi tadbirlar, maqolalar va e'lonlar haqida bildirishnoma olasiz\n` +
+                    `• Profilingizga kimdir obuna bo'lganda yoki xabar yozganda xabardor bo'lasiz\n` +
+                    `• Parolni unutsangiz, shu yerdan tiklash kodini olasiz\n\n` +
+                    `❓ Savol yoki muammo bo'lsa — <b>/muammo</b> deb yozing, jamoamiz bilan to'g'ridan-to'g'ri bog'lanasiz.\n\n` +
+                    `Hisobingizni ulash uchun saytdagi profil sahifasidan "Telegram ulash" tugmasini bosing.`);
+                return;
+            }
         }
 
         // ---------- Admin chat: commands, or a reply/plain message to forward back to a user ----------
@@ -4215,6 +4287,12 @@ app.post('/api/articles', async (req, res) => {
             return res.status(400).json({ error: 'Maqola matni kerak' });
         }
         const id = await createArticle(req.session.userId, title.trim(), content.trim());
+        const author = await getUserById(req.session.userId);
+        broadcastPush({
+            title: '📰 Yangi maqola',
+            body: `${author.name || author.username}: ${title.trim()}`,
+            link: `/articles/${id}`
+        }, req.session.userId);
         res.json({ success: true, id });
     } catch (err) {
         console.error('api/articles create error:', err);
@@ -4902,6 +4980,19 @@ app.get('/admin/events/:id/approve', async (req, res) => {
     const event = await getEventById(req.params.id);
     const isPast = event && event.event_date < Date.now();
     const dateStr = event ? formatUzDateServer(event.event_date) : '';
+
+    if (event && !isPast) {
+        broadcastPush({
+            title: '📅 Yangi tadbir',
+            body: `${event.title} — ${dateStr}`,
+            link: `/events/${event.id}`
+        }, event.creator_id);
+        broadcastTelegram(
+            `📅 <b>Yangi tadbir e'lon qilindi!</b>\n\n<b>${escapeHtmlForTelegram(event.title)}</b>\n${dateStr}\n\n${SITE_URL}/events/${event.id}`,
+            event.creator_id
+        );
+    }
+
     res.send(
         `✅ Tadbir tasdiqlandi: <b>${event ? escapeHtmlForTelegram(event.title) : ''}</b>\n` +
         `Sana: ${dateStr}\n\n` +
