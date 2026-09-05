@@ -7,6 +7,12 @@
 <title>BirMillat nima? — Platforma haqida</title>
 <meta name="description" content="BirMillat — O'zbekiston yoshlari uchun qiziqishlar asosida do'stlar, jamoalar va tadbirlar topadigan ijtimoiy platforma. Asoschisi — Bekhruz Ravshanov.">
 <link rel="icon" type="image/png" href="/favicon.png">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/favicon.png">
+<meta name="theme-color" content="#2D1B69">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="BirMillat">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -90,6 +96,31 @@ body { font-family: 'Inter', sans-serif; }
 .founder-social-btn.instagram:hover { background: linear-gradient(45deg, #F58529, #DD2A7B, #8134AF, #515BD4); color: #fff; border-color: transparent; }
 .founder-social-btn.facebook:hover { background: #1877F2; color: #fff; border-color: transparent; }
 .founder-social-btn.linkedin:hover { background: #0A66C2; color: #fff; border-color: transparent; }
+
+.guide-list { display: flex; flex-direction: column; gap: 0.7rem; }
+.guide-item {
+    border-radius: var(--radius-sm); border: 1px solid var(--color-border); overflow: hidden; background: var(--color-surface);
+}
+.guide-item summary {
+    list-style: none; cursor: pointer; padding: 1rem 1.2rem; display: flex; align-items: center; gap: 0.8rem;
+    font-weight: 700; font-size: 0.95rem; color: var(--color-text);
+}
+.guide-item summary::-webkit-details-marker { display: none; }
+.guide-item summary .guide-num {
+    width: 26px; height: 26px; border-radius: 50%; background: #EFEAF8; color: var(--color-primary);
+    display: flex; align-items: center; justify-content: center; font-size: 0.78rem; flex-shrink: 0;
+}
+.guide-item summary .guide-chevron { margin-left: auto; color: var(--color-text-muted); transition: transform 0.25s ease; }
+.guide-item[open] summary .guide-chevron { transform: rotate(180deg); }
+.guide-item .guide-body { padding: 0 1.2rem 1.2rem 3.6rem; color: var(--color-text-muted); font-size: 0.88rem; line-height: 1.7; }
+.guide-item .guide-body p { margin: 0 0 0.7rem; }
+.guide-item .guide-body p:last-child { margin-bottom: 0; }
+.guide-item .guide-body a { color: var(--color-primary); font-weight: 600; text-decoration: none; }
+.guide-item .guide-body a:hover { text-decoration: underline; }
+.guide-item .guide-body ul { margin: 0 0 0.7rem; padding-left: 1.1rem; }
+.guide-item .guide-body li { margin-bottom: 0.3rem; }
+:root[data-theme="dark"] .guide-item summary .guide-num { background: rgba(196, 181, 253, 0.14); }
+@media (prefers-color-scheme: dark) { .guide-item summary .guide-num { background: rgba(196, 181, 253, 0.14); } }
 
 .channel-row { display: flex; flex-wrap: wrap; gap: 0.9rem; justify-content: center; }
 .channel-card {
@@ -193,6 +224,67 @@ body { font-family: 'Inter', sans-serif; }
                     <h3>Profil va yutuqlar</h3>
                     <p>Qiziqishlaringiz, bio va shaxsiy yutuqlaringizni ko'rsatadigan profil sahifasi.</p>
                 </a>
+            </div>
+        </div>
+
+        <div class="about-section reveal">
+            <span class="section-kicker">Qo'llanma</span>
+            <h2>Saytdan qanday foydalanish kerak</h2>
+            <p class="lead">Eng ko'p beriladigan savollarga qisqa javoblar — kirishdan tortib, tadbir topishgacha.</p>
+            <div class="guide-list">
+                <details class="guide-item card">
+                    <summary><span class="guide-num">1</span> Ro'yxatdan o'tish va kirish <i class="fas fa-chevron-down guide-chevron"></i></summary>
+                    <div class="guide-body">
+                        <p><a href="/register">Ro'yxatdan o'tish</a> sahifasida ikki usul bor: <strong>email</strong> yoki <strong>telefon raqami</strong> orqali. Email tanlasangiz, pochtangizga tasdiqlash kodi keladi. Telefon tanlasangiz, kod Telegram orqali <a href="https://t.me/BirMillat_support_bot" target="_blank" rel="noopener noreferrer">@BirMillat_support_bot</a> ga yuboriladi — botni oldin ishga tushirib qo'ying.</p>
+                        <p>Ro'yxatdan o'tgach, <a href="/login">Kirish</a> sahifasidan foydalanuvchi nomi/email va parolingiz bilan tizimga kirasiz.</p>
+                    </div>
+                </details>
+                <details class="guide-item card">
+                    <summary><span class="guide-num">2</span> Parolni unutib qo'ydim, nima qilaman? <i class="fas fa-chevron-down guide-chevron"></i></summary>
+                    <div class="guide-body">
+                        <p><a href="/forgot-password">Parolni tiklash</a> sahifasiga o'ting va ro'yxatdan qanday o'tgan bo'lsangiz, o'sha usulni tanlang:</p>
+                        <ul>
+                            <li><strong>Email bilan ro'yxatdan o'tganlar</strong> — pochtangizga tiklash kodi yuboriladi.</li>
+                            <li><strong>Telefon bilan ro'yxatdan o'tganlar</strong> — kod Telegram orqali <a href="https://t.me/BirMillat_support_bot" target="_blank" rel="noopener noreferrer">@BirMillat_support_bot</a> ga yuboriladi (ro'yxatdan o'tishda ulangan Telegram hisobingizga).</li>
+                        </ul>
+                        <p>Kodni kiritib, yangi parol o'rnatasiz. Agar hech narsa kelmasa yoki hisobingiz Telegram'ga ulanmagan bo'lsa, botga <strong>/muammo</strong> deb yozing — jamoamiz yordam beradi.</p>
+                    </div>
+                </details>
+                <details class="guide-item card">
+                    <summary><span class="guide-num">3</span> Tadbirlarni qanday topaman va qatnashaman? <i class="fas fa-chevron-down guide-chevron"></i></summary>
+                    <div class="guide-body">
+                        <p><a href="/events">Tadbirlar</a> bo'limida kelayotgan va o'tgan tadbirlarni ko'rasiz. Kategoriya bo'yicha filtrlashingiz mumkin. Yoqqan tadbirga kirib, "Ro'yxatdan o'tish" tugmasini bosing — tasdiqlangach, tadbir kunida QR-chiptangiz orqali kirasiz.</p>
+                        <p>O'zingiz tadbir tashkil qilmoqchi bo'lsangiz, shu bo'limdagi "Yangi tadbir" tugmasidan foydalaning — tadbiringiz avval admin tomonidan tasdiqlanadi, so'ng barchaga ko'rinadi.</p>
+                    </div>
+                </details>
+                <details class="guide-item card">
+                    <summary><span class="guide-num">4</span> Jamoalarga qanday qo'shilaman? <i class="fas fa-chevron-down guide-chevron"></i></summary>
+                    <div class="guide-body">
+                        <p><a href="/communities">Jamoalar</a> bo'limida qiziqishingizga mos guruhni tanlab, "Qo'shilish" tugmasini bosing. Qabul qilingach, guruh chatida real vaqtda suhbatlashishingiz mumkin. O'z jamoangizni ham yaratishingiz mumkin — shu holda uni boshqarish (a'zolarni chiqarish, adminlar tayinlash, kerak bo'lsa jamoani o'chirish) sizning qo'lingizda bo'ladi.</p>
+                    </div>
+                </details>
+                <details class="guide-item card">
+                    <summary><span class="guide-num">5</span> Odamlarni qanday kuzataman? <i class="fas fa-chevron-down guide-chevron"></i></summary>
+                    <div class="guide-body">
+                        <p>Birovning profiliga kirib "Kuzatish" tugmasini bossangiz, unga so'rov yuboriladi. Ular so'rovni qabul qilgach, siz uning kuzatuvchisiga aylanasiz — bu ikki tomonlama emas, Instagram'dagi "yopiq hisob" kabi ishlaydi. So'rovlaringizni <a href="/profile">Profil</a> sahifangizdan boshqarasiz.</p>
+                    </div>
+                </details>
+                <details class="guide-item card">
+                    <summary><span class="guide-num">6</span> Bildirishnomalarni qanday yoqaman? <i class="fas fa-chevron-down guide-chevron"></i></summary>
+                    <div class="guide-body">
+                        <p><a href="/profile">Profil</a> sahifasidagi sozlamalarda ikki turdagi bildirishnoma bor:</p>
+                        <ul>
+                            <li><strong>Push bildirishnoma</strong> — brauzer orqali, yangi maqola/tadbir va shaxsiy bildirishnomalar uchun. iPhone'da ishlashi uchun avval saytni Bosh ekranga qo'shishingiz kerak bo'ladi (tugma shu haqda ko'rsatma beradi).</li>
+                            <li><strong>Telegram</strong> — botni ulasangiz, muhim yangiliklar va shaxsiy bildirishnomalarni Telegram orqali ham olasiz.</li>
+                        </ul>
+                    </div>
+                </details>
+                <details class="guide-item card">
+                    <summary><span class="guide-num">7</span> Muammoga duch keldim, kimga murojaat qilaman? <i class="fas fa-chevron-down guide-chevron"></i></summary>
+                    <div class="guide-body">
+                        <p><a href="https://t.me/BirMillat_support_bot" target="_blank" rel="noopener noreferrer">@BirMillat_support_bot</a> ga o'ting va <strong>/muammo</strong> deb yozing — shundan keyin yozgan har bir xabaringiz to'g'ridan-to'g'ri jamoamizga yetadi, qayta buyruq yozish shart emas. Shuningdek, saytdagi <a href="/support">Yordam</a> sahifasidan ham murojaat qoldirishingiz mumkin.</p>
+                    </div>
+                </details>
             </div>
         </div>
 
