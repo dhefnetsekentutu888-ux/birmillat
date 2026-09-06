@@ -4,6 +4,12 @@
 <script src="/theme.js"></script>
 <meta charset="UTF-8">
 <link rel="icon" type="image/png" href="/favicon.png">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/favicon.png">
+<meta name="theme-color" content="#2D1B69">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="BirMillat">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BirMillat – Jamoa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -15,8 +21,8 @@
 <style>
     body { font-family: 'Inter', sans-serif; }
     html, body {
-        height: 100dvh;
         height: 100vh;
+        height: 100dvh;
         overflow: hidden;
         display: flex;
         flex-direction: column;
@@ -39,7 +45,7 @@
     .chat-head { padding: 1rem 1.4rem; border-bottom: 1px solid var(--color-border); display: flex; align-items: center; gap: 0.8rem; flex-shrink: 0; }
     .chat-head h2 { font-family: 'Sora', sans-serif; font-size: 1.05rem; }
     .chat-head .sub { font-size: 0.8rem; color: var(--color-text-muted); }
-    .chat-messages { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 1.4rem; display: flex; flex-direction: column; gap: 0.5rem; }
+    .chat-messages { flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding: 1.4rem; display: flex; flex-direction: column; gap: 0.5rem; }
 
     .msg-row { display: flex; gap: 0.6rem; align-items: flex-end; }
     .msg-row.mine { flex-direction: row-reverse; }
@@ -62,7 +68,7 @@
     .msg-bubble.deleted { opacity: 0.55; font-style: italic; cursor: default; }
     .msg-time { font-size: 0.68rem; opacity: 0.65; margin-top: 0.25rem; display: block; }
 
-    .chat-input-row { border-top: 1px solid var(--color-border); padding: 0.9rem 1.2rem; display: flex; gap: 0.7rem; flex-shrink: 0; }
+    .chat-input-row { border-top: 1px solid var(--color-border); padding: 0.9rem 1.2rem calc(0.9rem + env(safe-area-inset-bottom)); display: flex; gap: 0.7rem; flex-shrink: 0; background: var(--color-surface); }
     .chat-input-row input {
         flex: 1; padding: 0.7rem 1rem; border-radius: var(--radius-pill);
         border: 1.5px solid var(--color-border); font-family: 'Inter', sans-serif; font-size: 0.92rem;
@@ -216,7 +222,7 @@
             <a href="/profile"><i class="fas fa-user"></i> Profil</a>
             <a href="/logout"><i class="fas fa-right-from-bracket"></i> Chiqish</a>
         </div>
-        <div class="user-badge" id="userBadge"><img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ...</div>
+        <a class="user-badge" id="userBadge" href="/profile"><img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ...</a>
     <div class="notif-bell-wrap">
         <button class="notif-bell" id="notifBell" aria-label="Bildirishnomalar"><i class="fas fa-bell"></i><span class="notif-dot" id="notifDot"></span></button>
         <div class="notif-panel" id="notifPanel">
