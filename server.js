@@ -75,6 +75,27 @@ async function initDb() {
     // Default is off — nobody's photo/bio is public until they choose it.
     try { await db.execute(`ALTER TABLE users ADD COLUMN showcase_public INTEGER DEFAULT 0`); } catch (e) {}
 
+    // "Looking for" — a single short line a user can set on their profile
+    // (e.g. "IELTS speaking partner"), rate-limited to one change per 7 days
+    // so it doesn't turn into a second bio that gets edited constantly.
+    try { await db.execute(`ALTER TABLE users ADD COLUMN looking_for TEXT`); } catch (e) {}
+    try { await db.execute(`ALTER TABLE users ADD COLUMN looking_for_updated_at INTEGER`); } catch (e) {}
+
+    // Activity badges — small earned indicators shown next to a user's name.
+    // Recomputed periodically rather than stored as a static flag, since
+    // "active" status should be able to fade if someone stops participating
+    // just as easily as it was earned (see recomputeBadgesForUser).
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS user_badges (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            badge TEXT NOT NULL,
+            earned_at INTEGER NOT NULL,
+            UNIQUE(user_id, badge)
+        )
+    `);
+    await db.execute(`CREATE INDEX IF NOT EXISTS idx_user_badges_user ON user_badges (user_id)`);
+
     // In-app notification bell — separate from Telegram notifications, since
     // most users don't have that linked. This is what powers the bell icon
     // and its unread red dot in the navbar.
@@ -967,6 +988,46 @@ async function getFollowingList(userId) {
         args: [userId]
     });
     return result.rows;
+}
+
+// ---------- Bot main menu + FAQ ----------
+// Same content as the about.html guide, condensed for chat bubbles. Kept as
+// one source of Q&A pairs so the FAQ list and each answer screen are built
+// from the same data instead of duplicating text per callback branch.
+const BOT_FAQ = [
+    { id: 'register', q: "Ro'yxatdan qanday o'taman?", a: "Saytda <b>Ro'yxatdan o'tish</b> sahifasida email yoki telefon raqami orqali ro'yxatdan o'tishingiz mumkin. Telefon tanlasangiz, tasdiqlash kodi shu bot orqali keladi." },
+    { id: 'reset', q: 'Parolni unutdim, nima qilaman?', a: "Saytdagi <b>Parolni tiklash</b> sahifasida ro'yxatdan qanday o'tgan bo'lsangiz o'sha usulni tanlang. Telefon bilan ro'yxatdan o'tganlar uchun tiklash kodi ham shu bot orqali yuboriladi." },
+    { id: 'events', q: 'Tadbirlarni qanday topaman?', a: "Saytdagi <b>Tadbirlar</b> bo'limida barcha kelayotgan tadbirlarni ko'rishingiz mumkin. Ro'yxatdan o'tib, tadbir kunida QR-chiptangiz orqali kirasiz." },
+    { id: 'communities', q: 'Jamoalarga qanday qo\'shilaman?', a: "<b>Jamoalar</b> bo'limida qiziqishingizga mos guruhni tanlab \"Qo'shilish\"ni bosing. O'z jamoangizni ham yaratishingiz mumkin." },
+    { id: 'follow', q: 'Odamlarni qanday kuzataman?', a: "Birovning profiliga kirib \"Kuzatish\"ni bossangiz, so'rov yuboriladi. Ular qabul qilgach, kuzatuvchisiga aylanasiz — bu ikki tomonlama emas." },
+    { id: 'notify', q: 'Bildirishnomalarni qanday sozlayman?', a: "Profil sahifangizdagi sozlamalarda push va Telegram bildirishnomalarini alohida yoqishingiz mumkin." },
+    { id: 'support', q: 'Yordam kerak bo\'lsa nima qilaman?', a: "Shu botga xohlagan xabaringizni yozing — jamoamizga to'g'ridan-to'g'ri yetadi va tez orada javob berishadi." }
+];
+
+function botMainMenuKeyboard() {
+    return {
+        inline_keyboard: [
+            [{ text: '❓ Tez-tez so\'raladigan savollar', callback_data: 'menu:faq' }],
+            [{ text: '🔗 Hisobni ulash', callback_data: 'menu:link' }, { text: '🆘 Yordam so\'rash', callback_data: 'menu:help' }],
+            [{ text: '🌐 Saytga o\'tish', url: SITE_URL }]
+        ]
+    };
+}
+
+function botMainMenuText() {
+    return `👋 <b>BirMillat botiga xush kelibsiz!</b>\n\n` +
+        `Bu yerdan yangi tadbirlar va maqolalar haqida xabardor bo'lasiz, profilingizga oid bildirishnomalarni olasiz va yordam so'rashingiz mumkin.\n\n` +
+        `Quyidagi tugmalardan birini tanlang 👇`;
+}
+
+function botFaqListKeyboard() {
+    const rows = BOT_FAQ.map(item => ([{ text: item.q, callback_data: `faq:${item.id}` }]));
+    rows.push([{ text: '⬅️ Bosh menyu', callback_data: 'menu:main' }]);
+    return { inline_keyboard: rows };
+}
+
+function botFaqAnswerKeyboard() {
+    return { inline_keyboard: [[{ text: '⬅️ Savollarga qaytish', callback_data: 'menu:faq' }]] };
 }
 
 // ---------- Support chat helpers ----------
@@ -3153,12 +3214,65 @@ app.delete('/api/founders/:id', async (req, res) => {
     }
 });
 
+// ---------- Activity badges ----------
+// Definitions live here as the single source of truth — label/icon/threshold
+// per badge. Recomputed on profile load rather than on every action (simpler
+// than hooking into every article/event/message code path, and cheap: a
+// handful of COUNT queries). Once earned, a badge is permanent — it's a
+// record of what someone has contributed, not a live "currently active" flag.
+const BADGE_DEFINITIONS = [
+    { key: 'author', icon: '📝', label: 'Muallif', check: (s) => s.articleCount >= 3 },
+    { key: 'organizer', icon: '🎪', label: 'Tashkilotchi', check: (s) => s.eventsCreated >= 1 },
+    { key: 'volunteer', icon: '🤝', label: 'Volontyor', check: (s) => s.volunteerResponses >= 1 },
+    { key: 'social', icon: '💬', label: 'Faol suhbatdosh', check: (s) => s.messagesSent >= 50 },
+    { key: 'explorer', icon: '🎫', label: 'Faol qatnashchi', check: (s) => s.eventsJoined >= 3 }
+];
+
+async function recomputeBadgesForUser(userId) {
+    const [articleCount, eventsCreated, volunteerResponses, dmSent, communitySent, eventsJoined] = await Promise.all([
+        db.execute({ sql: 'SELECT COUNT(*) as c FROM articles WHERE author_id = ?', args: [userId] }),
+        db.execute({ sql: `SELECT COUNT(*) as c FROM events WHERE creator_id = ? AND status = 'approved'`, args: [userId] }),
+        db.execute({ sql: 'SELECT COUNT(*) as c FROM volunteer_responses WHERE user_id = ?', args: [userId] }),
+        db.execute({ sql: 'SELECT COUNT(*) as c FROM messages WHERE sender_id = ? AND is_deleted = 0', args: [userId] }),
+        db.execute({ sql: 'SELECT COUNT(*) as c FROM community_messages WHERE sender_id = ? AND is_deleted = 0', args: [userId] }),
+        db.execute({ sql: 'SELECT COUNT(*) as c FROM event_attendees WHERE user_id = ?', args: [userId] })
+    ]);
+
+    const stats = {
+        articleCount: articleCount.rows[0].c,
+        eventsCreated: eventsCreated.rows[0].c,
+        volunteerResponses: volunteerResponses.rows[0].c,
+        messagesSent: dmSent.rows[0].c + communitySent.rows[0].c,
+        eventsJoined: eventsJoined.rows[0].c
+    };
+
+    const now = Date.now();
+    for (const def of BADGE_DEFINITIONS) {
+        if (def.check(stats)) {
+            await db.execute({
+                sql: `INSERT INTO user_badges (user_id, badge, earned_at) VALUES (?, ?, ?) ON CONFLICT(user_id, badge) DO NOTHING`,
+                args: [userId, def.key, now]
+            });
+        }
+    }
+}
+
+async function getBadgesForUser(userId) {
+    const result = await db.execute({ sql: 'SELECT badge, earned_at FROM user_badges WHERE user_id = ? ORDER BY earned_at ASC', args: [userId] });
+    return result.rows.map(row => {
+        const def = BADGE_DEFINITIONS.find(d => d.key === row.badge);
+        return def ? { key: def.key, icon: def.icon, label: def.label, earnedAt: row.earned_at } : null;
+    }).filter(Boolean);
+}
+
 app.get('/api/me', async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
     try {
         const user = await getUserById(req.session.userId);
         if (!user) return res.status(401).json({ error: 'Unauthorized' });
         const counts = await getFollowCounts(user.id);
+        await recomputeBadgesForUser(user.id);
+        const badges = await getBadgesForUser(user.id);
         res.json({
             id: user.id,
             username: user.username,
@@ -3174,7 +3288,10 @@ app.get('/api/me', async (req, res) => {
             telegramLinked: !!user.telegram_chat_id,
             showcasePublic: !!user.showcase_public,
             followerCount: counts.followers,
-            followingCount: counts.following
+            followingCount: counts.following,
+            lookingFor: user.looking_for,
+            lookingForUpdatedAt: user.looking_for_updated_at,
+            badges
         });
     } catch (err) {
         console.error('api/me error:', err);
@@ -3441,6 +3558,81 @@ app.post('/api/profile/update', async (req, res) => {
     }
 });
 
+const LOOKING_FOR_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
+
+app.post('/api/profile/looking-for', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const text = (req.body.lookingFor || '').trim();
+        if (text.length > 80) return res.status(400).json({ error: "Matn 80 belgidan oshmasligi kerak" });
+
+        const user = await getUserById(req.session.userId);
+        const now = Date.now();
+        if (user.looking_for_updated_at) {
+            const elapsed = now - user.looking_for_updated_at;
+            if (elapsed < LOOKING_FOR_COOLDOWN_MS) {
+                const daysLeft = Math.ceil((LOOKING_FOR_COOLDOWN_MS - elapsed) / (24 * 60 * 60 * 1000));
+                return res.status(429).json({ error: `Buni yana ${daysLeft} kundan so'ng o'zgartira olasiz`, daysLeft });
+            }
+        }
+
+        await db.execute({
+            sql: 'UPDATE users SET looking_for = ?, looking_for_updated_at = ? WHERE id = ?',
+            args: [text || null, text ? now : user.looking_for_updated_at, req.session.userId]
+        });
+        res.json({ success: true, lookingFor: text || null });
+    } catch (err) {
+        console.error('api/profile/looking-for error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Add an email to an account that was registered by phone (so email was
+// never set). Two steps: request a code to the new address, then confirm it.
+app.post('/api/profile/add-email/request', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const email = (req.body.email || '').trim().toLowerCase();
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            return res.status(400).json({ error: "Email noto'g'ri formatda" });
+        }
+        const user = await getUserById(req.session.userId);
+        if (user.email) return res.status(400).json({ error: "Hisobingizda allaqachon email bor" });
+
+        const existing = await getUserByEmail(email);
+        if (existing) return res.status(400).json({ error: 'Bu email allaqachon ishlatilmoqda' });
+
+        const code = await createVerificationCode(`add_email:${req.session.userId}:${email}`, 'add_email');
+        await sendEmail(email, 'BirMillat — email qo\'shish', verificationEmailHtml(code));
+        res.json({ success: true });
+    } catch (err) {
+        console.error('api/profile/add-email/request error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.post('/api/profile/add-email/confirm', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const email = (req.body.email || '').trim().toLowerCase();
+        const code = (req.body.code || '').trim();
+        const user = await getUserById(req.session.userId);
+        if (user.email) return res.status(400).json({ error: "Hisobingizda allaqachon email bor" });
+
+        const result = await verifyCode(`add_email:${req.session.userId}:${email}`, code, 'add_email');
+        if (!result.valid) return res.status(400).json({ error: result.reason });
+
+        const existing = await getUserByEmail(email);
+        if (existing) return res.status(400).json({ error: 'Bu email allaqachon ishlatilmoqda' });
+
+        await db.execute({ sql: 'UPDATE users SET email = ? WHERE id = ?', args: [email, req.session.userId] });
+        res.json({ success: true, email });
+    } catch (err) {
+        console.error('api/profile/add-email/confirm error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 app.get('/api/search', async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
     try {
@@ -3483,6 +3675,8 @@ app.get('/api/users/:username', async (req, res) => {
         const followRow = await getFollowRow(req.session.userId, user.id);
         // From the viewer's point of view: are *they* following this person?
         const followStatus = followRow ? followRow.status : null; // null | 'pending' | 'accepted'
+        await recomputeBadgesForUser(user.id);
+        const badges = await getBadgesForUser(user.id);
 
         res.json({
             username: user.username,
@@ -3494,7 +3688,9 @@ app.get('/api/users/:username', async (req, res) => {
             region: user.region,
             followerCount: counts.followers,
             followingCount: counts.following,
-            followStatus
+            followStatus,
+            lookingFor: user.looking_for,
+            badges
         });
     } catch (err) {
         console.error('api/users/:username error:', err);
@@ -3823,6 +4019,35 @@ async function sendTelegramMessageTo(chatId, text, replyMarkup) {
     return res.json();
 }
 
+// Used by the inline-keyboard menu/FAQ so tapping a button updates the same
+// message in place, instead of sending a new one every time (feels like a
+// real app menu rather than a growing wall of bot replies).
+async function editTelegramMessage(chatId, messageId, text, replyMarkup) {
+    if (!TELEGRAM_BOT_TOKEN) return { ok: false };
+    const body = { chat_id: chatId, message_id: messageId, text, parse_mode: 'HTML' };
+    if (replyMarkup) body.reply_markup = replyMarkup;
+    const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/editMessageText`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    });
+    return res.json();
+}
+
+// Every inline-keyboard tap must be acknowledged or the button shows an
+// endless loading spinner on the user's end even though we already acted on it.
+async function answerCallbackQuery(callbackQueryId, text) {
+    if (!TELEGRAM_BOT_TOKEN) return { ok: false };
+    const body = { callback_query_id: callbackQueryId };
+    if (text) body.text = text;
+    const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    });
+    return res.json();
+}
+
 async function sendTelegramPhotoTo(chatId, buffer, filename, caption) {
     if (!TELEGRAM_BOT_TOKEN) {
         console.error('TELEGRAM_BOT_TOKEN is not set — cannot send Telegram notification');
@@ -3880,6 +4105,42 @@ app.post(`/telegram/webhook/${TELEGRAM_BOT_TOKEN}`, async (req, res) => {
     const headerToken = req.get('X-Telegram-Bot-Api-Secret-Token');
     if (headerToken !== TELEGRAM_WEBHOOK_SECRET) {
         console.warn('Telegram webhook: secret token mismatch, ignoring request');
+        return;
+    }
+
+    // ---------- Inline menu / FAQ button taps ----------
+    const callbackQuery = req.body && req.body.callback_query;
+    if (callbackQuery) {
+        try {
+            const cbChatId = String(callbackQuery.message.chat.id);
+            const cbMessageId = callbackQuery.message.message_id;
+            const data = callbackQuery.data || '';
+
+            if (data === 'menu:main') {
+                await editTelegramMessage(cbChatId, cbMessageId, botMainMenuText(), botMainMenuKeyboard());
+            } else if (data === 'menu:faq') {
+                await editTelegramMessage(cbChatId, cbMessageId,
+                    "❓ <b>Tez-tez so'raladigan savollar</b>\n\nQaysi savol sizni qiziqtiradi?",
+                    botFaqListKeyboard());
+            } else if (data === 'menu:link') {
+                await editTelegramMessage(cbChatId, cbMessageId,
+                    `🔗 <b>Hisobni ulash</b>\n\nSaytdagi <b>Profil</b> sahifasiga o'ting va "Telegram ulash" tugmasini bosing — sizni shu botga qaytarib yuboradi va avtomatik ulanadi.\n\n${SITE_URL}/profile`,
+                    { inline_keyboard: [[{ text: '⬅️ Bosh menyu', callback_data: 'menu:main' }]] });
+            } else if (data === 'menu:help') {
+                await editTelegramMessage(cbChatId, cbMessageId,
+                    "🆘 <b>Yordam so'rash</b>\n\nShu botga xohlagan xabaringizni yozing — jamoamizga to'g'ridan-to'g'ri yetadi. Qayta buyruq yozish shart emas, faqat yozavering.",
+                    { inline_keyboard: [[{ text: '⬅️ Bosh menyu', callback_data: 'menu:main' }]] });
+            } else if (data.startsWith('faq:')) {
+                const faqItem = BOT_FAQ.find(f => f.id === data.slice(4));
+                if (faqItem) {
+                    await editTelegramMessage(cbChatId, cbMessageId, `<b>${faqItem.q}</b>\n\n${faqItem.a}`, botFaqAnswerKeyboard());
+                }
+            }
+
+            await answerCallbackQuery(callbackQuery.id);
+        } catch (err) {
+            console.error('Telegram callback_query error:', err);
+        }
         return;
     }
 
@@ -3950,20 +4211,14 @@ app.post(`/telegram/webhook/${TELEGRAM_BOT_TOKEN}`, async (req, res) => {
             return;
         }
 
-        // ---------- Bare /start or /help from a non-admin (tapped the bot's own
-        // "Start" button, no linking token) — onboard them without notifying
-        // the admin. Only /muammo further down triggers that.
+        // ---------- Bare /start, /help or /menu from a non-admin (tapped the
+        // bot's own "Start" button, no linking token) — show the interactive
+        // menu without notifying the admin. Only /muammo further down
+        // triggers that.
         if (!isAdmin) {
             const bareCommand = (message.text || '').trim().toLowerCase();
-            if (bareCommand === '/start' || bareCommand === '/help') {
-                await sendTelegramMessageTo(fromChatId,
-                    `👋 <b>BirMillat botiga xush kelibsiz!</b>\n\n` +
-                    `Bu bot orqali siz:\n` +
-                    `• Yangi tadbirlar, maqolalar va e'lonlar haqida bildirishnoma olasiz\n` +
-                    `• Profilingizga kimdir obuna bo'lganda yoki xabar yozganda xabardor bo'lasiz\n` +
-                    `• Parolni unutsangiz, shu yerdan tiklash kodini olasiz\n\n` +
-                    `❓ Savol yoki muammo bo'lsa — <b>/muammo</b> deb yozing, jamoamiz bilan to'g'ridan-to'g'ri bog'lanasiz.\n\n` +
-                    `Hisobingizni ulash uchun saytdagi profil sahifasidan "Telegram ulash" tugmasini bosing.`);
+            if (bareCommand === '/start' || bareCommand === '/help' || bareCommand === '/menu') {
+                await sendTelegramMessageTo(fromChatId, botMainMenuText(), botMainMenuKeyboard());
                 return;
             }
         }
@@ -4004,7 +4259,7 @@ app.post(`/telegram/webhook/${TELEGRAM_BOT_TOKEN}`, async (req, res) => {
             const unblockMatch = text.match(/^\/unblock\s+@?(\S+)/i);
             const deleteArticleMatch = text.match(/^\/delete_article\s+(\d+)/i);
             const isKnownCommand = blockMatch || unblockMatch || deleteArticleMatch ||
-                text === '/post' || text === '/post_off' || text === '/start' || text === '/help';
+                text === '/post' || text === '/post_off' || text === '/start' || text === '/help' || text === '/menu';
 
             if (blockMatch) {
                 const username = blockMatch[1];
@@ -4041,7 +4296,7 @@ app.post(`/telegram/webhook/${TELEGRAM_BOT_TOKEN}`, async (req, res) => {
             } else if (text === '/post_off') {
                 await deactivateAllHomePosts();
                 await sendTelegramMessage("✅ Joriy e'lon bosh sahifadan olib tashlandi.");
-            } else if (text === '/start' || text === '/help') {
+            } else if (text === '/start' || text === '/help' || text === '/menu') {
                 await sendTelegramMessage(
                     `<b>BirMillat admin buyruqlari</b>\n\n` +
                     `/block foydalanuvchi_nomi — hisobni bloklash\n` +
@@ -4050,7 +4305,8 @@ app.post(`/telegram/webhook/${TELEGRAM_BOT_TOKEN}`, async (req, res) => {
                     `/post — bosh sahifada ko'rinadigan yangi e'lon yaratish\n` +
                     `/post_off — joriy e'lonni bosh sahifadan olib tashlash\n\n` +
                     `Foydalanuvchiga javob berish uchun, uning xabariga Telegram'ning "Reply" funksiyasidan foydalaning, ` +
-                    `yoki shunchaki yozing — xabaringiz sizga oxirgi murojaat qilgan foydalanuvchiga yuboriladi.`
+                    `yoki shunchaki yozing — xabaringiz sizga oxirgi murojaat qilgan foydalanuvchiga yuboriladi.\n\n` +
+                    `(Foydalanuvchilar uchun tugmali menyu /menu buyrug'i orqali ochiladi.)`
                 );
             } else if (!isKnownCommand && (message.text || message.photo)) {
                 // Not a recognized command and not a native Reply — treat it as
