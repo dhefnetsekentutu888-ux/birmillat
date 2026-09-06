@@ -262,7 +262,7 @@ body { font-family: 'Inter', sans-serif; }
             <a href="/profile" class="active"><i class="fas fa-user"></i> Profil</a>
             <a href="/logout"><i class="fas fa-right-from-bracket"></i> Chiqish</a>
         </div>
-        <div class="user-badge" id="userBadge"><img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ...</div>
+        <a class="user-badge" id="userBadge" href="/profile"><img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ...</a>
     <div class="notif-bell-wrap">
         <button class="notif-bell" id="notifBell" aria-label="Bildirishnomalar"><i class="fas fa-bell"></i><span class="notif-dot" id="notifDot"></span></button>
         <div class="notif-panel" id="notifPanel">
@@ -289,6 +289,7 @@ body { font-family: 'Inter', sans-serif; }
                 <div class="pr-photo-status" id="photoStatus"></div>
 
                 <h1 class="pr-id-name" id="viewName">...</h1>
+                <div class="badge-row" id="badgeRow"></div>
                 <div class="pr-id-username" id="viewUsername">@...</div>
                 <div class="pr-id-meta" id="viewMeta"></div>
                 <div class="pr-id-stats" id="viewStats">
@@ -312,6 +313,10 @@ body { font-family: 'Inter', sans-serif; }
             <div class="pr-card card view-only">
                 <div class="section-label">Bio</div>
                 <p class="profile-bio" id="viewBio"></p>
+                <div id="viewLookingForRow" style="display:none; margin-top:1rem; padding:0.7rem 0.9rem; border-radius:var(--radius-sm); background:linear-gradient(135deg,#EFEAF8,#F7F2FF);">
+                    <span style="font-size:0.75rem; font-weight:700; color:var(--color-primary); text-transform:uppercase; letter-spacing:0.3px;"><i class="fas fa-magnifying-glass"></i> Qidiryapman</span>
+                    <div id="viewLookingForText" style="font-size:0.9rem; margin-top:0.2rem;"></div>
+                </div>
                 <div class="section-label" style="margin-top:1.5rem;">Qiziqishlar</div>
                 <div class="tag-list" id="viewInterests"></div>
             </div>
@@ -351,6 +356,15 @@ body { font-family: 'Inter', sans-serif; }
                     </div>
                 </div>
 
+                <div class="edit-field">
+                    <label for="lookingForInput">Nimani/kimni qidiryapsiz? <span class="sub">(masalan: "IELTS speaking partner")</span></label>
+                    <div style="display:flex; gap:0.6rem;">
+                        <input type="text" id="lookingForInput" maxlength="80" placeholder="Masalan: IELTS speaking partner" style="flex:1;">
+                        <button class="btn-add" id="saveLookingForBtn" style="flex-shrink:0;">Saqlash</button>
+                    </div>
+                    <div class="sub" id="lookingForHint" style="margin-top:0.4rem;">Buni 7 kunda faqat bir marta o'zgartirishingiz mumkin.</div>
+                </div>
+
                 <div class="showcase-toggle-row">
                     <input type="checkbox" id="showcasePublicInput">
                     <label for="showcasePublicInput">Profilim bosh sahifada (kirmagan foydalanuvchilarga) namuna sifatida ko'rsatilsin
@@ -381,6 +395,27 @@ body { font-family: 'Inter', sans-serif; }
 
             <div class="pr-card card">
                 <div class="section-label"><i class="fas fa-gear"></i> Sozlamalar</div>
+                <div class="settings-row" id="emailSettingsRow">
+                    <div class="settings-row-icon"><i class="fas fa-envelope"></i></div>
+                    <div class="settings-row-body">
+                        <div class="settings-row-title">Email</div>
+                        <p id="emailStatusText" class="settings-row-desc">Tekshirilmoqda...</p>
+                    </div>
+                    <button class="btn btn-primary btn-zoom settings-row-action" id="addEmailBtn" style="display:none;">Qo'shish</button>
+                </div>
+                <div class="settings-row" style="display:none;" id="emailFormRow">
+                    <div style="width:100%; display:flex; flex-direction:column; gap:0.6rem;">
+                        <div id="emailFormStep1">
+                            <input type="email" id="newEmailInput" placeholder="yangi@email.com" style="width:100%; box-sizing:border-box; padding:0.65rem 0.9rem; border-radius:var(--radius-sm); border:1.5px solid var(--color-border); font-family:'Inter',sans-serif;">
+                            <button class="btn btn-primary btn-zoom" id="requestEmailCodeBtn" style="margin-top:0.6rem;">Kod yuborish</button>
+                        </div>
+                        <div id="emailFormStep2" style="display:none;">
+                            <input type="text" id="emailCodeInput" maxlength="6" inputmode="numeric" placeholder="Kodni kiriting" style="width:100%; box-sizing:border-box; padding:0.65rem 0.9rem; border-radius:var(--radius-sm); border:1.5px solid var(--color-border); font-family:'Inter',sans-serif; letter-spacing:3px; text-align:center;">
+                            <button class="btn btn-primary btn-zoom" id="confirmEmailCodeBtn" style="margin-top:0.6rem;">Tasdiqlash</button>
+                        </div>
+                        <p class="settings-row-desc" id="emailFormMsg"></p>
+                    </div>
+                </div>
                 <div class="settings-row">
                     <div class="settings-row-icon"><i class="fab fa-telegram"></i></div>
                     <div class="settings-row-body">
@@ -504,6 +539,44 @@ body { font-family: 'Inter', sans-serif; }
                 document.getElementById('followerCountNum').textContent = me.followerCount || 0;
                 document.getElementById('followingCountNum').textContent = me.followingCount || 0;
 
+                const badgeRow = document.getElementById('badgeRow');
+                badgeRow.innerHTML = (me.badges || []).map(b =>
+                    `<span class="badge-chip" title="${b.label}"><span class="badge-icon">${b.icon}</span>${b.label}</span>`
+                ).join('');
+
+                const lookingForRow = document.getElementById('viewLookingForRow');
+                if (me.lookingFor) {
+                    lookingForRow.style.display = 'block';
+                    document.getElementById('viewLookingForText').textContent = me.lookingFor;
+                } else {
+                    lookingForRow.style.display = 'none';
+                }
+
+                const lookingForInput = document.getElementById('lookingForInput');
+                const lookingForHint = document.getElementById('lookingForHint');
+                lookingForInput.value = me.lookingFor || '';
+                const cooldownMs = 7 * 24 * 60 * 60 * 1000;
+                if (me.lookingForUpdatedAt && (Date.now() - me.lookingForUpdatedAt) < cooldownMs) {
+                    const daysLeft = Math.ceil((cooldownMs - (Date.now() - me.lookingForUpdatedAt)) / (24 * 60 * 60 * 1000));
+                    lookingForHint.textContent = `Keyingi o'zgartirish ${daysLeft} kundan so'ng mumkin bo'ladi.`;
+                    lookingForInput.disabled = true;
+                    document.getElementById('saveLookingForBtn').disabled = true;
+                } else {
+                    lookingForHint.textContent = "Buni 7 kunda faqat bir marta o'zgartirishingiz mumkin.";
+                    lookingForInput.disabled = false;
+                    document.getElementById('saveLookingForBtn').disabled = false;
+                }
+
+                const emailStatusText = document.getElementById('emailStatusText');
+                const addEmailBtn = document.getElementById('addEmailBtn');
+                if (me.email) {
+                    emailStatusText.textContent = me.email;
+                    addEmailBtn.style.display = 'none';
+                } else {
+                    emailStatusText.textContent = "Hisobingizda email yo'q — parolni tiklash uchun qo'shib qo'yishingiz mumkin.";
+                    addEmailBtn.style.display = 'inline-flex';
+                }
+
                 currentInterests = me.interests || [];
                 renderViewInterests(currentInterests);
 
@@ -543,6 +616,89 @@ body { font-family: 'Inter', sans-serif; }
         });
 
         document.getElementById('addInterestBtn').addEventListener('click', addInterest);
+
+        document.getElementById('saveLookingForBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('saveLookingForBtn');
+            const input = document.getElementById('lookingForInput');
+            const hint = document.getElementById('lookingForHint');
+            btn.disabled = true;
+            try {
+                const res = await fetch('/api/profile/looking-for', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ lookingFor: input.value.trim() })
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    hint.textContent = data.error || 'Xatolik yuz berdi';
+                    hint.style.color = 'var(--color-error)';
+                    if (data.daysLeft) input.disabled = true; // cooldown — stays disabled
+                    else btn.disabled = false; // other errors are retryable
+                    return;
+                }
+                hint.textContent = "Saqlandi! Keyingi o'zgartirish 7 kundan so'ng mumkin bo'ladi.";
+                hint.style.color = 'var(--color-success)';
+                input.disabled = true;
+                await loadMe();
+            } catch (e) {
+                hint.textContent = 'Server xatosi';
+                btn.disabled = false;
+            }
+        });
+
+        document.getElementById('addEmailBtn').addEventListener('click', () => {
+            document.getElementById('emailFormRow').style.display = 'flex';
+            document.getElementById('addEmailBtn').style.display = 'none';
+        });
+
+        document.getElementById('requestEmailCodeBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('requestEmailCodeBtn');
+            const emailInput = document.getElementById('newEmailInput');
+            const msg = document.getElementById('emailFormMsg');
+            const email = emailInput.value.trim();
+            if (!email) return;
+            btn.disabled = true;
+            try {
+                const res = await fetch('/api/profile/add-email/request', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+                const data = await res.json();
+                if (!res.ok) { msg.textContent = data.error || 'Xatolik'; msg.style.color = 'var(--color-error)'; return; }
+                msg.textContent = `${email} manziliga kod yuborildi.`;
+                msg.style.color = 'var(--color-text-muted)';
+                document.getElementById('emailFormStep1').style.display = 'none';
+                document.getElementById('emailFormStep2').style.display = 'block';
+            } catch (e) {
+                msg.textContent = 'Server xatosi';
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+        document.getElementById('confirmEmailCodeBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('confirmEmailCodeBtn');
+            const email = document.getElementById('newEmailInput').value.trim();
+            const code = document.getElementById('emailCodeInput').value.trim();
+            const msg = document.getElementById('emailFormMsg');
+            btn.disabled = true;
+            try {
+                const res = await fetch('/api/profile/add-email/confirm', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, code })
+                });
+                const data = await res.json();
+                if (!res.ok) { msg.textContent = data.error || 'Xatolik'; msg.style.color = 'var(--color-error)'; return; }
+                document.getElementById('emailFormRow').style.display = 'none';
+                await loadMe();
+            } catch (e) {
+                msg.textContent = 'Server xatosi';
+            } finally {
+                btn.disabled = false;
+            }
+        });
         document.getElementById('newInterestInput').addEventListener('keydown', (e) => {
             if (e.key === 'Enter') { e.preventDefault(); addInterest(); }
         });
