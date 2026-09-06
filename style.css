@@ -251,6 +251,26 @@ a {
   font-size: 0.9rem;
   font-weight: 500;
   color: var(--color-primary);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  transition: transform 0.18s cubic-bezier(.34,1.56,.64,1), border-color 0.15s ease;
+}
+.user-badge:hover { transform: translateY(-1px); border-color: var(--color-primary); }
+
+/* ---------- Activity badges — small earned stickers next to a name ---------- */
+.badge-row { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0.35rem 0; justify-content: inherit; }
+.badge-chip {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  background: linear-gradient(135deg, #EFEAF8, #FFEAE6);
+  color: var(--color-primary); font-size: 0.72rem; font-weight: 700;
+  padding: 0.22rem 0.6rem; border-radius: var(--radius-pill);
+  border: 1px solid rgba(45,27,105,0.08);
+}
+.badge-chip .badge-icon { font-size: 0.85rem; }
+:root[data-theme="dark"] .badge-chip { background: linear-gradient(135deg, rgba(196,181,253,0.14), rgba(255,138,115,0.1)); border-color: rgba(196,181,253,0.15); }
+@media (prefers-color-scheme: dark) {
+  .badge-chip { background: linear-gradient(135deg, rgba(196,181,253,0.14), rgba(255,138,115,0.1)); border-color: rgba(196,181,253,0.15); }
 }
 
 /* On narrow phones the logo + username pill + bell + theme toggle don't all
