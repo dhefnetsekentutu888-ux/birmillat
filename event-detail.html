@@ -4,6 +4,12 @@
 <script src="/theme.js"></script>
 <meta charset="UTF-8">
 <link rel="icon" type="image/png" href="/favicon.png">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/favicon.png">
+<meta name="theme-color" content="#2D1B69">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="BirMillat">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BirMillat – Tadbir</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -114,6 +120,30 @@ body { font-family: 'Inter', sans-serif; }
 .rsvp-modal-status { font-size: 0.85rem; min-height: 1.2em; }
 .rsvp-modal-status.error { color: var(--color-error); }
 .rsvp-modal-close { background: none; border: none; color: var(--color-text-muted); font-size: 1rem; position: absolute; top: 1rem; right: 1.1rem; cursor: pointer; }
+
+/* ---------- Event registration gate ---------- */
+.gate-modal-card { max-width: 460px; text-align: left; }
+.gate-modal-card h2 { text-align: center; }
+.gate-modal-card > p { text-align: center; }
+.gate-requirement {
+    display: flex; align-items: flex-start; gap: 0.8rem; padding: 1rem;
+    border: 1.5px solid var(--color-border); border-radius: var(--radius-sm); margin-bottom: 0.8rem;
+    position: relative; transition: border-color 0.2s ease, background 0.2s ease;
+}
+.gate-requirement.satisfied { border-color: var(--color-success); background: rgba(52, 199, 89, 0.06); }
+.gate-req-icon {
+    width: 34px; height: 34px; border-radius: 50%; background: #EFEAF8; color: var(--color-primary);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 0.9rem;
+}
+.gate-req-body { flex: 1; min-width: 0; }
+.gate-req-title { font-weight: 700; font-size: 0.9rem; margin-bottom: 0.2rem; }
+.gate-req-desc { font-size: 0.8rem; color: var(--color-text-muted); margin-bottom: 0.7rem; line-height: 1.4; }
+.gate-req-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.gate-req-actions .btn { padding: 0.45rem 0.9rem; font-size: 0.82rem; }
+.gate-req-check { color: var(--color-success); font-size: 1.2rem; display: none; flex-shrink: 0; }
+.gate-requirement.satisfied .gate-req-check { display: block; }
+.gate-requirement.satisfied .gate-req-actions { display: none; }
+#gateContinueBtn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ---------- Team management ---------- */
 .coord-list { display: flex; flex-direction: column; gap: 0.7rem; margin-bottom: 1.2rem; }
@@ -257,7 +287,7 @@ body { font-family: 'Inter', sans-serif; }
             <a href="/profile"><i class="fas fa-user"></i> Profil</a>
             <a href="/logout"><i class="fas fa-right-from-bracket"></i> Chiqish</a>
         </div>
-        <div class="user-badge" id="userBadge"><img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ...</div>
+        <a class="user-badge" id="userBadge" href="/profile"><img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ...</a>
     <div class="notif-bell-wrap">
         <button class="notif-bell" id="notifBell" aria-label="Bildirishnomalar"><i class="fas fa-bell"></i><span class="notif-dot" id="notifDot"></span></button>
         <div class="notif-panel" id="notifPanel">
@@ -291,6 +321,43 @@ body { font-family: 'Inter', sans-serif; }
                 <div id="turnstileContainer"></div>
                 <div class="rsvp-modal-status" id="rsvpModalStatus"></div>
             </div>
+        </div>
+    </div>
+
+    <div class="rsvp-modal" id="gateModal">
+        <div class="card rsvp-modal-card gate-modal-card" style="position:relative;">
+            <button class="rsvp-modal-close" id="gateModalClose"><i class="fas fa-xmark"></i></button>
+            <h2>Ro'yxatdan o'tishdan oldin</h2>
+            <p style="color:var(--color-text-muted); font-size:0.9rem;">Tadbir yaqinlashganda eslatma bera olishimiz uchun ikkita shart bor:</p>
+
+            <div class="gate-requirement" id="gateNotifRow">
+                <div class="gate-req-icon"><i class="fas fa-bell"></i></div>
+                <div class="gate-req-body">
+                    <div class="gate-req-title">Bildirishnoma yoqilgan bo'lishi kerak</div>
+                    <div class="gate-req-desc">Push YOKI Telegram — ikkalasi shart emas, bittasi yetarli.</div>
+                    <div class="gate-req-actions" id="gateNotifActions">
+                        <button class="btn btn-outline btn-zoom" id="gatePushBtn"><i class="fas fa-bell"></i> Push yoqish</button>
+                        <button class="btn btn-outline btn-zoom" id="gateTelegramBtn"><i class="fab fa-telegram"></i> Telegram ulash</button>
+                    </div>
+                </div>
+                <div class="gate-req-check" id="gateNotifCheck"><i class="fas fa-circle-check"></i></div>
+            </div>
+
+            <div class="gate-requirement" id="gateFollowRow">
+                <div class="gate-req-icon"><i class="fas fa-star"></i></div>
+                <div class="gate-req-body">
+                    <div class="gate-req-title">Rasmiy kanalimizga obuna bo'ling</div>
+                    <div class="gate-req-desc">Muhim yangiliklar va eslatmalarni birinchilardan bo'lib bilib turasiz.</div>
+                    <div class="gate-req-actions">
+                        <a class="btn btn-outline btn-zoom" href="https://t.me/birmillatUZB" target="_blank" rel="noopener noreferrer"><i class="fab fa-telegram"></i> Telegram kanal</a>
+                        <button class="btn btn-primary btn-zoom" id="gateConfirmFollowBtn">Obuna bo'ldim</button>
+                    </div>
+                </div>
+                <div class="gate-req-check" id="gateFollowCheck"><i class="fas fa-circle-check"></i></div>
+            </div>
+
+            <div class="rsvp-modal-status" id="gateModalStatus"></div>
+            <button class="btn btn-primary btn-zoom" id="gateContinueBtn" style="width:100%; margin-top:0.8rem;" disabled>Davom etish</button>
         </div>
     </div>
 
@@ -409,9 +476,23 @@ body { font-family: 'Inter', sans-serif; }
                     ${event.isCreator ? `<button class="coord-remove" data-coord-id="${c.id}"><i class="fas fa-trash"></i></button>` : ''}
                 </div>`).join('') || `<p class="empty-note">Hozircha jamoa a'zolari yo'q</p>`;
 
+            const attendees = event.attendees || [];
+            const attendeeRows = attendees.map(a => `
+                <a href="/u/${encodeURIComponent(a.username)}" class="coord-row" style="text-decoration:none; color:inherit;">
+                    <span class="mini-avatar">${a.photoUrl ? `<img src="${a.photoUrl}" alt="">` : initials(a.name || a.username)}</span>
+                    <div><div class="coord-name">${a.name || a.username}</div><div class="coord-role">@${a.username}</div></div>
+                </a>`).join('') || `<p class="empty-note">Hali hech kim ro'yxatdan o'tmagan</p>`;
+
             return `
                 <div class="section-card card">
                     ${scanBtn}
+                    <div class="section-title"><i class="fas fa-users"></i> Ro'yxatdan o'tganlar (${attendees.length})</div>
+                    <div class="coord-list" style="max-height:280px; overflow-y:auto;">${attendeeRows}</div>
+                    ${!isPastEvent && attendees.length > 0 ? `
+                    <button class="btn btn-outline btn-zoom" id="remindAllBtn" style="width:100%; margin-top:0.8rem;"><i class="fas fa-bell"></i> Hammaga eslatma yuborish</button>
+                    <div class="submit-status" id="remindStatus"></div>` : ''}
+                </div>
+                <div class="section-card card">
                     <div class="section-title"><i class="fas fa-people-group"></i> Tadbir jamoasi</div>
                     <div class="coord-list">${coordRows}</div>
                     ${event.isCreator ? `
@@ -553,6 +634,109 @@ body { font-family: 'Inter', sans-serif; }
                 }, 150);
             });
         }
+
+        async function checkGateAndProceed(event) {
+            try {
+                const res = await fetch(`/api/events/${event.id}/registration-gate`);
+                const gate = await res.json();
+                if (gate.ready) { openRsvpModal(event); return; }
+                openGateModal(event, gate);
+            } catch (e) {
+                openRsvpModal(event); // fail open rather than block registration on a network hiccup
+            }
+        }
+
+        function renderGateState(gate) {
+            const notifRow = document.getElementById('gateNotifRow');
+            const followRow = document.getElementById('gateFollowRow');
+            notifRow.classList.toggle('satisfied', gate.hasNotifChannel);
+            followRow.classList.toggle('satisfied', gate.hasFollowedChannel);
+            document.getElementById('gateContinueBtn').disabled = !(gate.hasNotifChannel && gate.hasFollowedChannel);
+        }
+
+        function openGateModal(event, gate) {
+            renderGateState(gate);
+            document.getElementById('gateModalStatus').textContent = '';
+            document.getElementById('gateModal').classList.add('open');
+            document.getElementById('gateModal').dataset.eventId = event.id;
+        }
+        function closeGateModal() { document.getElementById('gateModal').classList.remove('open'); }
+        document.getElementById('gateModalClose').addEventListener('click', closeGateModal);
+        document.getElementById('gateModal').addEventListener('click', (e) => {
+            if (e.target.id === 'gateModal') closeGateModal();
+        });
+
+        async function refreshGateModal() {
+            try {
+                const res = await fetch('/api/events/0/registration-gate'.replace('0', document.getElementById('gateModal').dataset.eventId));
+                const gate = await res.json();
+                renderGateState(gate);
+                return gate;
+            } catch (e) { return null; }
+        }
+
+        document.getElementById('gatePushBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('gatePushBtn');
+            const statusEl = document.getElementById('gateModalStatus');
+            if (!window.BirMillatPush || !window.BirMillatPush.isSupported()) {
+                statusEl.textContent = "Bu qurilmada push bildirishnoma mavjud emas — Telegram'ni ulang.";
+                statusEl.className = 'rsvp-modal-status error';
+                return;
+            }
+            btn.disabled = true;
+            try {
+                await window.BirMillatPush.subscribe();
+                await refreshGateModal();
+                statusEl.textContent = '';
+            } catch (e) {
+                statusEl.textContent = "Push yoqilmadi. Brauzer ruxsatini tekshiring yoki Telegram'ni ulang.";
+                statusEl.className = 'rsvp-modal-status error';
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+        document.getElementById('gateTelegramBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('gateTelegramBtn');
+            btn.disabled = true;
+            try {
+                const res = await fetch('/api/telegram/link-token', { method: 'POST' });
+                const data = await res.json();
+                window.open(data.deepLink, '_blank');
+                // Poll a few times — linking happens in Telegram, outside this tab.
+                let attempts = 0;
+                const poll = setInterval(async () => {
+                    attempts++;
+                    const gate = await refreshGateModal();
+                    if ((gate && gate.hasNotifChannel) || attempts >= 15) clearInterval(poll);
+                }, 4000);
+            } catch (e) {
+                document.getElementById('gateModalStatus').textContent = "Xatolik yuz berdi. Qaytadan urinib ko'ring.";
+                document.getElementById('gateModalStatus').className = 'rsvp-modal-status error';
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+        document.getElementById('gateConfirmFollowBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('gateConfirmFollowBtn');
+            btn.disabled = true;
+            try {
+                await fetch('/api/profile/confirm-channel-follow', { method: 'POST' });
+                await refreshGateModal();
+            } catch (e) {
+                document.getElementById('gateModalStatus').textContent = 'Xatolik yuz berdi.';
+                document.getElementById('gateModalStatus').className = 'rsvp-modal-status error';
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+        document.getElementById('gateContinueBtn').addEventListener('click', () => {
+            if (document.getElementById('gateContinueBtn').disabled) return;
+            closeGateModal();
+            openRsvpModal(currentEvent);
+        });
 
         function openRsvpModal(event) {
             document.getElementById('rsvpConfirmText').textContent =
@@ -724,7 +908,7 @@ body { font-family: 'Inter', sans-serif; }
             const rsvpBtn = document.getElementById('rsvpOpenBtn');
             if (rsvpBtn) rsvpBtn.addEventListener('click', () => {
                 if (!currentUser) { window.location.href = '/register'; return; }
-                openRsvpModal(event);
+                checkGateAndProceed(event);
             });
             if (event.myCheckin) renderQrCanvas(event.myCheckin.token);
 
@@ -732,6 +916,25 @@ body { font-family: 'Inter', sans-serif; }
             if (coordAddBtn) coordAddBtn.addEventListener('click', handleCoordAdd);
             document.querySelectorAll('.coord-remove').forEach(btn => {
                 btn.addEventListener('click', () => handleCoordRemove(btn.getAttribute('data-coord-id')));
+            });
+
+            const remindAllBtn = document.getElementById('remindAllBtn');
+            if (remindAllBtn) remindAllBtn.addEventListener('click', async () => {
+                if (!confirm("Ro'yxatdan o'tgan hamma ishtirokchiga eslatma yuborilsinmi?")) return;
+                const statusEl = document.getElementById('remindStatus');
+                remindAllBtn.disabled = true;
+                try {
+                    const res = await fetch(`/api/events/${event.id}/remind`, { method: 'POST' });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Xatolik');
+                    statusEl.textContent = `✅ ${data.sent} kishiga eslatma yuborildi.`;
+                    statusEl.className = 'submit-status';
+                } catch (e) {
+                    statusEl.textContent = e.message || 'Xatolik yuz berdi';
+                    statusEl.className = 'submit-status error';
+                } finally {
+                    remindAllBtn.disabled = false;
+                }
             });
 
             const teamPostSubmit = document.getElementById('teamPostSubmit');
