@@ -81,6 +81,13 @@ async function initDb() {
     try { await db.execute(`ALTER TABLE users ADD COLUMN looking_for TEXT`); } catch (e) {}
     try { await db.execute(`ALTER TABLE users ADD COLUMN looking_for_updated_at INTEGER`); } catch (e) {}
 
+    // Self-confirmed "I follow the official channel" flag — required, along
+    // with a working notification channel, before registering for an event.
+    // Not programmatically verified (Telegram's API only exposes channel
+    // membership checks to bots that are admins of that channel), so this is
+    // an honest checkbox, not a guarantee.
+    try { await db.execute(`ALTER TABLE users ADD COLUMN followed_channel_at INTEGER`); } catch (e) {}
+
     // Activity badges — small earned indicators shown next to a user's name.
     // Recomputed periodically rather than stored as a static flag, since
     // "active" status should be able to fade if someone stops participating
@@ -1393,6 +1400,34 @@ async function isUserAttending(eventId, userId) {
         args: [eventId, userId]
     });
     return result.rows.length > 0;
+}
+
+// ---------- Event registration gate ----------
+// Registering for an event requires (1) a working way for us to actually
+// reach the person with a reminder — push notifications or Telegram, either
+// is enough — and (2) having confirmed they follow the official channel.
+// This exists because organizers had no reliable way to remind people who'd
+// registered and then forgot; a QR code alone proved nothing about whether
+// we could reach them again before the event.
+const OFFICIAL_TELEGRAM_CHANNEL = 'https://t.me/birmillatUZB';
+const OFFICIAL_INSTAGRAM = 'https://instagram.com/birmillat.uz';
+
+async function hasPushSubscription(userId) {
+    const result = await db.execute({ sql: 'SELECT 1 FROM push_subscriptions WHERE user_id = ? LIMIT 1', args: [userId] });
+    return result.rows.length > 0;
+}
+
+async function getEventRegistrationGate(userId) {
+    const user = await getUserById(userId);
+    const hasNotifChannel = !!user.telegram_chat_id || await hasPushSubscription(userId);
+    const hasFollowedChannel = !!user.followed_channel_at;
+    return {
+        hasNotifChannel,
+        hasFollowedChannel,
+        ready: hasNotifChannel && hasFollowedChannel,
+        telegramChannelUrl: OFFICIAL_TELEGRAM_CHANNEL,
+        instagramUrl: OFFICIAL_INSTAGRAM
+    };
 }
 
 // ---------- Event organizing team ----------
@@ -4857,12 +4892,38 @@ app.put('/api/events/:id', async (req, res) => {
     }
 });
 
+app.get('/api/events/:id/registration-gate', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const gate = await getEventRegistrationGate(req.session.userId);
+        res.json(gate);
+    } catch (err) {
+        console.error('api/events/:id/registration-gate error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.post('/api/profile/confirm-channel-follow', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        await db.execute({ sql: 'UPDATE users SET followed_channel_at = ? WHERE id = ?', args: [Date.now(), req.session.userId] });
+        res.json({ success: true });
+    } catch (err) {
+        console.error('api/profile/confirm-channel-follow error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 app.post('/api/events/:id/join', async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
     try {
         const event = await getEventById(req.params.id);
         if (!event || event.status !== 'approved') {
             return res.status(404).json({ error: 'Tadbir topilmadi' });
+        }
+        const gate = await getEventRegistrationGate(req.session.userId);
+        if (!gate.ready) {
+            return res.status(403).json({ error: "Ro'yxatdan o'tish uchun avval bildirishnoma va kanal shartlarini bajaring", gate });
         }
         await joinEvent(event.id, req.session.userId);
         if (event.creator_id !== req.session.userId) {
@@ -4915,6 +4976,11 @@ app.post('/api/events/:id/rsvp', async (req, res) => {
             return res.json({ success: true, willAttend: false });
         }
 
+        const gate = await getEventRegistrationGate(req.session.userId);
+        if (!gate.ready) {
+            return res.status(403).json({ error: "Ro'yxatdan o'tish uchun avval bildirishnoma va kanal shartlarini bajaring", gate });
+        }
+
         const alreadyAttending = await isUserAttending(event.id, req.session.userId);
         if (!alreadyAttending && event.capacity) {
             const attendees = await getEventAttendees(event.id);
@@ -4949,6 +5015,35 @@ app.post('/api/events/:id/rsvp', async (req, res) => {
 });
 
 // ---------- Organizer: cancel or delete their own event ----------
+app.post('/api/events/:id/remind', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const event = await getEventById(req.params.id);
+        if (!event) return res.status(404).json({ error: 'Tadbir topilmadi' });
+        const canManage = await isEventManager(event.id, req.session.userId);
+        if (!canManage) return res.status(403).json({ error: "Faqat tadbir tashkilotchilari eslatma yuborishi mumkin" });
+        if (event.event_date < Date.now()) return res.status(400).json({ error: "Bu tadbir allaqachon bo'lib o'tgan" });
+
+        const attendees = await getEventAttendees(event.id);
+        const dateStr = formatUzDateServer(event.event_date);
+        let sent = 0;
+        for (const attendee of attendees) {
+            if (attendee.id === req.session.userId) continue;
+            notifyUser(attendee.id, {
+                type: 'event_reminder',
+                content: `⏰ Eslatma: "${event.title}" tadbiri ${dateStr} bo'lib o'tadi. Unutmang!`,
+                link: `/events/${event.id}`,
+                pushTitle: 'Tadbir eslatmasi'
+            });
+            sent++;
+        }
+        res.json({ success: true, sent });
+    } catch (err) {
+        console.error('api/events/:id/remind error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 app.post('/api/events/:id/cancel', async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
     try {
