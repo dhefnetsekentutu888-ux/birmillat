@@ -5360,6 +5360,47 @@ app.get('/admin/events/:id/reject', async (req, res) => {
     res.send('❌ Tadbir rad etildi. Bu oynani yopishingiz mumkin.');
 });
 
+// Full account deletion — cleans up every table that references the user,
+// not just the users row itself (unlike cleanup-unverified above, which is
+// only for stuck unverified test accounts). Content the user created that
+// other people depend on (events, articles, communities they own) is left
+// alone rather than cascaded away, since deleting those would surprise
+// other users; only their own personal data and memberships are removed.
+app.get('/admin/delete-account', async (req, res) => {
+    if (req.query.token !== ADMIN_SECRET) return res.status(403).send('Forbidden');
+    const username = (req.query.username || '').trim();
+    if (!username) return res.send('Usage: ?token=...&username=...');
+
+    const user = await getUser(username);
+    if (!user) return res.send(`Foydalanuvchi "${username}" topilmadi.`);
+
+    const id = user.id;
+    const tables = [
+        { sql: 'DELETE FROM event_attendees WHERE user_id = ?' },
+        { sql: 'DELETE FROM event_checkins WHERE user_id = ?' },
+        { sql: 'DELETE FROM event_coordinators WHERE user_id = ?' },
+        { sql: 'DELETE FROM event_reviews WHERE user_id = ?' },
+        { sql: 'DELETE FROM volunteer_responses WHERE user_id = ?' },
+        { sql: 'DELETE FROM community_members WHERE user_id = ?' },
+        { sql: 'DELETE FROM community_messages WHERE sender_id = ?' },
+        { sql: 'DELETE FROM messages WHERE sender_id = ? OR receiver_id = ?', args: [id, id] },
+        { sql: 'DELETE FROM article_likes WHERE user_id = ?' },
+        { sql: 'DELETE FROM article_reports WHERE reporter_id = ?' },
+        { sql: 'DELETE FROM follows WHERE requester_id = ? OR target_id = ?', args: [id, id] },
+        { sql: 'DELETE FROM push_subscriptions WHERE user_id = ?' },
+        { sql: 'DELETE FROM user_badges WHERE user_id = ?' },
+        { sql: 'DELETE FROM notifications WHERE user_id = ?' },
+        { sql: 'DELETE FROM achievements WHERE user_id = ?' },
+        { sql: 'DELETE FROM sessions WHERE user_id = ?' }
+    ];
+    for (const t of tables) {
+        try { await db.execute({ sql: t.sql, args: t.args || [id] }); } catch (e) { console.error(t.sql, e.message); }
+    }
+    await db.execute({ sql: 'DELETE FROM users WHERE id = ?', args: [id] });
+
+    res.send(`✅ @${username} hisobi va unga tegishli barcha shaxsiy ma'lumotlar (xabarlar, a'zoliklar, kuzatishlar va h.k.) o'chirildi. Uning yaratgan tadbirlari/maqolalari/jamoalari tegilmadi.`);
+});
+
 // One-off cleanup tool for accounts stuck unverified from BEFORE this fix
 // shipped (the old flow created a real `users` row immediately on submit).
 // New registrations no longer create a users row until verification succeeds,
