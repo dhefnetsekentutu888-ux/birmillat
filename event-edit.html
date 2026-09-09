@@ -4,6 +4,12 @@
 <script src="/theme.js"></script>
 <meta charset="UTF-8">
 <link rel="icon" type="image/png" href="/favicon.png">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/favicon.png">
+<meta name="theme-color" content="#2D1B69">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="BirMillat">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BirMillat – Tadbirni tahrirlash</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -23,6 +29,15 @@
         text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-primary); margin-bottom: 1.1rem;
     }
     .form-section-title i { color: var(--color-accent); }
+
+    .question-row { display: flex; gap: 0.6rem; align-items: center; margin-bottom: 0.7rem; }
+    .question-row input[type="text"] {
+        flex: 1; padding: 0.6rem 0.85rem; border-radius: var(--radius-sm); border: 1.5px solid var(--color-border);
+        font-family: 'Inter', sans-serif; font-size: 0.9rem; background: var(--color-bg); color: var(--color-text);
+    }
+    .question-row label { display: flex; align-items: center; gap: 0.35rem; font-size: 0.78rem; color: var(--color-text-muted); white-space: nowrap; flex-shrink: 0; }
+    .question-remove-btn { background: none; border: none; color: var(--color-text-muted); cursor: pointer; flex-shrink: 0; font-size: 0.9rem; }
+    .question-remove-btn:hover { color: var(--color-error); }
 
     .form-field { margin-bottom: 1.1rem; }
     .form-field:last-child { margin-bottom: 0; }
@@ -111,7 +126,7 @@
             <a href="/profile"><i class="fas fa-user"></i> Profil</a>
             <a href="/logout"><i class="fas fa-right-from-bracket"></i> Chiqish</a>
         </div>
-        <div class="user-badge" id="userBadge"><img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ...</div>
+        <a class="user-badge" id="userBadge" href="/profile"><img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ...</a>
     <div class="notif-bell-wrap">
         <button class="notif-bell" id="notifBell" aria-label="Bildirishnomalar"><i class="fas fa-bell"></i><span class="notif-dot" id="notifDot"></span></button>
         <div class="notif-panel" id="notifPanel">
@@ -196,6 +211,13 @@
                     <label for="planLinkInput">Tadbir rejasi havolasi</label>
                     <input type="url" id="planLinkInput" placeholder="Reja/dastur hujjatiga havola">
                 </div>
+            </div>
+
+            <div class="form-section card">
+                <div class="form-section-title"><i class="fas fa-list-check"></i> Ro'yxatdan o'tish savollari <span style="font-weight:400; color:var(--color-text-muted); font-size:0.82rem;">(ixtiyoriy, tavsiya etiladi)</span></div>
+                <p style="color:var(--color-text-muted); font-size:0.85rem; margin-bottom:0.8rem;">Ko'pchilik faqat taxallus qoldiradi — masalan "To'liq ism sharifingiz" yoki "Maktabingiz" kabi savol qo'shsangiz, kim kelishini aniq bilasiz.</p>
+                <div id="questionsList"></div>
+                <button type="button" class="btn btn-outline btn-zoom" id="addQuestionBtn" style="margin-top:0.5rem;"><i class="fas fa-plus"></i> Savol qo'shish</button>
             </div>
 
             <button type="submit" class="gradient-submit">
@@ -290,6 +312,7 @@
                 document.getElementById('socialLinkInput').value = ev.social_link || '';
                 document.getElementById('mapLinkInput').value = ev.map_link || '';
                 document.getElementById('planLinkInput').value = ev.plan_link || '';
+                (ev.registrationQuestions || []).forEach(q => addQuestionRow(q.label, q.required));
 
                 subtitle.textContent = "Tadbir ma'lumotlarini yangilang.";
                 document.getElementById('eventForm').style.display = 'block';
@@ -303,6 +326,42 @@
             btn.addEventListener('click', () => setMode(btn.getAttribute('data-mode')));
         });
 
+        // ---------- Registration questions builder ----------
+        let questionRowId = 0;
+        function addQuestionRow(label = '', required = false) {
+            const list = document.getElementById('questionsList');
+            const rowId = 'q' + (questionRowId++);
+            const row = document.createElement('div');
+            row.className = 'question-row';
+            row.dataset.rowId = rowId;
+            row.innerHTML = `
+                <input type="text" maxlength="120" placeholder="Masalan: To'liq ism sharifingiz" value="${label.replace(/"/g, '&quot;')}">
+                <label><input type="checkbox" ${required ? 'checked' : ''}> Majburiy</label>
+                <button type="button" class="question-remove-btn" aria-label="O'chirish"><i class="fas fa-xmark"></i></button>
+            `;
+            row.querySelector('.question-remove-btn').addEventListener('click', () => row.remove());
+            list.appendChild(row);
+        }
+
+        document.getElementById('addQuestionBtn').addEventListener('click', () => {
+            if (document.querySelectorAll('.question-row').length >= 10) {
+                alert("Ko'pi bilan 10 ta savol qo'shishingiz mumkin");
+                return;
+            }
+            addQuestionRow();
+        });
+
+        function collectQuestions() {
+            const rows = document.querySelectorAll('.question-row');
+            const questions = [];
+            for (const row of rows) {
+                const label = row.querySelector('input[type="text"]').value.trim();
+                if (!label) continue;
+                questions.push({ label, required: row.querySelector('input[type="checkbox"]').checked });
+            }
+            return questions;
+        }
+
         document.getElementById('eventForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const eventId = getEventId();
@@ -311,6 +370,8 @@
             const dateVal = document.getElementById('dateInput').value;
 
             if (!title || !dateVal) return;
+
+            const registrationQuestions = collectQuestions();
 
             statusEl.textContent = 'Saqlanmoqda...';
             statusEl.className = 'submit-status';
@@ -329,7 +390,8 @@
                         capacity: document.getElementById('capacityInput').value || null,
                         socialLink: document.getElementById('socialLinkInput').value.trim(),
                         mapLink: document.getElementById('mapLinkInput').value.trim(),
-                        planLink: document.getElementById('planLinkInput').value.trim()
+                        planLink: document.getElementById('planLinkInput').value.trim(),
+                        registrationQuestions
                     })
                 });
                 const data = await res.json();
