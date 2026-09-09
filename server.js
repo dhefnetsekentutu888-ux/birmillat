@@ -2567,6 +2567,21 @@ app.get('/verify', async (req, res) => {
         return res.send(renderVerifyPage(identifier, 'phone', '', false, code));
     }
 
+    // Normally this page is reached mid-registration, with a pending_registrations
+    // row already holding a just-sent code. But an existing account can also land
+    // here — e.g. a legacy pre-verification account, or one that only just gained
+    // an email via the "add email" profile feature — where there's no pending
+    // registration and therefore no code has actually been sent yet. Cover that
+    // case here instead of silently showing an empty "enter your code" page.
+    const pending = await getPendingRegistration(identifier);
+    if (!pending) {
+        const existingUser = await getUserByEmail(identifier.toLowerCase());
+        if (existingUser && !existingUser.is_verified) {
+            const code = await createVerificationCode(identifier.toLowerCase(), 'register');
+            await sendEmail(identifier.toLowerCase(), 'BirMillat — tasdiqlash kodi', verificationEmailHtml(code));
+        }
+    }
+
     res.send(renderVerifyPage(identifier.toLowerCase(), 'email', ''));
 });
 
@@ -2593,10 +2608,22 @@ app.post('/verify', async (req, res) => {
             return res.send(renderVerifyPage(identifier, 'email', result.reason, true));
         }
 
-        // Code confirmed — this is the moment the real account gets created.
+        // Code confirmed — this is normally the moment a brand-new account gets
+        // created from a pending registration. But if there's no pending row,
+        // this is an existing account that just needed its is_verified flag
+        // fixed (see the GET handler above for why that can happen) — verify
+        // and log them into their existing account instead of trying to create
+        // a new one.
         const pending = await getPendingRegistration(identifier);
         if (!pending) {
-            return res.send(renderVerifyPage(identifier, 'email', 'So‘rov muddati tugagan. Iltimos, qaytadan ro‘yxatdan o‘ting.', true));
+            const existingUser = await getUserByEmail(identifier);
+            if (!existingUser) {
+                return res.send(renderVerifyPage(identifier, 'email', 'So‘rov muddati tugagan. Iltimos, qaytadan ro‘yxatdan o‘ting.', true));
+            }
+            await markUserVerified(identifier);
+            req.session.userId = existingUser.id;
+            req.session.username = existingUser.username;
+            return res.redirect('/home');
         }
 
         // Re-check uniqueness right before creating — another user could have
@@ -2626,7 +2653,20 @@ app.post('/verify/resend', async (req, res) => {
         const method = req.body.method === 'phone' ? 'phone' : 'email';
         const pending = await getPendingRegistration(identifier);
         if (!pending) {
-            return res.send(renderVerifyPage(identifier, method, 'So‘rov muddati tugagan. Iltimos, qaytadan ro‘yxatdan o‘ting.', true));
+            // Same existing-account fallback as the GET handler — without this,
+            // resend silently died here for any account that wasn't mid-registration,
+            // never calling sendEmail at all.
+            const existingUser = method === 'email' ? await getUserByEmail(identifier) : await getUserByPhone(identifier);
+            if (!existingUser) {
+                return res.send(renderVerifyPage(identifier, method, 'So‘rov muddati tugagan. Iltimos, qaytadan ro‘yxatdan o‘ting.', true));
+            }
+            const code = await createVerificationCode(identifier, 'register');
+            if (method === 'phone') {
+                if (existingUser.telegram_chat_id) await sendTelegramMessageTo(existingUser.telegram_chat_id, `Tasdiqlash kodingiz: <b>${code}</b>`);
+                return res.send(renderVerifyPage(identifier, 'phone', 'Yangi kod tayyor', false, code));
+            }
+            await sendEmail(identifier, 'BirMillat — tasdiqlash kodi', verificationEmailHtml(code));
+            return res.send(renderVerifyPage(identifier, 'email', 'Yangi kod yuborildi', false));
         }
         const code = await createVerificationCode(identifier, 'register');
         if (method === 'phone') {
@@ -3696,7 +3736,14 @@ app.post('/api/profile/add-email/confirm', async (req, res) => {
         const existing = await getUserByEmail(email);
         if (existing) return res.status(400).json({ error: 'Bu email allaqachon ishlatilmoqda' });
 
-        await db.execute({ sql: 'UPDATE users SET email = ? WHERE id = ?', args: [email, req.session.userId] });
+        // Entering a code sent to this address already proves they own it —
+        // no reason to also flag them as needing to "verify their email" at
+        // the next login. Without this, an account whose is_verified was
+        // never set to 1 (e.g. a legacy pre-verification account) would get
+        // silently locked out of login the moment it gained an email, since
+        // the login page's is_verified check only applies to accounts *with*
+        // an email set.
+        await db.execute({ sql: 'UPDATE users SET email = ?, is_verified = 1 WHERE id = ?', args: [email, req.session.userId] });
         res.json({ success: true, email });
     } catch (err) {
         console.error('api/profile/add-email/confirm error:', err);
