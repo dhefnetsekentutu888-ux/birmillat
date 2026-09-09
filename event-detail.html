@@ -145,6 +145,17 @@ body { font-family: 'Inter', sans-serif; }
 .gate-requirement.satisfied .gate-req-actions { display: none; }
 #gateContinueBtn:disabled { opacity: 0.5; cursor: not-allowed; }
 
+.rsvp-q-field { margin-bottom: 0.9rem; }
+.rsvp-q-field label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--color-text); }
+.rsvp-q-field label .required-star { color: var(--color-error); }
+.rsvp-q-field input {
+    width: 100%; box-sizing: border-box; padding: 0.6rem 0.85rem; border-radius: var(--radius-sm);
+    border: 1.5px solid var(--color-border); font-family: 'Inter', sans-serif; font-size: 0.9rem;
+    background: var(--color-bg); color: var(--color-text);
+}
+.attendee-answer { font-size: 0.78rem; color: var(--color-text-muted); margin-top: 0.15rem; line-height: 1.4; }
+.attendee-answer span { font-weight: 600; color: var(--color-text); }
+
 /* ---------- Team management ---------- */
 .coord-list { display: flex; flex-direction: column; gap: 0.7rem; margin-bottom: 1.2rem; }
 .coord-row { display: flex; align-items: center; gap: 0.7rem; }
@@ -315,6 +326,13 @@ body { font-family: 'Inter', sans-serif; }
                     <button class="rsvp-choice-btn yes" id="rsvpYesBtn">Ha, boraman</button>
                 </div>
             </div>
+            <div id="rsvpStepQuestions" style="display:none;">
+                <h2>Bir nechta savol</h2>
+                <p style="margin-bottom:0.8rem;">Tashkilotchi tomonidan qo'shilgan savollarga javob bering.</p>
+                <div id="rsvpQuestionsForm" style="text-align:left; margin-bottom:1rem;"></div>
+                <div class="rsvp-modal-status" id="rsvpQuestionsStatus"></div>
+                <button class="btn btn-primary btn-zoom" id="rsvpQuestionsContinueBtn" style="width:100%;">Davom etish</button>
+            </div>
             <div id="rsvpStepCaptcha" style="display:none;">
                 <h2>Tasdiqlash</h2>
                 <p>Chiptangiz behuda yaratilmasligi uchun qisqa tekshiruvdan o'ting.</p>
@@ -477,11 +495,23 @@ body { font-family: 'Inter', sans-serif; }
                 </div>`).join('') || `<p class="empty-note">Hozircha jamoa a'zolari yo'q</p>`;
 
             const attendees = event.attendees || [];
-            const attendeeRows = attendees.map(a => `
-                <a href="/u/${encodeURIComponent(a.username)}" class="coord-row" style="text-decoration:none; color:inherit;">
+            const questionsById = {};
+            (event.registrationQuestions || []).forEach(q => { questionsById[q.id] = q.label; });
+            const attendeeRows = attendees.map(a => {
+                const answerLines = a.answers
+                    ? Object.entries(a.answers).map(([qid, val]) =>
+                        `<div class="attendee-answer"><span>${escapeHtml(questionsById[qid] || 'Javob')}:</span> ${escapeHtml(val)}</div>`).join('')
+                    : '';
+                return `
+                <a href="/u/${encodeURIComponent(a.username)}" class="coord-row" style="text-decoration:none; color:inherit; align-items:flex-start;">
                     <span class="mini-avatar">${a.photoUrl ? `<img src="${a.photoUrl}" alt="">` : initials(a.name || a.username)}</span>
-                    <div><div class="coord-name">${a.name || a.username}</div><div class="coord-role">@${a.username}</div></div>
-                </a>`).join('') || `<p class="empty-note">Hali hech kim ro'yxatdan o'tmagan</p>`;
+                    <div style="flex:1;">
+                        <div class="coord-name">${a.name || a.username}</div>
+                        <div class="coord-role">@${a.username}</div>
+                        ${answerLines}
+                    </div>
+                </a>`;
+            }).join('') || `<p class="empty-note">Hali hech kim ro'yxatdan o'tmagan</p>`;
 
             return `
                 <div class="section-card card">
@@ -779,7 +809,7 @@ body { font-family: 'Inter', sans-serif; }
                 const res = await fetch(`/api/events/${currentEvent.id}/rsvp`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ willAttend, turnstileToken })
+                    body: JSON.stringify({ willAttend, turnstileToken, answers: window.rsvpAnswers || {} })
                 });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error || 'Server error');
@@ -792,13 +822,58 @@ body { font-family: 'Inter', sans-serif; }
             }
         }
 
-        document.getElementById('rsvpNoBtn').addEventListener('click', () => submitRsvp(false, null));
-        document.getElementById('rsvpYesBtn').addEventListener('click', async () => {
+        function renderQuestionsStep() {
+            const container = document.getElementById('rsvpQuestionsForm');
+            const questions = currentEvent.registrationQuestions || [];
+            container.innerHTML = questions.map((q, i) => `
+                <div class="rsvp-q-field">
+                    <label for="rsvpQ${i}">${escapeHtml(q.label)}${q.required ? ' <span class="required-star">*</span>' : ''}</label>
+                    <input type="text" id="rsvpQ${i}" data-qid="${q.id}" maxlength="300" ${q.required ? 'required' : ''}>
+                </div>
+            `).join('');
+        }
+
+        function goToCaptchaStep() {
             document.getElementById('rsvpStepConfirm').style.display = 'none';
+            document.getElementById('rsvpStepQuestions').style.display = 'none';
             document.getElementById('rsvpStepCaptcha').style.display = 'block';
             document.getElementById('turnstileContainer').innerHTML = '<p style="color:var(--color-text-muted); font-size:0.85rem;">Yuklanmoqda...</p>';
             document.getElementById('rsvpModalStatus').textContent = '';
+            proceedToCaptcha();
+        }
 
+        document.getElementById('rsvpQuestionsContinueBtn').addEventListener('click', () => {
+            const inputs = document.querySelectorAll('#rsvpQuestionsForm input');
+            const answers = {};
+            for (const input of inputs) {
+                const val = input.value.trim();
+                if (input.hasAttribute('required') && !val) {
+                    document.getElementById('rsvpQuestionsStatus').textContent = "Iltimos, barcha majburiy savollarga javob bering";
+                    document.getElementById('rsvpQuestionsStatus').className = 'rsvp-modal-status error';
+                    input.focus();
+                    return;
+                }
+                if (val) answers[input.getAttribute('data-qid')] = val;
+            }
+            window.rsvpAnswers = answers;
+            goToCaptchaStep();
+        });
+
+        document.getElementById('rsvpNoBtn').addEventListener('click', () => submitRsvp(false, null));
+        document.getElementById('rsvpYesBtn').addEventListener('click', async () => {
+            window.rsvpAnswers = {};
+            const hasQuestions = (currentEvent.registrationQuestions || []).length > 0;
+            if (hasQuestions) {
+                document.getElementById('rsvpStepConfirm').style.display = 'none';
+                document.getElementById('rsvpStepQuestions').style.display = 'block';
+                document.getElementById('rsvpQuestionsStatus').textContent = '';
+                renderQuestionsStep();
+                return;
+            }
+            goToCaptchaStep();
+        });
+
+        async function proceedToCaptcha() {
             const siteKey = await ensureTurnstileKey();
             if (!siteKey) {
                 // No captcha configured on the server at all — nothing to wait for.
@@ -826,7 +901,7 @@ body { font-family: 'Inter', sans-serif; }
                     document.getElementById('rsvpModalStatus').className = 'rsvp-modal-status error';
                 }
             });
-        });
+        }
 
         async function handleCoordAdd() {
             const statusEl = document.getElementById('coordStatus');
