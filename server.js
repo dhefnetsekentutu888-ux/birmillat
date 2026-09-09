@@ -306,15 +306,21 @@ async function initDb() {
     // creator can add a recap photo + short note, shown on the past-events tab.
     try { await db.execute(`ALTER TABLE events ADD COLUMN recap_image_url TEXT`); } catch (e) {}
     try { await db.execute(`ALTER TABLE events ADD COLUMN recap_note TEXT`); } catch (e) {}
+    // Optional organizer-defined registration questions (Google-Forms-style
+    // short answers, e.g. "To'liq ism sharifingiz", "Maktabingiz") — a JSON
+    // array of {id, label, required}. Answers are stored per-attendee below.
+    try { await db.execute(`ALTER TABLE events ADD COLUMN registration_questions TEXT`); } catch (e) {}
 
     await db.execute(`
         CREATE TABLE IF NOT EXISTS event_attendees (
             event_id INTEGER NOT NULL,
             user_id INTEGER NOT NULL,
             joined_at INTEGER NOT NULL,
+            answers TEXT,
             PRIMARY KEY (event_id, user_id)
         )
     `);
+    try { await db.execute(`ALTER TABLE event_attendees ADD COLUMN answers TEXT`); } catch (e) {}
 
     // ---------- Event organizing team, team gallery, participant feedback, QR check-in ----------
     // A coordinator is another user the event's creator has vouched for, with a
@@ -1278,11 +1284,12 @@ async function deleteArticleAndWarnAuthor(articleId) {
 }
 
 // ---------- Events ----------
-async function createEvent({ creatorId, title, description, category, mode, location, eventDate, capacity, socialLink, mapLink, planLink }) {
+async function createEvent({ creatorId, title, description, category, mode, location, eventDate, capacity, socialLink, mapLink, planLink, registrationQuestions }) {
     const result = await db.execute({
-        sql: `INSERT INTO events (creator_id, title, description, category, mode, location, event_date, capacity, social_link, map_link, plan_link, status, created_at)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)`,
-        args: [creatorId, title, description, category, mode, location, eventDate, capacity || null, socialLink || null, mapLink || null, planLink || null, Date.now()]
+        sql: `INSERT INTO events (creator_id, title, description, category, mode, location, event_date, capacity, social_link, map_link, plan_link, registration_questions, status, created_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)`,
+        args: [creatorId, title, description, category, mode, location, eventDate, capacity || null, socialLink || null, mapLink || null, planLink || null,
+            registrationQuestions && registrationQuestions.length ? JSON.stringify(registrationQuestions) : null, Date.now()]
     });
     return Number(result.lastInsertRowid);
 }
@@ -1361,18 +1368,47 @@ async function deleteEventCascade(id) {
     await db.execute({ sql: 'DELETE FROM events WHERE id = ?', args: [id] });
 }
 
-async function updateEvent(id, { title, description, category, mode, location, eventDate, capacity, socialLink, mapLink, planLink }) {
+async function updateEvent(id, { title, description, category, mode, location, eventDate, capacity, socialLink, mapLink, planLink, registrationQuestions }) {
     return db.execute({
         sql: `UPDATE events SET title = ?, description = ?, category = ?, mode = ?, location = ?,
-              event_date = ?, capacity = ?, social_link = ?, map_link = ?, plan_link = ? WHERE id = ?`,
-        args: [title, description, category, mode, location, eventDate, capacity || null, socialLink || null, mapLink || null, planLink || null, id]
+              event_date = ?, capacity = ?, social_link = ?, map_link = ?, plan_link = ?, registration_questions = ? WHERE id = ?`,
+        args: [title, description, category, mode, location, eventDate, capacity || null, socialLink || null, mapLink || null, planLink || null,
+            registrationQuestions && registrationQuestions.length ? JSON.stringify(registrationQuestions) : null, id]
     });
 }
 
-async function joinEvent(eventId, userId) {
+// Google-Forms-style short-answer questions an organizer can optionally add
+// to their event's registration. Keeps this feature genuinely "recommended,
+// not required" (per the founder's request) by capping it at 10 questions
+// and requiring only a non-empty label per question — everything else about
+// a question is opt-in.
+function sanitizeRegistrationQuestions(input) {
+    if (input === undefined || input === null || input === '') return [];
+    let arr = input;
+    if (typeof arr === 'string') {
+        try { arr = JSON.parse(arr); } catch (e) { return null; }
+    }
+    if (!Array.isArray(arr)) return null;
+    if (arr.length > 10) return null;
+    const cleaned = [];
+    for (const q of arr) {
+        const label = typeof q === 'string' ? q : (q && q.label);
+        if (typeof label !== 'string' || !label.trim()) return null;
+        if (label.trim().length > 120) return null;
+        cleaned.push({
+            id: (q && q.id) || Math.random().toString(36).slice(2, 10),
+            label: label.trim(),
+            required: !!(q && q.required)
+        });
+    }
+    return cleaned;
+}
+
+async function joinEvent(eventId, userId, answers) {
     return db.execute({
-        sql: `INSERT OR IGNORE INTO event_attendees (event_id, user_id, joined_at) VALUES (?, ?, ?)`,
-        args: [eventId, userId, Date.now()]
+        sql: `INSERT INTO event_attendees (event_id, user_id, joined_at, answers) VALUES (?, ?, ?, ?)
+              ON CONFLICT(event_id, user_id) DO UPDATE SET answers = excluded.answers`,
+        args: [eventId, userId, Date.now(), answers ? JSON.stringify(answers) : null]
     });
 }
 
@@ -1385,13 +1421,13 @@ async function leaveEvent(eventId, userId) {
 
 async function getEventAttendees(eventId) {
     const result = await db.execute({
-        sql: `SELECT users.id, users.username, users.name, users.photo_url FROM event_attendees
+        sql: `SELECT users.id, users.username, users.name, users.photo_url, event_attendees.answers FROM event_attendees
               JOIN users ON users.id = event_attendees.user_id
               WHERE event_attendees.event_id = ?
               ORDER BY event_attendees.joined_at ASC`,
         args: [eventId]
     });
-    return result.rows;
+    return result.rows.map(r => ({ ...r, answers: r.answers ? JSON.parse(r.answers) : null }));
 }
 
 async function isUserAttending(eventId, userId) {
@@ -4757,8 +4793,11 @@ app.get('/api/events/:id', async (req, res) => {
         const coordinators = await getEventCoordinators(event.id);
         const isManager = req.session.userId ? await isEventManager(event.id, req.session.userId) : false;
         const myCheckin = req.session.userId ? await getEventCheckinByUser(event.id, req.session.userId) : null;
+        let registrationQuestions = [];
+        try { registrationQuestions = event.registration_questions ? JSON.parse(event.registration_questions) : []; } catch (e) {}
         res.json({
             ...event,
+            registrationQuestions,
             attendees,
             isAttending,
             isCreator: !!req.session.userId && event.creator_id === req.session.userId,
@@ -4777,7 +4816,7 @@ app.get('/api/events/:id', async (req, res) => {
 app.post('/api/events', async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
     try {
-        const { title, description, category, mode, location, eventDate, capacity, socialLink, mapLink, planLink } = req.body;
+        const { title, description, category, mode, location, eventDate, capacity, socialLink, mapLink, planLink, registrationQuestions } = req.body;
         if (!title || !title.trim()) {
             return res.status(400).json({ error: 'Tadbir nomi kerak' });
         }
@@ -4787,6 +4826,10 @@ app.post('/api/events', async (req, res) => {
         const parsedDate = new Date(eventDate).getTime();
         if (isNaN(parsedDate)) {
             return res.status(400).json({ error: 'Sana noto‘g‘ri' });
+        }
+        const cleanQuestions = sanitizeRegistrationQuestions(registrationQuestions);
+        if (cleanQuestions === null) {
+            return res.status(400).json({ error: "Ro'yxatdan o'tish savollari noto'g'ri (har biri matn bo'lishi va 10 tadan oshmasligi kerak)" });
         }
         const cleanSocialLink = (socialLink || '').trim();
         if (cleanSocialLink && !/^https?:\/\//i.test(cleanSocialLink)) {
@@ -4813,7 +4856,8 @@ app.post('/api/events', async (req, res) => {
             capacity: capacity ? parseInt(capacity, 10) : null,
             socialLink: cleanSocialLink || null,
             mapLink: cleanMapLink || null,
-            planLink: cleanPlanLink || null
+            planLink: cleanPlanLink || null,
+            registrationQuestions: cleanQuestions
         });
 
         const approveUrl = `${SITE_URL}/admin/events/${eventId}/approve?token=${ADMIN_SECRET}`;
@@ -4848,7 +4892,7 @@ app.put('/api/events/:id', async (req, res) => {
             return res.status(403).json({ error: "Faqat tadbir yaratuvchisi uni tahrirlashi mumkin" });
         }
 
-        const { title, description, category, mode, location, eventDate, capacity, socialLink, mapLink, planLink } = req.body;
+        const { title, description, category, mode, location, eventDate, capacity, socialLink, mapLink, planLink, registrationQuestions } = req.body;
         if (!title || !title.trim()) {
             return res.status(400).json({ error: 'Tadbir nomi kerak' });
         }
@@ -4858,6 +4902,10 @@ app.put('/api/events/:id', async (req, res) => {
         const parsedDate = new Date(eventDate).getTime();
         if (isNaN(parsedDate)) {
             return res.status(400).json({ error: 'Sana noto‘g‘ri' });
+        }
+        const cleanQuestions = sanitizeRegistrationQuestions(registrationQuestions);
+        if (cleanQuestions === null) {
+            return res.status(400).json({ error: "Ro'yxatdan o'tish savollari noto'g'ri (har biri matn bo'lishi va 10 tadan oshmasligi kerak)" });
         }
         const cleanSocialLink = (socialLink || '').trim();
         if (cleanSocialLink && !/^https?:\/\//i.test(cleanSocialLink)) {
@@ -4882,7 +4930,8 @@ app.put('/api/events/:id', async (req, res) => {
             capacity: capacity ? parseInt(capacity, 10) : null,
             socialLink: cleanSocialLink || null,
             mapLink: cleanMapLink || null,
-            planLink: cleanPlanLink || null
+            planLink: cleanPlanLink || null,
+            registrationQuestions: cleanQuestions
         });
 
         res.json({ success: true });
@@ -4969,7 +5018,7 @@ app.post('/api/events/:id/rsvp', async (req, res) => {
             return res.status(400).json({ error: "Bu tadbir allaqachon bo'lib o'tgan" });
         }
 
-        const { willAttend, turnstileToken } = req.body;
+        const { willAttend, turnstileToken, answers } = req.body;
 
         if (!willAttend) {
             await leaveEvent(event.id, req.session.userId);
@@ -4979,6 +5028,17 @@ app.post('/api/events/:id/rsvp', async (req, res) => {
         const gate = await getEventRegistrationGate(req.session.userId);
         if (!gate.ready) {
             return res.status(403).json({ error: "Ro'yxatdan o'tish uchun avval bildirishnoma va kanal shartlarini bajaring", gate });
+        }
+
+        let registrationQuestions = [];
+        try { registrationQuestions = event.registration_questions ? JSON.parse(event.registration_questions) : []; } catch (e) {}
+        const cleanAnswers = {};
+        for (const q of registrationQuestions) {
+            const val = (answers && answers[q.id] ? String(answers[q.id]) : '').trim();
+            if (q.required && !val) {
+                return res.status(400).json({ error: `"${q.label}" savoliga javob berish shart` });
+            }
+            if (val) cleanAnswers[q.id] = val.slice(0, 300);
         }
 
         const alreadyAttending = await isUserAttending(event.id, req.session.userId);
@@ -4994,7 +5054,7 @@ app.post('/api/events/:id/rsvp', async (req, res) => {
             return res.status(400).json({ error: "Tekshiruvdan o'ta olmadingiz. Qaytadan urinib ko'ring." });
         }
 
-        await joinEvent(event.id, req.session.userId);
+        await joinEvent(event.id, req.session.userId, registrationQuestions.length ? cleanAnswers : null);
         const checkin = await createEventCheckin(event.id, req.session.userId);
 
         if (!alreadyAttending && event.creator_id !== req.session.userId) {
