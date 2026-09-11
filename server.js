@@ -8,6 +8,7 @@ const { Server: SocketIOServer } = require('socket.io');
 const { createClient } = require('@libsql/client');
 const multer = require('multer');
 const webpush = require('web-push');
+const Jimp = require('jimp');
 
 const app = express();
 // Render (like virtually every PaaS) terminates HTTPS at a proxy and forwards
@@ -102,6 +103,36 @@ async function initDb() {
         )
     `);
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_user_badges_user ON user_badges (user_id)`);
+
+    // Certificate templates: a background image (uploaded via the bot) plus
+    // where on it the recipient's name gets printed. name_x_pct/name_y_pct
+    // are percentages (0-100) of the image's width/height, not pixels, so
+    // the same position config makes sense regardless of the image's actual
+    // resolution.
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS certificate_templates (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            image_url TEXT NOT NULL,
+            name_x_pct REAL NOT NULL DEFAULT 50,
+            name_y_pct REAL NOT NULL DEFAULT 50,
+            created_at INTEGER NOT NULL
+        )
+    `);
+
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS certificates (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            event_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            template_id INTEGER,
+            recipient_name TEXT NOT NULL,
+            image_url TEXT NOT NULL,
+            delivered_via TEXT,
+            created_at INTEGER NOT NULL
+        )
+    `);
+    await db.execute(`CREATE INDEX IF NOT EXISTS idx_certificates_event ON certificates (event_id)`);
 
     // In-app notification bell — separate from Telegram notifications, since
     // most users don't have that linked. This is what powers the bell icon
@@ -3555,6 +3586,77 @@ async function uploadImageToFreeimage(buffer) {
     return { ok: true, url: data.image.display_url || data.image.url };
 }
 
+// ---------- Certificates ----------
+async function downloadTelegramPhotoBuffer(fileId) {
+    const fileRes = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getFile?file_id=${fileId}`);
+    const fileData = await fileRes.json();
+    if (!fileData.ok) throw new Error('getFile failed');
+    const fileUrl = `https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${fileData.result.file_path}`;
+    const imgRes = await fetch(fileUrl);
+    return Buffer.from(await imgRes.arrayBuffer());
+}
+
+// Prints a recipient's name onto a certificate template. Position is given
+// as a percentage of the image's width/height (not pixels) so one template
+// config works regardless of the uploaded image's actual resolution. Falls
+// back to a smaller font automatically if the name is too wide for a large
+// one to fit without running off the edge.
+async function generateCertificateImage(templateImageUrl, recipientName, nameXPct, nameYPct) {
+    const image = await Jimp.read(templateImageUrl);
+    const maxWidth = image.bitmap.width * 0.85;
+
+    let font = await Jimp.loadFont(Jimp.FONT_SANS_64_BLACK);
+    let textWidth = Jimp.measureText(font, recipientName);
+    if (textWidth > maxWidth) {
+        font = await Jimp.loadFont(Jimp.FONT_SANS_32_BLACK);
+        textWidth = Jimp.measureText(font, recipientName);
+    }
+    const textHeight = Jimp.measureTextHeight(font, recipientName, textWidth);
+
+    const x = Math.max(0, (image.bitmap.width * (nameXPct / 100)) - (textWidth / 2));
+    const y = Math.max(0, (image.bitmap.height * (nameYPct / 100)) - (textHeight / 2));
+
+    image.print(font, x, y, recipientName);
+    return image.getBufferAsync(Jimp.MIME_PNG);
+}
+
+async function createCertificateTemplate({ name, imageUrl, nameXPct, nameYPct }) {
+    const result = await db.execute({
+        sql: `INSERT INTO certificate_templates (name, image_url, name_x_pct, name_y_pct, created_at) VALUES (?, ?, ?, ?, ?)`,
+        args: [name, imageUrl, nameXPct, nameYPct, Date.now()]
+    });
+    return Number(result.lastInsertRowid);
+}
+
+async function getCertificateTemplates() {
+    const result = await db.execute(`SELECT * FROM certificate_templates ORDER BY created_at DESC`);
+    return result.rows;
+}
+
+async function getCertificateTemplateById(id) {
+    const result = await db.execute({ sql: 'SELECT * FROM certificate_templates WHERE id = ?', args: [id] });
+    return result.rows[0] || null;
+}
+
+async function recordCertificate({ eventId, userId, templateId, recipientName, imageUrl, deliveredVia }) {
+    const result = await db.execute({
+        sql: `INSERT INTO certificates (event_id, user_id, template_id, recipient_name, image_url, delivered_via, created_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        args: [eventId, userId, templateId, recipientName, imageUrl, deliveredVia, Date.now()]
+    });
+    return Number(result.lastInsertRowid);
+}
+
+async function getCertificatesForUser(userId) {
+    const result = await db.execute({
+        sql: `SELECT c.*, e.title as event_title FROM certificates c JOIN events e ON e.id = c.event_id
+              WHERE c.user_id = ? ORDER BY c.created_at DESC`,
+        args: [userId]
+    });
+    return result.rows;
+}
+
+
 app.post('/api/profile/photo', upload.single('photo'), async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
     try {
@@ -4121,6 +4223,234 @@ async function handleAdminPostDraftMessage(chatId, message) {
     return false;
 }
 
+const adminCertDrafts = new Map();
+
+async function sendCertificatePreview(chatId, draft) {
+    try {
+        const buffer = await generateCertificateImage(draft.imageUrl, 'Namuna Familiya', draft.nameXPct, draft.nameYPct);
+        await sendTelegramPhotoTo(chatId, buffer, 'preview.png',
+            `Shunday ko'rinadi (namuna ism bilan). Joylashuvni ${draft.nameXPct},${draft.nameYPct} qildik.`);
+        await sendTelegramMessageTo(chatId,
+            "Yoqdimi?",
+            { inline_keyboard: [
+                [{ text: '✅ Saqlash', callback_data: 'cert:tpl:save' }],
+                [{ text: "🔁 Joyni qayta kiritish", callback_data: 'cert:tpl:reposition' }],
+                [{ text: '❌ Bekor qilish', callback_data: 'cert:tpl:cancel' }]
+            ] });
+    } catch (e) {
+        console.error('Certificate preview failed:', e);
+        await sendTelegramMessageTo(chatId, "❌ Namuna yaratishda xatolik yuz berdi. Rasmni qaytadan yuboring yoki /cancel.");
+        draft.step = 'awaiting_image';
+    }
+}
+
+// Same true/false "did I consume this message" contract as
+// handleAdminPostDraftMessage above, for the parallel /sertifikat_shablon flow.
+async function handleAdminCertDraftMessage(chatId, message) {
+    const draft = adminCertDrafts.get(chatId);
+    if (!draft) return false;
+
+    const text = (message.text || '').trim();
+
+    if (text === '/cancel') {
+        adminCertDrafts.delete(chatId);
+        await sendTelegramMessageTo(chatId, "❌ Bekor qilindi.");
+        return true;
+    }
+
+    if (draft.step === 'awaiting_name') {
+        if (!text) {
+            await sendTelegramMessageTo(chatId, "Shablon nomini matn sifatida yuboring yoki /cancel.");
+            return true;
+        }
+        draft.name = text.slice(0, 80);
+        draft.step = 'awaiting_image';
+        await sendTelegramMessageTo(chatId, "Endi sertifikat fonini (rasmni) yuboring:");
+        return true;
+    }
+
+    if (draft.step === 'awaiting_image') {
+        if (message.photo && message.photo.length > 0) {
+            try {
+                const fileId = message.photo[message.photo.length - 1].file_id;
+                const buffer = await downloadTelegramPhotoBuffer(fileId);
+                const uploadResult = await uploadImageToFreeimage(buffer);
+                if (!uploadResult.ok) throw new Error(uploadResult.error || 'upload failed');
+                draft.imageUrl = uploadResult.url;
+                draft.nameXPct = 50;
+                draft.nameYPct = 50;
+                draft.step = 'awaiting_position';
+                await sendTelegramMessageTo(chatId,
+                    "Ism qayerda chiqishi kerak? Foizda X,Y ko'rinishida yuboring.\n\n" +
+                    "Masalan: <code>50,50</code> — rasmning aynan markazi. <code>50,70</code> — markazdan pastroq.");
+            } catch (e) {
+                console.error('Cert template image handling failed:', e);
+                await sendTelegramMessageTo(chatId, "❌ Rasmni qayta ishlashda xatolik. Qaytadan yuboring yoki /cancel.");
+            }
+        } else {
+            await sendTelegramMessageTo(chatId, "Iltimos, rasm yuboring yoki /cancel yozing.");
+        }
+        return true;
+    }
+
+    if (draft.step === 'awaiting_position') {
+        const match = text.match(/^(\d{1,3}),\s*(\d{1,3})$/);
+        if (!match) {
+            await sendTelegramMessageTo(chatId, "Noto'g'ri format. Masalan: 50,50 kabi yuboring.");
+            return true;
+        }
+        draft.nameXPct = Math.min(100, Math.max(0, parseInt(match[1], 10)));
+        draft.nameYPct = Math.min(100, Math.max(0, parseInt(match[2], 10)));
+        draft.step = 'awaiting_confirm';
+        await sendCertificatePreview(chatId, draft);
+        return true;
+    }
+
+    // 'awaiting_confirm' step is driven entirely by the inline-keyboard
+    // buttons above (handled in the callback_query branch), not free text.
+    if (draft.step === 'awaiting_confirm') {
+        await sendTelegramMessageTo(chatId, "Iltimos, yuqoridagi tugmalardan birini tanlang yoki /cancel yozing.");
+        return true;
+    }
+
+    return false;
+}
+
+// Best-effort match: an organizer's custom registration question like
+// "To'liq ism sharifingiz" gets used as the certificate name if answered;
+// otherwise we fall back to the person's site display name.
+function pickCertificateRecipientName(attendee, registrationQuestions) {
+    if (attendee.answers && registrationQuestions && registrationQuestions.length) {
+        const nameQuestion = registrationQuestions.find(q => /ism|fio|f\.i\.o|name/i.test(q.label));
+        if (nameQuestion) {
+            const answer = attendee.answers[nameQuestion.id];
+            if (answer && answer.trim()) return answer.trim();
+        }
+    }
+    return attendee.name || attendee.username;
+}
+
+// All the certificate-related inline-keyboard button taps, kept in one place
+// since they're a multi-step flow (pick event -> pick template -> confirm ->
+// send) that's easier to follow as a single function than scattered inline
+// in the webhook handler.
+async function handleCertCallback(chatId, messageId, data) {
+    if (data === 'cert:tpl:save') {
+        const draft = adminCertDrafts.get(chatId);
+        if (!draft) return;
+        await createCertificateTemplate({ name: draft.name, imageUrl: draft.imageUrl, nameXPct: draft.nameXPct, nameYPct: draft.nameYPct });
+        adminCertDrafts.delete(chatId);
+        await sendTelegramMessageTo(chatId, `✅ "${draft.name}" shabloni saqlandi. Endi /sertifikat orqali foydalanishingiz mumkin.`);
+        return;
+    }
+
+    if (data === 'cert:tpl:reposition') {
+        const draft = adminCertDrafts.get(chatId);
+        if (!draft) return;
+        draft.step = 'awaiting_position';
+        await sendTelegramMessageTo(chatId, "Yangi joyni yuboring (masalan: 50,50):");
+        return;
+    }
+
+    if (data === 'cert:tpl:cancel') {
+        adminCertDrafts.delete(chatId);
+        await sendTelegramMessageTo(chatId, "❌ Bekor qilindi.");
+        return;
+    }
+
+    if (data === 'cert:cancel') {
+        await editTelegramMessage(chatId, messageId, "❌ Bekor qilindi.");
+        return;
+    }
+
+    if (data.startsWith('cert:ev:')) {
+        const eventId = data.slice('cert:ev:'.length);
+        const event = await getEventById(eventId);
+        if (!event) { await editTelegramMessage(chatId, messageId, "❌ Tadbir topilmadi."); return; }
+        const attendees = await getEventAttendees(eventId);
+        if (attendees.length === 0) {
+            await editTelegramMessage(chatId, messageId, `"${event.title}" tadbirida ro'yxatdan o'tganlar yo'q.`);
+            return;
+        }
+        const templates = await getCertificateTemplates();
+        await editTelegramMessage(chatId, messageId,
+            `"${event.title}" — ${attendees.length} ta ishtirokchi.\n\nQaysi shablonni ishlatamiz?`,
+            { inline_keyboard: [
+                ...templates.map(t => ([{ text: t.name, callback_data: `cert:tpl_select:${eventId}:${t.id}` }])),
+                [{ text: '❌ Bekor qilish', callback_data: 'cert:cancel' }]
+            ] });
+        return;
+    }
+
+    if (data.startsWith('cert:tpl_select:')) {
+        const [, , eventId, templateId] = data.split(':');
+        const event = await getEventById(eventId);
+        const template = await getCertificateTemplateById(templateId);
+        if (!event || !template) { await editTelegramMessage(chatId, messageId, "❌ Topilmadi."); return; }
+        const attendees = await getEventAttendees(eventId);
+        await editTelegramMessage(chatId, messageId,
+            `"${event.title}" uchun ${attendees.length} ta ishtirokchiga "${template.name}" sertifikati yuborilsinmi?`,
+            { inline_keyboard: [
+                [{ text: '✅ Ha, yuborish', callback_data: `cert:send:${eventId}:${templateId}` }],
+                [{ text: '❌ Bekor qilish', callback_data: 'cert:cancel' }]
+            ] });
+        return;
+    }
+
+    if (data.startsWith('cert:send:')) {
+        const [, , eventId, templateId] = data.split(':');
+        const event = await getEventById(eventId);
+        const template = await getCertificateTemplateById(templateId);
+        if (!event || !template) { await editTelegramMessage(chatId, messageId, "❌ Topilmadi."); return; }
+
+        let registrationQuestions = [];
+        try { registrationQuestions = event.registration_questions ? JSON.parse(event.registration_questions) : []; } catch (e) {}
+        const attendees = await getEventAttendees(eventId);
+
+        await editTelegramMessage(chatId, messageId, `⏳ ${attendees.length} ta sertifikat tayyorlanmoqda...`);
+
+        let viaTelegram = 0, viaPush = 0, failed = 0;
+        for (const attendee of attendees) {
+            try {
+                const recipientName = pickCertificateRecipientName(attendee, registrationQuestions);
+                const buffer = await generateCertificateImage(template.image_url, recipientName, template.name_x_pct, template.name_y_pct);
+                const uploadResult = await uploadImageToFreeimage(buffer);
+                if (!uploadResult.ok) throw new Error(uploadResult.error);
+
+                const attendeeUser = await getUserById(attendee.id);
+                let deliveredVia = 'web';
+                if (attendeeUser && attendeeUser.telegram_chat_id) {
+                    await sendTelegramPhotoTo(attendeeUser.telegram_chat_id, buffer, 'certificate.png',
+                        `🎓 Tabriklaymiz, ${recipientName}!\n\n"${event.title}" tadbirida ishtirok etganingiz uchun sertifikatingiz tayyor.`);
+                    deliveredVia = 'telegram';
+                    viaTelegram++;
+                } else {
+                    notifyUser(attendee.id, {
+                        type: 'certificate',
+                        content: `🎓 "${event.title}" tadbiri uchun sertifikatingiz tayyor!`,
+                        link: uploadResult.url,
+                        pushTitle: 'Sertifikat tayyor!'
+                    });
+                    deliveredVia = 'push';
+                    viaPush++;
+                }
+
+                await recordCertificate({
+                    eventId: event.id, userId: attendee.id, templateId: template.id,
+                    recipientName, imageUrl: uploadResult.url, deliveredVia
+                });
+            } catch (e) {
+                console.error('Certificate generation/send failed for attendee', attendee.id, e);
+                failed++;
+            }
+        }
+
+        await sendTelegramMessageTo(chatId,
+            `✅ Tayyor!\n\n📤 Telegram orqali: ${viaTelegram}\n🔔 Push orqali: ${viaPush}` +
+            (failed ? `\n❌ Xatolik: ${failed}` : ''));
+    }
+}
+
 async function sendTelegramMessageTo(chatId, text, replyMarkup) {
     if (!TELEGRAM_BOT_TOKEN) {
         console.error('TELEGRAM_BOT_TOKEN is not set — cannot send Telegram notification');
@@ -4253,6 +4583,8 @@ app.post(`/telegram/webhook/${TELEGRAM_BOT_TOKEN}`, async (req, res) => {
                 if (faqItem) {
                     await editTelegramMessage(cbChatId, cbMessageId, `<b>${faqItem.q}</b>\n\n${faqItem.a}`, botFaqAnswerKeyboard());
                 }
+            } else if (data.startsWith('cert:') && cbChatId === TELEGRAM_ADMIN_CHAT_ID) {
+                await handleCertCallback(cbChatId, cbMessageId, data);
             }
 
             await answerCallbackQuery(callbackQuery.id);
@@ -4345,6 +4677,8 @@ app.post(`/telegram/webhook/${TELEGRAM_BOT_TOKEN}`, async (req, res) => {
         if (isAdmin) {
             const draftConsumed = await handleAdminPostDraftMessage(fromChatId, message);
             if (draftConsumed) return;
+            const certDraftConsumed = await handleAdminCertDraftMessage(fromChatId, message);
+            if (certDraftConsumed) return;
 
             if (message.reply_to_message) {
                 // You replied (Telegram's native Reply) to a message we forwarded —
@@ -4377,7 +4711,8 @@ app.post(`/telegram/webhook/${TELEGRAM_BOT_TOKEN}`, async (req, res) => {
             const unblockMatch = text.match(/^\/unblock\s+@?(\S+)/i);
             const deleteArticleMatch = text.match(/^\/delete_article\s+(\d+)/i);
             const isKnownCommand = blockMatch || unblockMatch || deleteArticleMatch ||
-                text === '/post' || text === '/post_off' || text === '/start' || text === '/help' || text === '/menu';
+                text === '/post' || text === '/post_off' || text === '/start' || text === '/help' || text === '/menu' ||
+                text === '/sertifikat_shablon' || text === '/sertifikat';
 
             if (blockMatch) {
                 const username = blockMatch[1];
@@ -4414,6 +4749,23 @@ app.post(`/telegram/webhook/${TELEGRAM_BOT_TOKEN}`, async (req, res) => {
             } else if (text === '/post_off') {
                 await deactivateAllHomePosts();
                 await sendTelegramMessage("✅ Joriy e'lon bosh sahifadan olib tashlandi.");
+            } else if (text === '/sertifikat_shablon') {
+                adminCertDrafts.set(fromChatId, { step: 'awaiting_name' });
+                await sendTelegramMessageTo(fromChatId, "Yangi sertifikat shabloni. Avval nomini yuboring (masalan: \"Ishtirokchi sertifikati\"):");
+            } else if (text === '/sertifikat') {
+                const templates = await getCertificateTemplates();
+                if (templates.length === 0) {
+                    await sendTelegramMessageTo(fromChatId, "Hali birorta shablon yo'q. Avval /sertifikat_shablon orqali shablon yarating.");
+                } else {
+                    const pastEvents = await getPastEvents(null, 8);
+                    if (pastEvents.length === 0) {
+                        await sendTelegramMessageTo(fromChatId, "Hali o'tgan tadbirlar yo'q.");
+                    } else {
+                        await sendTelegramMessageTo(fromChatId, "Qaysi tadbir uchun sertifikat yubormoqchisiz?", {
+                            inline_keyboard: pastEvents.map(ev => ([{ text: ev.title.slice(0, 60), callback_data: `cert:ev:${ev.id}` }]))
+                        });
+                    }
+                }
             } else if (text === '/start' || text === '/help' || text === '/menu') {
                 await sendTelegramMessage(
                     `<b>BirMillat admin buyruqlari</b>\n\n` +
@@ -4421,7 +4773,9 @@ app.post(`/telegram/webhook/${TELEGRAM_BOT_TOKEN}`, async (req, res) => {
                     `/unblock foydalanuvchi_nomi — blokdan chiqarish\n` +
                     `/delete_article ID — maqolani o'chirish va muallifga ogohlantirish berish (3-ogohlantirish = avtomatik blok)\n` +
                     `/post — bosh sahifada ko'rinadigan yangi e'lon yaratish\n` +
-                    `/post_off — joriy e'lonni bosh sahifadan olib tashlash\n\n` +
+                    `/post_off — joriy e'lonni bosh sahifadan olib tashlash\n` +
+                    `/sertifikat_shablon — yangi sertifikat shabloni yaratish (fon rasm + ism joyi)\n` +
+                    `/sertifikat — tadbir ishtirokchilariga sertifikat yuborish\n\n` +
                     `Foydalanuvchiga javob berish uchun, uning xabariga Telegram'ning "Reply" funksiyasidan foydalaning, ` +
                     `yoki shunchaki yozing — xabaringiz sizga oxirgi murojaat qilgan foydalanuvchiga yuboriladi.\n\n` +
                     `(Foydalanuvchilar uchun tugmali menyu /menu buyrug'i orqali ochiladi.)`
