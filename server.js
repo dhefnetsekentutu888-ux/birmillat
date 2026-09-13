@@ -423,6 +423,13 @@ async function initDb() {
     `);
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_checkins_token ON event_checkins (token)`);
 
+    // Which channel a registrant wants their post-event certificate delivered
+    // through. Set by the attendee themselves on the event page, used only
+    // for people who actually checked in (see getCheckedInAttendees) — someone
+    // who registered but never showed up never gets a certificate at all,
+    // regardless of this preference.
+    try { await db.execute(`ALTER TABLE event_attendees ADD COLUMN certificate_delivery TEXT`); } catch (e) {}
+
     // ---------- Volunteer opportunities board ----------
     // Deliberately lighter-weight than events: no admin approval, posted and
     // live immediately — closer to a job-board listing than a public event.
@@ -1459,6 +1466,29 @@ async function getEventAttendees(eventId) {
         args: [eventId]
     });
     return result.rows.map(r => ({ ...r, answers: r.answers ? JSON.parse(r.answers) : null }));
+}
+
+// Only people who actually checked in at the door (organizer scanned their
+// QR pass) — this is who certificates go to, not everyone who registered.
+async function getCheckedInAttendees(eventId) {
+    const result = await db.execute({
+        sql: `SELECT users.id, users.username, users.name, users.photo_url, users.email, users.telegram_chat_id,
+                     event_attendees.answers, event_attendees.certificate_delivery
+              FROM event_checkins
+              JOIN users ON users.id = event_checkins.user_id
+              LEFT JOIN event_attendees ON event_attendees.event_id = event_checkins.event_id AND event_attendees.user_id = event_checkins.user_id
+              WHERE event_checkins.event_id = ? AND event_checkins.status = 'checked_in'
+              ORDER BY event_checkins.checked_in_at ASC`,
+        args: [eventId]
+    });
+    return result.rows.map(r => ({ ...r, answers: r.answers ? JSON.parse(r.answers) : null }));
+}
+
+async function setCertificateDeliveryPreference(eventId, userId, method) {
+    await db.execute({
+        sql: `UPDATE event_attendees SET certificate_delivery = ? WHERE event_id = ? AND user_id = ?`,
+        args: [method, eventId, userId]
+    });
 }
 
 async function isUserAttending(eventId, userId) {
@@ -4079,18 +4109,20 @@ const RESEND_API_KEY = process.env.RESEND_API_KEY;
 // actually deliver to the email address on the Resend account itself.
 const EMAIL_FROM = process.env.RESEND_FROM_EMAIL || 'BirMillat <onboarding@resend.dev>';
 
-async function sendEmail(to, subject, html) {
+async function sendEmail(to, subject, html, attachments) {
     if (!RESEND_API_KEY) {
         console.error('RESEND_API_KEY is not set — cannot send email');
         return { ok: false };
     }
+    const body = { from: EMAIL_FROM, to, subject, html };
+    if (attachments && attachments.length) body.attachments = attachments;
     const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
             'Authorization': `Bearer ${RESEND_API_KEY}`,
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ from: EMAIL_FROM, to, subject, html })
+        body: JSON.stringify(body)
     });
     if (!res.ok) {
         const errText = await res.text();
@@ -4367,14 +4399,14 @@ async function handleCertCallback(chatId, messageId, data) {
         const eventId = data.slice('cert:ev:'.length);
         const event = await getEventById(eventId);
         if (!event) { await editTelegramMessage(chatId, messageId, "❌ Tadbir topilmadi."); return; }
-        const attendees = await getEventAttendees(eventId);
-        if (attendees.length === 0) {
-            await editTelegramMessage(chatId, messageId, `"${event.title}" tadbirida ro'yxatdan o'tganlar yo'q.`);
+        const checkedIn = await getCheckedInAttendees(eventId);
+        if (checkedIn.length === 0) {
+            await editTelegramMessage(chatId, messageId, `"${event.title}" tadbirida hali hech kim check-in qilmagan.`);
             return;
         }
         const templates = await getCertificateTemplates();
         await editTelegramMessage(chatId, messageId,
-            `"${event.title}" — ${attendees.length} ta ishtirokchi.\n\nQaysi shablonni ishlatamiz?`,
+            `"${event.title}" — check-in qilgan ${checkedIn.length} kishi.\n\nQaysi shablonni ishlatamiz?`,
             { inline_keyboard: [
                 ...templates.map(t => ([{ text: t.name, callback_data: `cert:tpl_select:${eventId}:${t.id}` }])),
                 [{ text: '❌ Bekor qilish', callback_data: 'cert:cancel' }]
@@ -4387,9 +4419,14 @@ async function handleCertCallback(chatId, messageId, data) {
         const event = await getEventById(eventId);
         const template = await getCertificateTemplateById(templateId);
         if (!event || !template) { await editTelegramMessage(chatId, messageId, "❌ Topilmadi."); return; }
-        const attendees = await getEventAttendees(eventId);
+        const checkedIn = await getCheckedInAttendees(eventId);
+        if (checkedIn.length === 0) {
+            await editTelegramMessage(chatId, messageId, `"${event.title}" tadbirida hali hech kim check-in qilmagan — faqat kelganlar sertifikat oladi.`);
+            return;
+        }
         await editTelegramMessage(chatId, messageId,
-            `"${event.title}" uchun ${attendees.length} ta ishtirokchiga "${template.name}" sertifikati yuborilsinmi?`,
+            `"${event.title}" — check-in qilgan ${checkedIn.length} kishiga "${template.name}" sertifikati yuborilsinmi?\n\n` +
+            `(Faqat tadbirga kelib, tasdiqlangan ishtirokchilar hisobga olinadi.)`,
             { inline_keyboard: [
                 [{ text: '✅ Ha, yuborish', callback_data: `cert:send:${eventId}:${templateId}` }],
                 [{ text: '❌ Bekor qilish', callback_data: 'cert:cancel' }]
@@ -4405,25 +4442,52 @@ async function handleCertCallback(chatId, messageId, data) {
 
         let registrationQuestions = [];
         try { registrationQuestions = event.registration_questions ? JSON.parse(event.registration_questions) : []; } catch (e) {}
-        const attendees = await getEventAttendees(eventId);
+        const checkedIn = await getCheckedInAttendees(eventId);
 
-        await editTelegramMessage(chatId, messageId, `⏳ ${attendees.length} ta sertifikat tayyorlanmoqda...`);
+        await editTelegramMessage(chatId, messageId, `⏳ ${checkedIn.length} ta sertifikat tayyorlanmoqda...`);
 
-        let viaTelegram = 0, viaPush = 0, failed = 0;
-        for (const attendee of attendees) {
+        let viaTelegram = 0, viaEmail = 0, viaPush = 0, failed = 0;
+        for (const attendee of checkedIn) {
             try {
                 const recipientName = pickCertificateRecipientName(attendee, registrationQuestions);
                 const buffer = await generateCertificateImage(template.image_url, recipientName, template.name_x_pct, template.name_y_pct);
                 const uploadResult = await uploadImageToFreeimage(buffer);
                 if (!uploadResult.ok) throw new Error(uploadResult.error);
 
-                const attendeeUser = await getUserById(attendee.id);
-                let deliveredVia = 'web';
-                if (attendeeUser && attendeeUser.telegram_chat_id) {
-                    await sendTelegramPhotoTo(attendeeUser.telegram_chat_id, buffer, 'certificate.png',
+                // Respect what the attendee chose on the event page. If they
+                // never chose (or their chosen channel is no longer usable —
+                // e.g. they picked Telegram then unlinked it), fall back to
+                // whichever channel is actually available, then push as a
+                // last resort so nobody who checked in goes without a notice.
+                const wantsEmail = attendee.certificate_delivery === 'email' && attendee.email;
+                const wantsTelegram = attendee.certificate_delivery === 'telegram' && attendee.telegram_chat_id;
+                let deliveredVia;
+
+                if (wantsEmail) {
+                    await sendEmail(attendee.email, `Sertifikatingiz — ${event.title}`,
+                        `<div style="font-family:sans-serif; max-width:420px; margin:0 auto; padding:2rem; background:#FAF7F2;">
+                            <h2 style="color:#2D1B69;">BirMillat</h2>
+                            <p style="color:#1A1625; font-size:16px;">Tabriklaymiz, ${recipientName}!</p>
+                            <p style="color:#6B6478; font-size:14px;">"${event.title}" tadbirida ishtirok etganingiz uchun sertifikatingiz ilova qilingan.</p>
+                        </div>`,
+                        [{ filename: 'sertifikat.png', content: buffer.toString('base64') }]);
+                    deliveredVia = 'email';
+                    viaEmail++;
+                } else if (wantsTelegram || attendee.telegram_chat_id) {
+                    await sendTelegramPhotoTo(attendee.telegram_chat_id, buffer, 'certificate.png',
                         `🎓 Tabriklaymiz, ${recipientName}!\n\n"${event.title}" tadbirida ishtirok etganingiz uchun sertifikatingiz tayyor.`);
                     deliveredVia = 'telegram';
                     viaTelegram++;
+                } else if (attendee.email) {
+                    await sendEmail(attendee.email, `Sertifikatingiz — ${event.title}`,
+                        `<div style="font-family:sans-serif; max-width:420px; margin:0 auto; padding:2rem; background:#FAF7F2;">
+                            <h2 style="color:#2D1B69;">BirMillat</h2>
+                            <p style="color:#1A1625; font-size:16px;">Tabriklaymiz, ${recipientName}!</p>
+                            <p style="color:#6B6478; font-size:14px;">"${event.title}" tadbirida ishtirok etganingiz uchun sertifikatingiz ilova qilingan.</p>
+                        </div>`,
+                        [{ filename: 'sertifikat.png', content: buffer.toString('base64') }]);
+                    deliveredVia = 'email';
+                    viaEmail++;
                 } else {
                     notifyUser(attendee.id, {
                         type: 'certificate',
@@ -4446,7 +4510,7 @@ async function handleCertCallback(chatId, messageId, data) {
         }
 
         await sendTelegramMessageTo(chatId,
-            `✅ Tayyor!\n\n📤 Telegram orqali: ${viaTelegram}\n🔔 Push orqali: ${viaPush}` +
+            `✅ Tayyor!\n\n📤 Telegram orqali: ${viaTelegram}\n📧 Email orqali: ${viaEmail}\n🔔 Push orqali: ${viaPush}` +
             (failed ? `\n❌ Xatolik: ${failed}` : ''));
     }
 }
@@ -5194,6 +5258,17 @@ app.get('/api/events/:id', async (req, res) => {
         const coordinators = await getEventCoordinators(event.id);
         const isManager = req.session.userId ? await isEventManager(event.id, req.session.userId) : false;
         const myCheckin = req.session.userId ? await getEventCheckinByUser(event.id, req.session.userId) : null;
+        let myCertPreference = null;
+        let myAvailableChannels = { email: false, telegram: false };
+        if (req.session.userId) {
+            const myAttendeeRow = await db.execute({
+                sql: 'SELECT certificate_delivery FROM event_attendees WHERE event_id = ? AND user_id = ?',
+                args: [event.id, req.session.userId]
+            });
+            myCertPreference = myAttendeeRow.rows[0] ? myAttendeeRow.rows[0].certificate_delivery : null;
+            const me = await getUserById(req.session.userId);
+            myAvailableChannels = { email: !!(me && me.email), telegram: !!(me && me.telegram_chat_id) };
+        }
         let registrationQuestions = [];
         try { registrationQuestions = event.registration_questions ? JSON.parse(event.registration_questions) : []; } catch (e) {}
         res.json({
@@ -5206,7 +5281,9 @@ app.get('/api/events/:id', async (req, res) => {
             coordinators: coordinators.map(c => ({
                 id: c.id, username: c.username, name: c.name, photoUrl: c.photo_url, roleLabel: c.role_label
             })),
-            myCheckin: myCheckin ? { token: myCheckin.token, status: myCheckin.status } : null
+            myCheckin: myCheckin ? { token: myCheckin.token, status: myCheckin.status } : null,
+            myCertPreference,
+            myAvailableChannels
         });
     } catch (err) {
         console.error('api/events/:id error:', err);
@@ -5476,6 +5553,31 @@ app.post('/api/events/:id/rsvp', async (req, res) => {
 });
 
 // ---------- Organizer: cancel or delete their own event ----------
+app.post('/api/events/:id/certificate-delivery', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const method = req.body.method === 'email' ? 'email' : (req.body.method === 'telegram' ? 'telegram' : null);
+        if (!method) return res.status(400).json({ error: "Usul 'telegram' yoki 'email' bo'lishi kerak" });
+
+        const attending = await isUserAttending(req.params.id, req.session.userId);
+        if (!attending) return res.status(400).json({ error: "Siz bu tadbirga ro'yxatdan o'tmagansiz" });
+
+        const user = await getUserById(req.session.userId);
+        if (method === 'email' && !user.email) {
+            return res.status(400).json({ error: "Avval profilingizga email qo'shing" });
+        }
+        if (method === 'telegram' && !user.telegram_chat_id) {
+            return res.status(400).json({ error: "Avval Telegram hisobingizni ulang" });
+        }
+
+        await setCertificateDeliveryPreference(req.params.id, req.session.userId, method);
+        res.json({ success: true, method });
+    } catch (err) {
+        console.error('api/events/:id/certificate-delivery error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 app.post('/api/events/:id/remind', async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
     try {
