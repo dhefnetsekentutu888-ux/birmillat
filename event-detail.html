@@ -96,6 +96,20 @@ body { font-family: 'Inter', sans-serif; }
 .rsvp-full-note { text-align: center; color: var(--color-text-muted); font-size: 0.88rem; padding: 0.8rem; background: var(--color-bg); border-radius: 12px; }
 
 .ticket-card { text-align: center; padding: 1.8rem; }
+
+.cert-delivery-row { display: flex; gap: 0.7rem; flex-wrap: wrap; }
+.cert-delivery-btn {
+    flex: 1; min-width: 140px; display: flex; flex-direction: column; align-items: center; gap: 0.3rem;
+    padding: 0.9rem; border-radius: var(--radius-sm); border: 1.5px solid var(--color-border);
+    background: var(--color-bg); color: var(--color-text); cursor: pointer; font-size: 0.88rem; font-weight: 600;
+    transition: transform 0.18s cubic-bezier(.34,1.56,.64,1), border-color 0.15s ease, background 0.15s ease;
+}
+.cert-delivery-btn i { font-size: 1.2rem; color: var(--color-primary); }
+.cert-delivery-btn:hover { transform: translateY(-2px); border-color: var(--color-primary); }
+.cert-delivery-btn.selected { border-color: var(--color-success); background: rgba(52,199,89,0.08); }
+.cert-delivery-btn.selected i { color: var(--color-success); }
+.cert-delivery-btn.unavailable { opacity: 0.6; }
+.cert-delivery-hint { font-size: 0.7rem; color: var(--color-text-muted); font-weight: 400; }
 .ticket-status { display: inline-flex; align-items: center; gap: 0.45rem; font-size: 0.8rem; font-weight: 700; padding: 0.35rem 0.9rem; border-radius: 999px; margin-bottom: 1rem; }
 .ticket-status.pending { background: #FFF4E5; color: #B7791F; }
 .ticket-status.checked_in { background: var(--color-success-bg); color: var(--color-success); }
@@ -451,6 +465,29 @@ body { font-family: 'Inter', sans-serif; }
                 <a class="map-open-btn" href="${event.map_link || ('https://www.google.com/maps/search/?api=1&query=' + query)}" target="_blank" rel="noopener noreferrer">
                     <i class="fas fa-diamond-turn-right"></i> Xaritada ochish
                 </a>`;
+        }
+
+        function renderCertificateDeliveryChoice(event) {
+            if (!event.myCheckin) return '';
+            const pref = event.myCertPreference;
+            const channels = event.myAvailableChannels || {};
+            const btn = (method, icon, label) => {
+                const available = channels[method];
+                return `<button class="cert-delivery-btn ${pref === method ? 'selected' : ''} ${!available ? 'unavailable' : ''}" data-method="${method}" data-available="${available ? '1' : '0'}">
+                    <i class="${icon}"></i> ${label}
+                    ${!available ? `<span class="cert-delivery-hint">Avval ${method === 'email' ? "qo'shing" : 'ulang'}</span>` : ''}
+                </button>`;
+            };
+            return `
+                <div class="section-card card">
+                    <div class="section-title"><i class="fas fa-award"></i> Sertifikat qanday yetkazilsin?</div>
+                    <p style="color:var(--color-text-muted); font-size:0.85rem; margin-bottom:0.8rem;">Tadbirdan so'ng, agar kelganingiz tasdiqlansa, sertifikatingizni qaysi yo'l bilan olishni tanlang.</p>
+                    <div class="cert-delivery-row">
+                        ${btn('telegram', 'fab fa-telegram', 'Telegram bot')}
+                        ${btn('email', 'fas fa-envelope', 'Email')}
+                    </div>
+                    <div class="submit-status" id="certDeliveryStatus"></div>
+                </div>`;
         }
 
         function renderUpcomingActions(event) {
@@ -988,6 +1025,37 @@ body { font-family: 'Inter', sans-serif; }
             });
             if (event.myCheckin) renderQrCanvas(event.myCheckin.token);
 
+            document.querySelectorAll('.cert-delivery-btn').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const method = btn.getAttribute('data-method');
+                    const available = btn.getAttribute('data-available') === '1';
+                    const statusEl = document.getElementById('certDeliveryStatus');
+                    if (!available) {
+                        window.location.href = '/profile';
+                        return;
+                    }
+                    document.querySelectorAll('.cert-delivery-btn').forEach(b => b.classList.remove('selected'));
+                    btn.classList.add('selected');
+                    statusEl.textContent = 'Saqlanmoqda...';
+                    statusEl.className = 'submit-status';
+                    try {
+                        const res = await fetch(`/api/events/${event.id}/certificate-delivery`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ method })
+                        });
+                        const data = await res.json();
+                        if (!res.ok) throw new Error(data.error || 'Xatolik');
+                        statusEl.textContent = '✅ Saqlandi';
+                        statusEl.className = 'submit-status';
+                    } catch (e) {
+                        statusEl.textContent = e.message || 'Xatolik yuz berdi';
+                        statusEl.className = 'submit-status error';
+                        btn.classList.remove('selected');
+                    }
+                });
+            });
+
             const coordAddBtn = document.getElementById('coordAddBtn');
             if (coordAddBtn) coordAddBtn.addEventListener('click', handleCoordAdd);
             document.querySelectorAll('.coord-remove').forEach(btn => {
@@ -1123,6 +1191,7 @@ body { font-family: 'Inter', sans-serif; }
                     ${renderManagementSection(event)}
                     ${isPastEvent ? infoSection : ''}
                     ${renderUpcomingActions(event)}
+                    ${renderCertificateDeliveryChoice(event)}
                     ${event.isCreator && !isPastEvent ? `<a href="/events/${event.id}/edit" class="back-link" style="justify-content:center; margin-top:0.5rem;"><i class="fas fa-pen"></i> Tadbirni tahrirlash</a>` : ''}
                 `;
 
