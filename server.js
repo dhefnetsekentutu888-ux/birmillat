@@ -4588,10 +4588,28 @@ async function sendTelegramPhoto(buffer, filename, caption) {
 }
 
 const UZ_MONTHS_SERVER = ['yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun', 'iyul', 'avgust', 'sentabr', 'oktabr', 'noyabr', 'dekabr'];
+// Uzbekistan is a fixed UTC+5 year-round (no DST), but the server itself runs
+// in UTC (Render's default) — so naively calling .getHours()/.getDate() on a
+// Date object returns UTC time, not Tashkent time. That's exactly why
+// Telegram reminders were showing a time 5 hours earlier than the site (which
+// is fine, because it formats dates in the *browser's* local timezone).
+// Explicitly formatting in Asia/Tashkent here fixes that regardless of what
+// timezone the server process itself happens to be running in.
 function formatUzDateServer(ts) {
-    const d = new Date(ts);
-    const pad = n => String(n).padStart(2, '0');
-    return `${d.getDate()} ${UZ_MONTHS_SERVER[d.getMonth()]} ${d.getFullYear()}, ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Tashkent',
+        day: 'numeric', month: 'numeric', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', hour12: false
+    }).formatToParts(new Date(ts));
+    const get = (type) => parts.find(p => p.type === type).value;
+    const day = get('day');
+    const month = UZ_MONTHS_SERVER[parseInt(get('month'), 10) - 1];
+    const year = get('year');
+    // hour12:false with Intl can format midnight as "24" instead of "00" —
+    // normalize that edge case.
+    const hour = get('hour') === '24' ? '00' : get('hour');
+    const minute = get('minute');
+    return `${day} ${month} ${year}, ${hour}:${minute}`;
 }
 
 function escapeHtmlForTelegram(str) {
