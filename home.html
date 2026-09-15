@@ -101,8 +101,9 @@
 .hm-users-scroll-wrap { position: relative; }
 .hm-users-grid {
   display: flex; gap: 1.1rem; overflow-x: auto; scroll-snap-type: x mandatory;
-  padding: .2rem .1rem .7rem; -webkit-overflow-scrolling: touch;
+  padding: .2rem 2.4rem .7rem; -webkit-overflow-scrolling: touch;
 }
+@media (max-width: 640px) { .hm-users-grid { padding: .2rem .1rem .7rem; } }
 .hm-users-grid::-webkit-scrollbar { height: 6px; }
 .hm-users-grid::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
 .hm-user-card {
@@ -141,7 +142,7 @@
   z-index: 5; transition: background .15s ease, transform .15s ease;
 }
 .hm-scroll-arrow:hover { background: var(--color-bg); transform: translateY(-50%) scale(1.08); }
-.hm-scroll-arrow-left { left: -6px; } .hm-scroll-arrow-right { right: -6px; }
+.hm-scroll-arrow-left { left: 4px; } .hm-scroll-arrow-right { right: 4px; }
 @media (max-width: 640px) { .hm-scroll-arrow { display: none; } }
 
 .hm-empty { text-align: center; padding: 2.6rem 1rem; color: var(--color-text-muted); grid-column: 1/-1; }
