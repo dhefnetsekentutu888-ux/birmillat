@@ -143,6 +143,7 @@
 }
 .hm-scroll-arrow:hover { background: var(--color-bg); transform: translateY(-50%) scale(1.08); }
 .hm-scroll-arrow-left { left: 4px; } .hm-scroll-arrow-right { right: 4px; }
+.hm-scroll-arrow[hidden] { display: none; }
 @media (max-width: 640px) { .hm-scroll-arrow { display: none; } }
 
 .hm-empty { text-align: center; padding: 2.6rem 1rem; color: var(--color-text-muted); grid-column: 1/-1; }
@@ -536,6 +537,24 @@
         document.getElementById('usersScrollRight').addEventListener('click', () => {
             document.getElementById('recommendGrid').scrollBy({ left: 520, behavior: 'smooth' });
         });
+
+        (function setupRecommendArrowVisibility() {
+            const grid = document.getElementById('recommendGrid');
+            const leftBtn = document.getElementById('usersScrollLeft');
+            const rightBtn = document.getElementById('usersScrollRight');
+
+            function updateArrows() {
+                const maxScroll = grid.scrollWidth - grid.clientWidth;
+                leftBtn.hidden = grid.scrollLeft <= 4;
+                rightBtn.hidden = maxScroll <= 4 || grid.scrollLeft >= maxScroll - 4;
+            }
+
+            grid.addEventListener('scroll', updateArrows);
+            window.addEventListener('resize', updateArrows);
+            // Recheck after the recommendations finish loading (grid width changes).
+            new MutationObserver(updateArrows).observe(grid, { childList: true });
+            updateArrows();
+        })();
 
         async function loadHomePost() {
             try {
