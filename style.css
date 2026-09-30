@@ -7,8 +7,10 @@
   /* Color */
   --color-primary: #2D1B69;       /* deep indigo — brand, headers, nav */
   --color-primary-light: #4A2F9E; /* hover states */
+  --color-primary-solid: #2D1B69; /* always-safe solid fill for filled indigo buttons — see dark override below */
   --color-accent: #FF6B5B;        /* warm coral — CTAs, highlights */
   --color-accent-light: #FF8B7D;
+  --color-on-accent: #1A1625;     /* text placed on --color-accent; coral is light in both themes so this stays ink, not white */
   --color-bg: #FAF7F2;            /* warm cream background */
   --color-surface: #FFFFFF;       /* cards */
   --color-text: #1A1625;          /* near-black, warm tint */
@@ -18,6 +20,7 @@
   --color-success-bg: #E6F4E6;
   --color-error: #C0392B;
   --color-error-bg: #FCEAE8;
+  --radius-btn: 12px;              /* buttons: one rectangular radius, everywhere */
 
   /* Type */
   --font-display: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -51,6 +54,7 @@
   :root {
     --color-primary: #C4B5FD;
     --color-primary-light: #A78BFA;
+    --color-primary-solid: #6D4FD6;
     --color-accent: #FF8A73;
     --color-accent-light: #FFAA98;
     --color-bg: #15111F;
@@ -70,6 +74,7 @@
 :root[data-theme="dark"] {
   --color-primary: #C4B5FD;
   --color-primary-light: #A78BFA;
+  --color-primary-solid: #6D4FD6;
   --color-accent: #FF8A73;
   --color-accent-light: #FFAA98;
   --color-bg: #15111F;
@@ -88,6 +93,7 @@
 :root[data-theme="light"] {
   --color-primary: #2D1B69;
   --color-primary-light: #4A2F9E;
+  --color-primary-solid: #2D1B69;
   --color-accent: #FF6B5B;
   --color-accent-light: #FF8B7D;
   --color-bg: #FAF7F2;
@@ -299,7 +305,7 @@ a {
   gap: 0.5rem;
   border: none;
   padding: 0.7rem 1.5rem;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-btn);
   font-weight: 600;
   font-size: 0.9rem;
   cursor: pointer;
@@ -314,7 +320,7 @@ a {
 
 .btn-primary {
   background: var(--color-accent);
-  color: white;
+  color: var(--color-on-accent);
 }
 
 .btn-primary:hover {
@@ -325,18 +331,18 @@ a {
 
 .btn-outline {
   background: transparent;
-  border: 2px solid var(--color-primary);
+  border: 1px solid var(--color-primary);
   color: var(--color-primary);
 }
 
 .btn-outline:hover {
-  background: var(--color-primary);
+  background: var(--color-primary-solid);
   color: white;
 }
 
 .btn-outline-dark {
   background: transparent;
-  border: 2px solid rgba(255,255,255,0.5);
+  border: 1px solid rgba(255,255,255,0.5);
   color: #FAF7F2;
 }
 
@@ -974,7 +980,8 @@ footer {
   opacity: 0.35;
   animation: bm-loading-dots 0.9s ease-in-out infinite;
 }
-.btn.bm-loading::after, .btn-primary.bm-loading::after { color: #fff; }
+.btn.bm-loading::after { color: #fff; }
+.btn-primary.bm-loading::after { color: var(--color-on-accent); }
 @keyframes bm-loading-dots {
   0%, 80%, 100% { opacity: 0.35; }
   40% { opacity: 1; }
