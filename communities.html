@@ -11,73 +11,55 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="BirMillat">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BirMillat – Jamoalar</title>
+<title>BirMillat – Maqolalar</title>
+<meta name="description" content="BirMillat jamoasi a'zolari tomonidan yozilgan maqolalar — bilim va tajriba almashish uchun. O'zbek yoshlari uchun.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="/style.css">
 <script src="/interactions.js" defer></script>
 <style>
+/* ==========================================================
+   Articles — magazine-style list, own visual layer (ar-).
+   ========================================================== */
 body { font-family: 'Inter', sans-serif; }
-.page-container { max-width: 1100px; margin: 0 auto; padding: 1.8rem 1.5rem 3rem; }
-.page-head { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; }
-.page-head h1 { font-family: 'Sora', sans-serif; font-size: clamp(1.4rem, 3vw, 1.75rem); margin-bottom: 0.3rem; display: flex; align-items: center; gap: .5rem; }
-.page-head h1 i { color: var(--color-accent); }
-.page-head p { color: var(--color-text-muted); margin: 0; }
+.ar-container { max-width: 820px; margin: 0 auto; padding: 2.2rem 1.5rem 3rem; }
+.ar-head { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem; }
+.ar-kicker { display: block; font-size: .76rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--color-accent); margin-bottom: .4rem; }
+.ar-head h1 { font-family: 'Sora', sans-serif; font-size: clamp(1.5rem, 3.4vw, 2rem); margin: 0 0 .3rem; display: flex; align-items: center; gap: .55rem; }
+.ar-head p { color: var(--color-text-muted); margin: 0; }
 
-.filter-bar { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 2rem; }
-.filter-chip {
-    background: var(--color-surface); border: 1px solid var(--color-border); color: var(--color-text);
-    padding: 0.5rem 1.1rem; border-radius: var(--radius-pill); font-size: 0.85rem; font-weight: 600;
-    cursor: pointer; transition: transform .18s cubic-bezier(.34,1.56,.64,1), border-color .15s ease, background .15s ease, color .15s ease;
+.ar-list { display: flex; flex-direction: column; gap: 1rem; }
+.ar-card {
+  text-decoration: none; color: inherit; display: block; padding: 1.5rem 1.6rem;
+  position: relative; overflow: hidden;
+  transition: transform .2s cubic-bezier(.16,1,.3,1), box-shadow .2s ease, border-color .2s ease;
 }
-.filter-chip:hover { border-color: var(--color-primary); transform: scale(1.04); }
-.filter-chip:active { transform: scale(.94); }
-.filter-chip.active { background: var(--color-primary-solid); border-color: var(--color-primary-solid); color: white; }
-
-.comm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 1.4rem; }
-.comm-card { text-decoration: none; color: inherit; display: block; padding: 1.4rem; transition: transform 0.2s cubic-bezier(.16,1,.3,1), box-shadow .2s ease; }
-.comm-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-hover); }
-.comm-icon {
-    width: 50px; height: 50px; border-radius: 50%; background: var(--color-bg); border: 1px solid var(--color-border);
-    display: flex; align-items: center; justify-content: center;
-    color: var(--color-primary); font-size: 1.2rem; margin-bottom: 0.8rem; overflow: hidden;
+.ar-card::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+  background: linear-gradient(180deg, var(--color-accent), var(--color-primary));
+  transform: scaleY(0); transform-origin: top; transition: transform .25s ease;
 }
-.comm-card h3 { font-family: 'Sora', sans-serif; font-size: 1.05rem; margin-bottom: 0.3rem; }
-.comm-card .comm-desc { font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: 0.8rem; min-height: 2.4em; line-height: 1.5; }
-.comm-meta { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: var(--color-text-muted); }
-.comm-meta i { color: var(--color-accent); }
-.empty-state { text-align: center; padding: 3rem 1rem; color: var(--color-text-muted); grid-column: 1 / -1; }
-.empty-state a { color: var(--color-accent); font-weight: 700; text-decoration: none; }
-.empty-state a:hover { text-decoration: underline; }
-
-.create-modal {
-    display: none; position: fixed; inset: 0; background: rgba(26,22,37,0.5);
-    z-index: 100; align-items: center; justify-content: center; padding: 1.5rem;
+.ar-card:hover { transform: translateX(4px); box-shadow: var(--shadow-hover); }
+.ar-card:hover::before { transform: scaleY(1); }
+.ar-card h3 { font-family: 'Sora', sans-serif; font-size: 1.14rem; margin: 0 0 .5rem; line-height: 1.35; }
+.ar-excerpt { font-size: .92rem; color: var(--color-text-muted); line-height: 1.62; margin-bottom: 1rem; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.ar-meta { display: flex; align-items: center; gap: .8rem; font-size: .8rem; color: var(--color-text-muted); flex-wrap: wrap; }
+.ar-author { display: flex; align-items: center; gap: .5rem; }
+.ar-author .ar-avatar {
+  width: 24px; height: 24px; border-radius: 50%; background: var(--color-bg); border: 1px solid var(--color-border);
+  display: flex; align-items: center; justify-content: center; font-size: .65rem; font-weight: 700; color: var(--color-primary); overflow: hidden; flex-shrink: 0;
 }
-.create-modal.open { display: flex; }
-.create-modal-card { max-width: 420px; width: 100%; padding: 1.6rem; }
-.create-modal-card h2 { font-family: 'Sora', sans-serif; }
-.form-field { margin-bottom: 1.1rem; }
-.form-field label {
-    display: block; font-size: 0.82rem; font-weight: 700; color: var(--color-text-muted);
-    margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.4px;
-}
-.form-field input, .form-field textarea, .form-field select {
-    width: 100%; padding: 0.75rem 1rem; border-radius: var(--radius-sm); box-sizing: border-box;
-    border: 1px solid var(--color-border); font-family: 'Inter', sans-serif; font-size: 0.95rem; resize: vertical;
-    background: var(--color-bg); color: var(--color-text); transition: border-color .15s ease, box-shadow .15s ease;
-}
-.form-field input:focus, .form-field textarea:focus, .form-field select:focus {
-    outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(45,27,105,0.1);
-}
-.create-status { font-size: 0.88rem; margin-top: 0.8rem; min-height: 1.2em; }
-.create-status.success { color: var(--color-success); }
-.create-status.error { color: var(--color-error); }
+.ar-author .ar-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.ar-likes { display: flex; align-items: center; gap: .3rem; }
+.ar-likes i { color: var(--color-accent); }
+.ar-empty { text-align: center; padding: 3.5rem 1rem; color: var(--color-text-muted); }
+.ar-empty a { color: var(--color-accent); font-weight: 700; text-decoration: none; }
+.ar-empty a:hover { text-decoration: underline; }
 
 @media (max-width: 560px) {
-    .page-container { padding: 1.3rem 1rem 2.5rem; }
-    .comm-grid { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 1rem; }
+  .ar-container { padding: 1.6rem 1.1rem 2.5rem; }
+  .ar-card { padding: 1.2rem 1.3rem; }
 }
 </style>
 </head>
@@ -99,9 +81,9 @@ body { font-family: 'Inter', sans-serif; }
             <a href="/home"><i class="fas fa-house"></i> Bosh sahifa</a>
             <a href="/recommend"><i class="fas fa-wand-magic-sparkles"></i> Tavsiyalar</a>
             <a href="/events"><i class="fas fa-calendar-days"></i> Tadbirlar</a>
-            <a href="/communities" class="active"><i class="fas fa-people-group"></i> Jamoalar</a>
+            <a href="/communities"><i class="fas fa-people-group"></i> Jamoalar</a>
             <a href="/volunteer"><i class="fas fa-hand-holding-heart"></i> Volontyorlik</a>
-            <a href="/articles"><i class="fas fa-newspaper"></i> Maqolalar</a>
+            <a href="/articles" class="active"><i class="fas fa-newspaper"></i> Maqolalar</a>
             <a href="/search"><i class="fas fa-magnifying-glass"></i> Qidiruv</a>
             <a href="/messages"><i class="fas fa-comment-dots"></i> Xabarlar</a>
             <a href="/profile"><i class="fas fa-user"></i> Profil</a>
@@ -128,165 +110,93 @@ body { font-family: 'Inter', sans-serif; }
 </nav>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-    <div class="page-container">
-        <div class="page-head reveal">
+    <div class="ar-container">
+        <div class="ar-head reveal">
             <div>
-                <h1><i class="fas fa-people-group"></i> Jamoalar</h1>
-                <p>Qiziqishlaringiz bo'yicha guruhlarga qo'shiling yoki o'zingiznikini yarating</p>
+                <span class="ar-kicker">Jamoa fikrlari</span>
+                <h1><i class="fas fa-newspaper" style="color:var(--color-accent); font-size:.85em;"></i> Maqolalar</h1>
+                <p>Tadqiqotlaringiz va fikrlaringizni ulashing</p>
             </div>
-            <button class="btn btn-primary btn-zoom" id="createBtn"><i class="fas fa-plus"></i> Jamoa yaratish</button>
+            <a href="/articles/create" id="newArticleBtn" class="btn btn-primary btn-zoom"><i class="fas fa-plus"></i> Maqola yozish</a>
         </div>
 
-        <div class="filter-bar reveal" id="filterBar">
-            <button class="filter-chip active" data-category="">Hammasi</button>
-            <button class="filter-chip" data-category="IELTS">IELTS</button>
-            <button class="filter-chip" data-category="IT">IT / Dasturlash</button>
-            <button class="filter-chip" data-category="Startup">Startup</button>
-            <button class="filter-chip" data-category="Sport">Sport</button>
-            <button class="filter-chip" data-category="Sayohat">Sayohat</button>
-            <button class="filter-chip" data-category="Boshqa">Boshqa</button>
-        </div>
-
-        <div class="comm-grid reveal-stagger reveal" id="commGrid">
+        <div class="ar-list reveal-stagger reveal" id="articlesList">
             <p style="color:var(--color-text-muted)">Yuklanmoqda...</p>
         </div>
     </div>
 
-    <footer>BirMillat – qiziqishlar asosida do'stlar toping. · <a href="/support" style="color:inherit;">Yordam</a> · <a href="/privacy" style="color:inherit;">Maxfiylik siyosati</a><br><span style="opacity:0.8;">Founder — Bekhruz Ravshanov</span></footer>
-
-    <div class="create-modal" id="createModal">
-        <div class="card create-modal-card">
-            <h2 style="font-size:1.2rem; margin-bottom:1rem;"><i class="fas fa-people-group" style="color:var(--color-accent);"></i> Yangi jamoa</h2>
-            <form id="createForm">
-                <div class="form-field">
-                    <label for="commName">Jamoa nomi</label>
-                    <input type="text" id="commName" placeholder="Masalan: Toshkent Dasturchilari" required>
-                </div>
-                <div class="form-field">
-                    <label for="commCategory">Kategoriya</label>
-                    <select id="commCategory">
-                        <option value="IELTS">IELTS</option>
-                        <option value="IT">IT / Dasturlash</option>
-                        <option value="Startup">Startup</option>
-                        <option value="Sport">Sport</option>
-                        <option value="Sayohat">Sayohat</option>
-                        <option value="Boshqa">Boshqa</option>
-                    </select>
-                </div>
-                <div class="form-field">
-                    <label for="commDesc">Tavsif (ixtiyoriy)</label>
-                    <textarea id="commDesc" rows="3" placeholder="Jamoa nima haqida?"></textarea>
-                </div>
-                <div class="form-field">
-                    <label for="commImage">Jamoa rasmi (ixtiyoriy)</label>
-                    <input type="file" id="commImage" accept="image/*">
-                </div>
-                <div style="display:flex; gap:0.8rem;">
-                    <button type="submit" class="btn btn-primary btn-zoom" style="flex:1; justify-content:center;">Yaratish</button>
-                    <button type="button" class="btn btn-cancel" id="closeCreateModal" style="border:1px solid var(--color-border); background:transparent; color:var(--color-text-muted);">Bekor qilish</button>
-                </div>
-                <div class="create-status" id="createStatus"></div>
-            </form>
-        </div>
-    </div>
+    <footer>BirMillat – qiziqishlar asosida do'stlar toping. · <a href="/about" style="color:inherit;">BirMillat nima?</a> · <a href="/support" style="color:inherit;">Yordam</a><br><span style="opacity:0.8;">Founder — Bekhruz Ravshanov</span></footer>
 
     <script>
-        let activeCategory = '';
+        function initials(name) {
+            if (!name) return '?';
+            const parts = name.trim().split(/\s+/);
+            return parts.length > 1 ? (parts[0][0] + parts[1][0]).toUpperCase() : parts[0].slice(0, 2).toUpperCase();
+        }
+
+        function formatDate(ts) {
+            const d = new Date(ts);
+            return formatUzDate(d);
+        }
 
         async function loadMe() {
             try {
                 const res = await fetch('/api/me');
-                if (!res.ok) { window.location.href = '/login'; return; }
+                if (!res.ok) {
+                    document.getElementById('userBadge').outerHTML =
+                        '<a href="/register" class="btn btn-primary btn-zoom" style="padding:0.45rem 1.1rem; font-size:0.85rem;">Ro\'yxatdan o\'tish</a>';
+                    const bell = document.querySelector('.notif-bell-wrap');
+                    if (bell) bell.style.display = 'none';
+                    document.getElementById('newArticleBtn').setAttribute('href', '/register');
+                    return;
+                }
                 const me = await res.json();
                 document.getElementById('userBadge').innerHTML = '<img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ' + me.username;
             } catch (e) { console.error(e); }
         }
 
-        async function loadCommunities(category = '') {
-            const grid = document.getElementById('commGrid');
-            grid.innerHTML = `<p style="color:var(--color-text-muted)">Yuklanmoqda...</p>`;
+        async function loadArticles() {
+            const list = document.getElementById('articlesList');
             try {
-                const url = category ? `/api/communities?category=${encodeURIComponent(category)}` : '/api/communities';
-                const res = await fetch(url);
-                if (!res.ok) { grid.innerHTML = ''; return; }
-                const communities = await res.json();
+                const res = await fetch('/api/articles');
+                if (!res.ok) { list.innerHTML = ''; return; }
+                const articles = await res.json();
 
-                if (communities.length === 0) {
-                    grid.innerHTML = `<div class="empty-state">Hozircha bu toifada jamoalar yo'q. <a href="#" onclick="document.getElementById('createBtn').click(); return false;">Birinchi bo'lib yarating →</a></div>`;
+                if (articles.length === 0) {
+                    list.innerHTML = `<div class="ar-empty">Hozircha maqolalar yo'q. <a href="/articles/create">Birinchi bo'lib yozing →</a></div>`;
                     return;
                 }
 
-                grid.innerHTML = '';
-                communities.forEach(c => {
+                list.innerHTML = '';
+                articles.forEach(a => {
                     const card = document.createElement('a');
-                    card.className = 'comm-card card';
-                    card.href = `/communities/${c.id}`;
+                    card.className = 'ar-card card';
+                    card.href = `/articles/${a.id}`;
                     card.innerHTML = `
-                        <div class="comm-icon">${c.image_url ? `<img src="${c.image_url}" alt="" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">` : `<i class="fas fa-people-group"></i>`}</div>
-                        <h3>${c.name}</h3>
-                        <div class="comm-desc">${c.description || "Tavsif qo'shilmagan"}</div>
-                        <div class="comm-meta">
-                            <i class="fas fa-tag"></i> ${c.category}
+                        <h3>${a.title}</h3>
+                        <div class="ar-excerpt">${a.excerpt}</div>
+                        <div class="ar-meta">
+                            <span class="ar-author">
+                                <span class="ar-avatar">${a.author.photoUrl ? `<img src="${a.author.photoUrl}" alt="">` : initials(a.author.name || a.author.username)}</span>
+                                @${a.author.username}
+                            </span>
                             <span>·</span>
-                            <i class="fas fa-users"></i> ${c.member_count}
+                            <span>${formatDate(a.createdAt)}</span>
+                            <span>·</span>
+                            <span class="ar-likes"><i class="fas fa-heart"></i> ${a.likeCount}</span>
                         </div>
                     `;
-                    grid.appendChild(card);
+                    list.appendChild(card);
                 });
             } catch (e) {
-                console.error('Failed to load communities:', e);
-                grid.innerHTML = `<div class="empty-state">Yuklab bo'lmadi. Sahifani qaytadan yuklang.</div>`;
+                console.error('Failed to load articles:', e);
+                list.innerHTML = `<div class="ar-empty">Yuklab bo'lmadi. Sahifani qaytadan yuklang.</div>`;
             }
         }
 
-        document.getElementById('filterBar').addEventListener('click', (e) => {
-            const chip = e.target.closest('.filter-chip');
-            if (!chip) return;
-            document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-            chip.classList.add('active');
-            activeCategory = chip.getAttribute('data-category');
-            loadCommunities(activeCategory);
-        });
-
-        document.getElementById('createBtn').addEventListener('click', () => {
-            document.getElementById('createModal').classList.add('open');
-        });
-        document.getElementById('closeCreateModal').addEventListener('click', () => {
-            document.getElementById('createModal').classList.remove('open');
-        });
-
-        document.getElementById('createForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const statusEl = document.getElementById('createStatus');
-            const name = document.getElementById('commName').value.trim();
-            if (!name) return;
-
-            statusEl.textContent = 'Yaratilmoqda...';
-            statusEl.className = 'create-status';
-
-            try {
-                const formData = new FormData();
-                formData.append('name', name);
-                formData.append('description', document.getElementById('commDesc').value.trim());
-                formData.append('category', document.getElementById('commCategory').value);
-                const fileInput = document.getElementById('commImage');
-                if (fileInput.files[0]) formData.append('image', fileInput.files[0]);
-
-                const res = await fetch('/api/communities', { method: 'POST', body: formData });
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error || 'Server error');
-
-                window.location.href = `/communities/${data.id}`;
-            } catch (err) {
-                console.error('Create community failed:', err);
-                statusEl.textContent = err.message || "Xatolik yuz berdi";
-                statusEl.className = 'create-status error';
-            }
-        });
-
         (async () => {
             await loadMe();
-            loadCommunities();
+            loadArticles();
         })();
     </script>
 </body>
