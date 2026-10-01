@@ -27,19 +27,19 @@ body { font-family: 'Inter', sans-serif; }
 
 .filter-bar { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 2rem; }
 .filter-chip {
-    background: var(--color-surface); border: 1.5px solid var(--color-border); color: var(--color-text);
+    background: var(--color-surface); border: 1px solid var(--color-border); color: var(--color-text);
     padding: 0.5rem 1.1rem; border-radius: var(--radius-pill); font-size: 0.85rem; font-weight: 600;
     cursor: pointer; transition: transform .18s cubic-bezier(.34,1.56,.64,1), border-color .15s ease, background .15s ease, color .15s ease;
 }
 .filter-chip:hover { border-color: var(--color-primary); transform: scale(1.04); }
 .filter-chip:active { transform: scale(.94); }
-.filter-chip.active { background: var(--color-primary); border-color: var(--color-primary); color: white; }
+.filter-chip.active { background: var(--color-primary-solid); border-color: var(--color-primary-solid); color: white; }
 
 .comm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 1.4rem; }
 .comm-card { text-decoration: none; color: inherit; display: block; padding: 1.4rem; transition: transform 0.2s cubic-bezier(.16,1,.3,1), box-shadow .2s ease; }
 .comm-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-hover); }
 .comm-icon {
-    width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg,#EFEAF8,#E4DBF7);
+    width: 50px; height: 50px; border-radius: 50%; background: var(--color-bg); border: 1px solid var(--color-border);
     display: flex; align-items: center; justify-content: center;
     color: var(--color-primary); font-size: 1.2rem; margin-bottom: 0.8rem; overflow: hidden;
 }
@@ -65,7 +65,7 @@ body { font-family: 'Inter', sans-serif; }
 }
 .form-field input, .form-field textarea, .form-field select {
     width: 100%; padding: 0.75rem 1rem; border-radius: var(--radius-sm); box-sizing: border-box;
-    border: 1.5px solid var(--color-border); font-family: 'Inter', sans-serif; font-size: 0.95rem; resize: vertical;
+    border: 1px solid var(--color-border); font-family: 'Inter', sans-serif; font-size: 0.95rem; resize: vertical;
     background: var(--color-bg); color: var(--color-text); transition: border-color .15s ease, box-shadow .15s ease;
 }
 .form-field input:focus, .form-field textarea:focus, .form-field select:focus {
@@ -115,6 +115,15 @@ body { font-family: 'Inter', sans-serif; }
             <div id="notifList"></div>
         </div>
     </div>
+        <div class="lang-switcher">
+            <button class="lang-switcher-btn" type="button" aria-label="Tilni tanlang"><i class="fas fa-globe lang-globe"></i><span class="lang-switcher-label">UZ</span><i class="fas fa-chevron-down lang-chev"></i></button>
+            <div class="lang-switcher-panel">
+                <button class="lang-option" data-lang="uz" type="button">O'zbek</button>
+                <button class="lang-option" data-lang="qq" type="button">Qaraqalpaqsha</button>
+                <button class="lang-option" data-lang="ru" type="button">Русский</button>
+                <button class="lang-option" data-lang="en" type="button">English</button>
+            </div>
+        </div>
         <button class="theme-toggle" id="themeToggle" aria-label="Mavzuni almashtirish"><i class="fas fa-moon"></i></button>
 </nav>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -174,7 +183,7 @@ body { font-family: 'Inter', sans-serif; }
                 </div>
                 <div style="display:flex; gap:0.8rem;">
                     <button type="submit" class="btn btn-primary btn-zoom" style="flex:1; justify-content:center;">Yaratish</button>
-                    <button type="button" class="btn btn-cancel" id="closeCreateModal" style="border:1.5px solid var(--color-border); background:transparent; color:var(--color-text-muted);">Bekor qilish</button>
+                    <button type="button" class="btn btn-cancel" id="closeCreateModal" style="border:1px solid var(--color-border); background:transparent; color:var(--color-text-muted);">Bekor qilish</button>
                 </div>
                 <div class="create-status" id="createStatus"></div>
             </form>
