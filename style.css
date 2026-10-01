@@ -354,16 +354,17 @@ a {
 /* ---------- Language switcher (shared across every page) ---------- */
 .lang-switcher { position: relative; }
 .lang-switcher-btn {
-  display: inline-flex; align-items: center; gap: .35rem;
-  background: transparent; border: 1px solid var(--color-border); color: var(--color-text);
-  padding: .45rem .7rem; border-radius: var(--radius-btn); font-size: .8rem; font-weight: 700;
+  display: inline-flex; align-items: center; gap: .4rem;
+  background: transparent; border: none; color: var(--color-text);
+  padding: .4rem .55rem; border-radius: var(--radius-btn); font-size: .85rem; font-weight: 700;
   cursor: pointer; font-family: var(--font-body);
 }
 .lang-switcher-btn:hover { background: var(--color-bg); }
-.lang-switcher-btn i { font-size: .65rem; color: var(--color-text-muted); transition: transform .15s ease; }
-.lang-switcher.open .lang-switcher-btn i { transform: rotate(180deg); }
+.lang-switcher-btn .lang-globe { font-size: .9rem; color: var(--color-text-muted); }
+.lang-switcher-btn .lang-chev { font-size: .6rem; color: var(--color-text-muted); transition: transform .15s ease; }
+.lang-switcher.open .lang-switcher-btn .lang-chev { transform: rotate(180deg); }
 .lang-switcher-panel {
-  position: absolute; top: calc(100% + 8px); right: 0; z-index: 60; min-width: 168px;
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 60; min-width: 150px;
   background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-btn);
   box-shadow: var(--shadow-hover); padding: .4rem; display: none;
 }
@@ -374,10 +375,11 @@ a {
   font-size: .85rem; font-weight: 600; color: var(--color-text); cursor: pointer; font-family: var(--font-body);
 }
 .lang-option:hover { background: var(--color-bg); }
-.lang-option.active { color: var(--color-primary); }
+.lang-option.active { color: var(--color-primary); font-weight: 700; }
 /* .lp-nav is the dark, always-on landing nav — needs its own light-on-dark
    treatment instead of the token-driven one above. */
-.lp-nav .lang-switcher-btn { border-color: rgba(255,255,255,0.2); color: #FAF7F2; }
+.lp-nav .lang-switcher-btn { color: #FAF7F2; }
+.lp-nav .lang-switcher-btn .lang-globe, .lp-nav .lang-switcher-btn .lang-chev { color: #D9D2EE; }
 .lp-nav .lang-switcher-btn:hover { background: rgba(255,255,255,0.1); }
 
 .btn-glow {
