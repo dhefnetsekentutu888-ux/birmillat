@@ -20,6 +20,10 @@
   --color-success-bg: #E6F4E6;
   --color-error: #C0392B;
   --color-error-bg: #FCEAE8;
+  --color-warning: #B7791F;
+  --color-warning-bg: #FFF4E5;
+  --color-warning: #B7791F;
+  --color-warning-bg: #FFF4E5;
   --radius-btn: 12px;              /* buttons: one rectangular radius, everywhere */
 
   /* Type */
@@ -66,6 +70,8 @@
     --color-success-bg: rgba(111, 203, 120, 0.14);
     --color-error: #FF6B6B;
     --color-error-bg: rgba(255, 107, 107, 0.14);
+    --color-warning: #E3A25B;
+    --color-warning-bg: rgba(227, 162, 91, 0.14);
     --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.25);
     --shadow-hover: 0 10px 28px rgba(0, 0, 0, 0.4);
   }
@@ -86,6 +92,8 @@
   --color-success-bg: rgba(111, 203, 120, 0.14);
   --color-error: #FF6B6B;
   --color-error-bg: rgba(255, 107, 107, 0.14);
+  --color-warning: #E3A25B;
+  --color-warning-bg: rgba(227, 162, 91, 0.14);
   --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.25);
   --shadow-hover: 0 10px 28px rgba(0, 0, 0, 0.4);
 }
