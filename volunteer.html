@@ -58,16 +58,16 @@ body { font-family: 'Inter', sans-serif; }
     font-weight: 700; font-size: 0.84rem; color: var(--color-text-muted); cursor: pointer;
     display: flex; align-items: center; gap: 0.4rem; transition: background .2s ease, color .2s ease;
 }
-.mode-filter button.active { background: var(--color-primary); color: #fff; }
+.mode-filter button.active { background: var(--color-primary-solid); color: #fff; }
 .vol-select {
-    padding: 0.6rem 1rem; border-radius: 999px; border: 1.5px solid var(--color-border);
+    padding: 0.6rem 1rem; border-radius: 999px; border: 1px solid var(--color-border);
     background: var(--color-surface); color: var(--color-text); font-size: 0.85rem; font-weight: 600; cursor: pointer;
 }
 .search-wrap { flex: 1; min-width: 180px; position: relative; }
 .search-wrap i { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--color-text-muted); font-size: 0.85rem; }
 .search-wrap input {
     width: 100%; box-sizing: border-box; padding: 0.65rem 1rem 0.65rem 2.4rem; border-radius: 999px;
-    border: 1.5px solid var(--color-border); background: var(--color-bg); color: var(--color-text); font-size: 0.88rem;
+    border: 1px solid var(--color-border); background: var(--color-bg); color: var(--color-text); font-size: 0.88rem;
 }
 .search-wrap input:focus { outline: none; border-color: var(--color-primary); }
 
@@ -82,14 +82,14 @@ body { font-family: 'Inter', sans-serif; }
 .vol-badges { display: flex; gap: 0.45rem; margin-bottom: 0.8rem; flex-wrap: wrap; position: relative; }
 .vol-badge { font-size: 0.7rem; font-weight: 700; padding: 0.24rem 0.65rem; border-radius: 999px; display: inline-flex; align-items: center; gap: 0.3rem; }
 .vol-badge.mode-online { background: #E6F4EA; color: #1E7B34; }
-.vol-badge.mode-offline { background: #EFEAF8; color: var(--color-primary); }
+.vol-badge.mode-offline { background: var(--color-bg); color: var(--color-primary); }
 .vol-badge.city { background: var(--color-bg); color: var(--color-text-muted); }
 .vol-card h3 { font-family: 'Sora', sans-serif; font-size: 1.08rem; margin-bottom: 0.5rem; position: relative; line-height: 1.35; }
 .vol-desc { font-size: 0.86rem; color: var(--color-text-muted); line-height: 1.55; margin-bottom: 1rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; position: relative; }
 .vol-card-foot { display: flex; align-items: center; justify-content: space-between; position: relative; }
 .vol-organizer { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: var(--color-text-muted); }
 .vol-organizer .mini-avatar {
-    width: 26px; height: 26px; border-radius: 50%; background: linear-gradient(135deg,#EFEAF8,#E4DBF7);
+    width: 26px; height: 26px; border-radius: 50%; background: var(--color-bg);
     display: flex; align-items: center; justify-content: center; font-size: 0.62rem; font-weight: 700; color: var(--color-primary); overflow: hidden;
 }
 .vol-organizer .mini-avatar img { width: 100%; height: 100%; object-fit: cover; }
@@ -138,6 +138,15 @@ body { font-family: 'Inter', sans-serif; }
             <div id="notifList"></div>
         </div>
     </div>
+        <div class="lang-switcher">
+            <button class="lang-switcher-btn" type="button" aria-label="Tilni tanlang"><i class="fas fa-globe lang-globe"></i><span class="lang-switcher-label">UZ</span><i class="fas fa-chevron-down lang-chev"></i></button>
+            <div class="lang-switcher-panel">
+                <button class="lang-option" data-lang="uz" type="button">O'zbek</button>
+                <button class="lang-option" data-lang="qq" type="button">Qaraqalpaqsha</button>
+                <button class="lang-option" data-lang="ru" type="button">Русский</button>
+                <button class="lang-option" data-lang="en" type="button">English</button>
+            </div>
+        </div>
         <button class="theme-toggle" id="themeToggle" aria-label="Mavzuni almashtirish"><i class="fas fa-moon"></i></button>
 </nav>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
