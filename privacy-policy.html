@@ -35,7 +35,7 @@
         padding: 1rem 1.2rem; color: var(--color-text-muted); font-size: 0.88rem; margin-bottom: 1.5rem;
     }
     .policy-contact {
-        background: #EFEAF8; border-radius: 14px; padding: 1.3rem; margin-top: 1.5rem;
+        background: var(--color-bg); border-radius: 14px; padding: 1.3rem; margin-top: 1.5rem;
     }
     .policy-contact a { color: var(--color-primary); font-weight: 700; }
 
@@ -59,6 +59,15 @@
         <div class="nav-links" id="navLinks">
             <button class="sidebar-close" id="sidebarClose" aria-label="Yopish"><i class="fas fa-xmark"></i></button>
             <a href="/login">Kirish</a>
+        </div>
+        <div class="lang-switcher">
+            <button class="lang-switcher-btn" type="button" aria-label="Tilni tanlang"><i class="fas fa-globe lang-globe"></i><span class="lang-switcher-label">UZ</span><i class="fas fa-chevron-down lang-chev"></i></button>
+            <div class="lang-switcher-panel">
+                <button class="lang-option" data-lang="uz" type="button">O'zbek</button>
+                <button class="lang-option" data-lang="qq" type="button">Qaraqalpaqsha</button>
+                <button class="lang-option" data-lang="ru" type="button">Русский</button>
+                <button class="lang-option" data-lang="en" type="button">English</button>
+            </div>
         </div>
         <button class="theme-toggle" id="themeToggle" aria-label="Mavzuni almashtirish"><i class="fas fa-moon"></i></button>
 </nav>
