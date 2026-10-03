@@ -35,18 +35,18 @@ body { font-family: 'Inter', sans-serif; }
     padding: 1.5rem; text-align: center; margin-bottom: 1.2rem; display: none;
 }
 .scan-result.show { display: block; }
-.scan-result.ok { background: var(--color-success-bg); border: 1.5px solid var(--color-success); }
-.scan-result.warn { background: #FFF4E5; border: 1.5px solid #B7791F; }
-.scan-result.err { background: var(--color-error-bg); border: 1.5px solid var(--color-error); }
+.scan-result.ok { background: var(--color-success-bg); border: 1px solid var(--color-success); }
+.scan-result.warn { background: var(--color-warning-bg); border: 1px solid var(--color-warning); }
+.scan-result.err { background: var(--color-error-bg); border: 1px solid var(--color-error); }
 .scan-result-icon { font-size: 2.4rem; margin-bottom: 0.7rem; }
 .scan-result.ok .scan-result-icon { color: var(--color-success); }
-.scan-result.warn .scan-result-icon { color: #B7791F; }
+.scan-result.warn .scan-result-icon { color: var(--color-warning); }
 .scan-result.err .scan-result-icon { color: var(--color-error); }
 .scan-result-name { font-family: 'Sora', sans-serif; font-size: 1.15rem; margin-bottom: 0.3rem; }
 .scan-result-sub { font-size: 0.88rem; color: var(--color-text-muted); }
 .scan-again-btn {
-    margin-top: 1.1rem; border: none; cursor: pointer; background: var(--color-primary); color: #fff;
-    padding: 0.7rem 1.4rem; border-radius: 999px; font-weight: 700; font-size: 0.88rem;
+    margin-top: 1.1rem; border: none; cursor: pointer; background: var(--color-primary-solid); color: #fff;
+    padding: 0.7rem 1.4rem; border-radius: var(--radius-btn); font-weight: 700; font-size: 0.88rem;
     transition: transform .18s cubic-bezier(.34,1.56,.64,1);
 }
 .scan-again-btn:hover { transform: scale(1.04); }
@@ -57,11 +57,11 @@ body { font-family: 'Inter', sans-serif; }
 .manual-entry { display: none; gap: 0.6rem; margin-top: 1rem; }
 .manual-entry.show { display: flex; }
 .manual-entry input {
-    flex: 1; padding: 0.65rem 0.9rem; border-radius: 10px; border: 1.5px solid var(--color-border);
+    flex: 1; padding: 0.65rem 0.9rem; border-radius: 10px; border: 1px solid var(--color-border);
     background: var(--color-bg); color: var(--color-text); font-size: 0.88rem;
 }
 .manual-entry button {
-    background: var(--color-primary); color: #fff; border: none; padding: 0.65rem 1rem; border-radius: 10px;
+    background: var(--color-primary-solid); color: #fff; border: none; padding: 0.65rem 1rem; border-radius: 10px;
     font-weight: 700; font-size: 0.85rem; cursor: pointer;
 }
 </style>
@@ -85,6 +85,15 @@ body { font-family: 'Inter', sans-serif; }
             <a href="/logout"><i class="fas fa-right-from-bracket"></i> Chiqish</a>
         </div>
         <a class="user-badge" id="userBadge" href="/profile"><img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ...</a>
+        <div class="lang-switcher">
+            <button class="lang-switcher-btn" type="button" aria-label="Tilni tanlang"><i class="fas fa-globe lang-globe"></i><span class="lang-switcher-label">UZ</span><i class="fas fa-chevron-down lang-chev"></i></button>
+            <div class="lang-switcher-panel">
+                <button class="lang-option" data-lang="uz" type="button">O'zbek</button>
+                <button class="lang-option" data-lang="qq" type="button">Qaraqalpaqsha</button>
+                <button class="lang-option" data-lang="ru" type="button">Русский</button>
+                <button class="lang-option" data-lang="en" type="button">English</button>
+            </div>
+        </div>
         <button class="theme-toggle" id="themeToggle" aria-label="Mavzuni almashtirish"><i class="fas fa-moon"></i></button>
 </nav>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
