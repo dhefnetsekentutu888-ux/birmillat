@@ -28,12 +28,12 @@ body { font-family: 'Inter', sans-serif; }
 .search-bar { display: flex; gap: 0.6rem; margin-bottom: 1.2rem; }
 .search-bar input {
     flex: 1; padding: 0.85rem 1.1rem; border-radius: var(--radius-sm);
-    border: 1.5px solid var(--color-border); font-family: 'Inter', sans-serif; font-size: 0.98rem;
+    border: 1px solid var(--color-border); font-family: 'Inter', sans-serif; font-size: 0.98rem;
     background: var(--color-surface); color: var(--color-text); transition: border-color .15s ease, box-shadow .15s ease;
 }
 .search-bar input:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(45,27,105,0.1); }
 .search-bar button {
-    background: var(--color-primary); color: white; border: none; padding: 0 1.6rem;
+    background: var(--color-primary-solid); color: white; border: none; padding: 0 1.6rem;
     border-radius: var(--radius-sm); font-weight: 700; cursor: pointer;
     display: flex; align-items: center; gap: 0.5rem;
     transition: transform .18s cubic-bezier(.34,1.56,.64,1), background .15s ease;
@@ -43,13 +43,13 @@ body { font-family: 'Inter', sans-serif; }
 
 .filter-bar { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 2rem; }
 .filter-chip {
-    background: var(--color-surface); border: 1.5px solid var(--color-border); color: var(--color-text);
+    background: var(--color-surface); border: 1px solid var(--color-border); color: var(--color-text);
     padding: 0.45rem 1rem; border-radius: var(--radius-pill); font-size: 0.82rem; font-weight: 600;
     cursor: pointer; transition: transform .18s cubic-bezier(.34,1.56,.64,1), border-color .15s ease, background .15s ease, color .15s ease;
 }
 .filter-chip:hover { border-color: var(--color-primary); transform: scale(1.04); }
 .filter-chip:active { transform: scale(.94); }
-.filter-chip.active { background: var(--color-primary); border-color: var(--color-primary); color: white; }
+.filter-chip.active { background: var(--color-primary-solid); border-color: var(--color-primary-solid); color: white; }
 
 .results-meta { color: var(--color-text-muted); font-size: 0.88rem; margin-bottom: 1rem; }
 
@@ -58,7 +58,7 @@ body { font-family: 'Inter', sans-serif; }
 .user-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-hover); }
 .card-top { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 0.8rem; }
 .avatar {
-    width: 48px; height: 48px; background: linear-gradient(135deg,#EFEAF8,#E4DBF7); border-radius: 50%;
+    width: 48px; height: 48px; background: var(--color-bg); border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     font-family: 'Sora', sans-serif; font-weight: 700; font-size: 1.05rem;
     color: var(--color-primary); flex-shrink: 0; overflow: hidden;
@@ -116,6 +116,15 @@ body { font-family: 'Inter', sans-serif; }
             <div id="notifList"></div>
         </div>
     </div>
+        <div class="lang-switcher">
+            <button class="lang-switcher-btn" type="button" aria-label="Tilni tanlang"><i class="fas fa-globe lang-globe"></i><span class="lang-switcher-label">UZ</span><i class="fas fa-chevron-down lang-chev"></i></button>
+            <div class="lang-switcher-panel">
+                <button class="lang-option" data-lang="uz" type="button">O'zbek</button>
+                <button class="lang-option" data-lang="qq" type="button">Qaraqalpaqsha</button>
+                <button class="lang-option" data-lang="ru" type="button">Русский</button>
+                <button class="lang-option" data-lang="en" type="button">English</button>
+            </div>
+        </div>
         <button class="theme-toggle" id="themeToggle" aria-label="Mavzuni almashtirish"><i class="fas fa-moon"></i></button>
 </nav>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
