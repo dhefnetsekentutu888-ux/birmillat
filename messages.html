@@ -77,9 +77,9 @@
         transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s cubic-bezier(.34,1.56,.64,1);
     }
     .conv-item:hover { background: var(--color-bg); transform: translateX(2px); }
-    .conv-item.active { background: #EFEAF8; border-left-color: var(--color-accent); }
+    .conv-item.active { background: var(--color-bg); border-left-color: var(--color-accent); }
     .conv-avatar {
-        width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg,#EFEAF8,#E4DBF7);
+        width: 40px; height: 40px; border-radius: 50%; background: var(--color-bg);
         display: flex; align-items: center; justify-content: center;
         font-family: 'Sora', sans-serif; font-weight: 700; font-size: 0.9rem;
         color: var(--color-primary); flex-shrink: 0; overflow: hidden;
@@ -193,7 +193,7 @@
         flex: 1;
         padding: 0.7rem 1rem;
         border-radius: var(--radius-pill);
-        border: 1.5px solid var(--color-border);
+        border: 1px solid var(--color-border);
         font-family: 'Inter', sans-serif;
         font-size: 0.92rem;
         background: var(--color-bg);
@@ -201,8 +201,8 @@
     }
     .chat-input-row input:focus { outline: 2px solid var(--color-accent); outline-offset: 1px; }
     .chat-input-row button {
-        background: linear-gradient(135deg, var(--color-accent), var(--color-primary));
-        color: white;
+        background: var(--color-accent));
+        color: var(--color-on-accent);
         border: none;
         width: 44px;
         height: 44px;
@@ -295,6 +295,15 @@
             <div id="notifList"></div>
         </div>
     </div>
+        <div class="lang-switcher">
+            <button class="lang-switcher-btn" type="button" aria-label="Tilni tanlang"><i class="fas fa-globe lang-globe"></i><span class="lang-switcher-label">UZ</span><i class="fas fa-chevron-down lang-chev"></i></button>
+            <div class="lang-switcher-panel">
+                <button class="lang-option" data-lang="uz" type="button">O'zbek</button>
+                <button class="lang-option" data-lang="qq" type="button">Qaraqalpaqsha</button>
+                <button class="lang-option" data-lang="ru" type="button">Русский</button>
+                <button class="lang-option" data-lang="en" type="button">English</button>
+            </div>
+        </div>
         <button class="theme-toggle" id="themeToggle" aria-label="Mavzuni almashtirish"><i class="fas fa-moon"></i></button>
 </nav>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
