@@ -45,7 +45,7 @@ body { font-family: 'Inter', sans-serif; }
 .author-link:hover { opacity: .78; }
 .author-link .avatar {
     width: 42px; height: 42px; border-radius: 50%; padding: 2px;
-    background: linear-gradient(135deg, var(--color-accent), var(--color-primary));
+    background: var(--color-accent));
     display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
 .author-link .avatar-inner {
@@ -69,7 +69,7 @@ body { font-family: 'Inter', sans-serif; }
 .action-bar { display: flex; align-items: center; gap: 1rem; padding-top: 1.6rem; border-top: 1px solid var(--color-border); }
 .icon-action-btn {
     position: relative; width: 50px; height: 50px; border-radius: 50%;
-    border: 1.5px solid var(--color-border); background: var(--color-surface);
+    border: 1px solid var(--color-border); background: var(--color-surface);
     display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
     color: var(--color-text-muted); cursor: pointer;
     transition: transform .2s cubic-bezier(.34,1.56,.64,1), border-color .15s ease, background .2s ease, color .15s ease, box-shadow .2s ease;
@@ -77,13 +77,13 @@ body { font-family: 'Inter', sans-serif; }
 .icon-action-btn:hover { transform: scale(1.08); border-color: var(--color-primary); color: var(--color-primary); }
 .icon-action-btn:active { transform: scale(.9); }
 .icon-action-btn.like.liked {
-    background: linear-gradient(135deg, var(--color-accent), var(--color-accent-light));
-    border-color: transparent; color: #fff; box-shadow: 0 8px 20px rgba(255,107,91,0.35);
+    background: var(--color-accent));
+    border-color: transparent; color: var(--color-on-accent); box-shadow: 0 8px 20px rgba(255,107,91,0.35);
 }
 .icon-action-btn.like.just-liked i { animation: like-pop .45s cubic-bezier(.34,1.56,.64,1); }
 @keyframes like-pop { 0% { transform: scale(1); } 45% { transform: scale(1.5); } 100% { transform: scale(1); } }
 .like-count-badge {
-    position: absolute; top: -5px; right: -5px; background: var(--color-primary); color: #fff;
+    position: absolute; top: -5px; right: -5px; background: var(--color-primary-solid); color: #fff;
     font-size: 0.64rem; font-weight: 800; padding: 0.14rem 0.36rem; border-radius: 999px; min-width: 18px; text-align: center;
     border: 2px solid var(--color-bg);
 }
@@ -99,7 +99,7 @@ body { font-family: 'Inter', sans-serif; }
 .report-modal-card h2 { font-family: 'Sora', sans-serif; font-size: 1.15rem; }
 .report-modal-card textarea {
     width: 100%; box-sizing: border-box; padding: 0.75rem 1rem; border-radius: var(--radius-sm); margin-top: 0.8rem;
-    border: 1.5px solid var(--color-border); font-family: 'Inter', sans-serif; font-size: 0.9rem; resize: vertical; min-height: 90px;
+    border: 1px solid var(--color-border); font-family: 'Inter', sans-serif; font-size: 0.9rem; resize: vertical; min-height: 90px;
     background: var(--color-bg); color: var(--color-text);
 }
 .not-found { text-align: center; padding: 4rem 1.5rem; color: var(--color-text-muted); }
@@ -144,6 +144,15 @@ body { font-family: 'Inter', sans-serif; }
             <div id="notifList"></div>
         </div>
     </div>
+        <div class="lang-switcher">
+            <button class="lang-switcher-btn" type="button" aria-label="Tilni tanlang"><i class="fas fa-globe lang-globe"></i><span class="lang-switcher-label">UZ</span><i class="fas fa-chevron-down lang-chev"></i></button>
+            <div class="lang-switcher-panel">
+                <button class="lang-option" data-lang="uz" type="button">O'zbek</button>
+                <button class="lang-option" data-lang="qq" type="button">Qaraqalpaqsha</button>
+                <button class="lang-option" data-lang="ru" type="button">Русский</button>
+                <button class="lang-option" data-lang="en" type="button">English</button>
+            </div>
+        </div>
         <button class="theme-toggle" id="themeToggle" aria-label="Mavzuni almashtirish"><i class="fas fa-moon"></i></button>
 </nav>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -162,7 +171,7 @@ body { font-family: 'Inter', sans-serif; }
             <textarea id="reportReason" placeholder="Sabab (ixtiyoriy)"></textarea>
             <div style="display:flex; gap:0.8rem; margin-top:1rem;">
                 <button class="btn btn-primary btn-zoom" id="submitReport" style="flex:1; justify-content:center;">Yuborish</button>
-                <button class="btn btn-cancel" id="closeReportModal" style="border:1.5px solid var(--color-border); background:transparent; color:var(--color-text-muted);">Bekor qilish</button>
+                <button class="btn btn-cancel" id="closeReportModal" style="border:1px solid var(--color-border); background:transparent; color:var(--color-text-muted);">Bekor qilish</button>
             </div>
             <div class="submit-status" id="reportStatus" style="font-size:0.85rem; margin-top:0.6rem;"></div>
         </div>
