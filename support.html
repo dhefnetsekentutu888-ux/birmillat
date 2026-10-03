@@ -22,8 +22,8 @@
     .support-shell { max-width: 560px; margin: 2.2rem auto; padding: 0 1.5rem 3rem; }
     .support-icon {
         width: 56px; height: 56px; border-radius: 16px; margin: 0 auto 1rem;
-        background: linear-gradient(135deg, var(--color-accent), var(--color-primary));
-        display: flex; align-items: center; justify-content: center; color: #fff; font-size: 1.4rem;
+        background: var(--color-accent));
+        display: flex; align-items: center; justify-content: center; color: var(--color-on-accent); font-size: 1.4rem;
     }
     .support-card { padding: 2.2rem; text-align: center; }
     .support-card h1 { font-family: 'Sora', sans-serif; font-size: 1.5rem; margin-bottom: 0.5rem; }
@@ -44,7 +44,7 @@
     }
     .form-field textarea, .form-field input {
         width: 100%; box-sizing: border-box; padding: 0.75rem 1rem; border-radius: var(--radius-sm);
-        border: 1.5px solid var(--color-border); font-family: 'Inter', sans-serif; font-size: 0.95rem; resize: vertical;
+        border: 1px solid var(--color-border); font-family: 'Inter', sans-serif; font-size: 0.95rem; resize: vertical;
         background: var(--color-bg); color: var(--color-text); transition: border-color .15s ease, box-shadow .15s ease;
     }
     .form-field textarea:focus, .form-field input:focus {
@@ -56,8 +56,8 @@
 
     .gradient-submit {
         width: 100%; border: none; cursor: pointer;
-        background: linear-gradient(135deg, var(--color-accent), var(--color-primary));
-        color: #fff; font-weight: 700; font-size: 0.98rem; padding: 0.9rem; border-radius: 999px;
+        background: var(--color-accent));
+        color: var(--color-on-accent); font-weight: 700; font-size: 0.98rem; padding: 0.9rem; border-radius: var(--radius-btn);
         display: flex; align-items: center; justify-content: center; gap: 0.6rem;
         box-shadow: 0 10px 24px rgba(255,107,91,0.3);
         transition: transform .2s cubic-bezier(.34,1.56,.64,1), box-shadow .2s ease;
@@ -91,6 +91,15 @@
         <div class="nav-links" id="navLinks">
             <button class="sidebar-close" id="sidebarClose" aria-label="Yopish"><i class="fas fa-xmark"></i></button>
             <a href="/home"><i class="fas fa-house"></i> Bosh sahifa</a>
+        </div>
+        <div class="lang-switcher">
+            <button class="lang-switcher-btn" type="button" aria-label="Tilni tanlang"><i class="fas fa-globe lang-globe"></i><span class="lang-switcher-label">UZ</span><i class="fas fa-chevron-down lang-chev"></i></button>
+            <div class="lang-switcher-panel">
+                <button class="lang-option" data-lang="uz" type="button">O'zbek</button>
+                <button class="lang-option" data-lang="qq" type="button">Qaraqalpaqsha</button>
+                <button class="lang-option" data-lang="ru" type="button">Русский</button>
+                <button class="lang-option" data-lang="en" type="button">English</button>
+            </div>
         </div>
         <button class="theme-toggle" id="themeToggle" aria-label="Mavzuni almashtirish"><i class="fas fa-moon"></i></button>
 </nav>
