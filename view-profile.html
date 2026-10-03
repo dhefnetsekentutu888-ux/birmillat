@@ -43,7 +43,7 @@ body { font-family: 'Inter', sans-serif; }
 .pv-avatar-wrap { position: relative; width: 112px; height: 112px; margin-top: -56px; }
 .pv-avatar, .pv-avatar-wrap .avatar-circle {
     width: 112px; height: 112px; border-radius: 50%; object-fit: cover; display: block;
-    border: 5px solid var(--color-surface); background: linear-gradient(135deg,#EFEAF8,#E4DBF7);
+    border: 5px solid var(--color-surface); background: var(--color-bg);
     box-shadow: var(--shadow-hover);
 }
 .pv-avatar-wrap .avatar-circle {
@@ -60,19 +60,19 @@ body { font-family: 'Inter', sans-serif; }
 .pv-actions { display: flex; gap: 0.6rem; flex-wrap: wrap; }
 .pv-follow-btn {
     display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.68rem 1.3rem; border-radius: var(--radius-pill);
-    font-weight: 700; font-size: 0.92rem; border: none; cursor: pointer; background: var(--color-primary); color: #fff;
+    font-weight: 700; font-size: 0.92rem; border: none; cursor: pointer; background: var(--color-primary-solid); color: #fff;
     transition: transform .18s cubic-bezier(.34,1.56,.64,1), background .18s ease, color .18s ease, box-shadow .18s ease;
 }
 .pv-follow-btn:hover { box-shadow: var(--shadow-hover); }
-.pv-follow-btn.state-pending { background: var(--color-bg); color: var(--color-text-muted); border: 1.5px solid var(--color-border); }
-.pv-follow-btn.state-following { background: var(--color-surface); color: var(--color-text); border: 1.5px solid var(--color-border); }
+.pv-follow-btn.state-pending { background: var(--color-bg); color: var(--color-text-muted); border: 1px solid var(--color-border); }
+.pv-follow-btn.state-following { background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border); }
 .pv-follow-btn.state-following:hover { background: #FFEAE6; color: var(--color-accent); border-color: var(--color-accent); }
 .pv-follow-btn.state-following:hover .pv-follow-label::before { content: "Kuzatishni bekor qilish"; }
 .pv-follow-btn.state-following .pv-follow-label::before { content: "Kuzatilmoqda"; }
 .pv-follow-btn.state-following .pv-follow-label { font-size: 0; }
 .pv-icon-btn {
     width: 44px; height: 44px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
-    border: 1.5px solid var(--color-border); background: transparent; color: var(--color-text-muted); cursor: pointer;
+    border: 1px solid var(--color-border); background: transparent; color: var(--color-text-muted); cursor: pointer;
     transition: transform .18s cubic-bezier(.34,1.56,.64,1), color .18s ease, border-color .18s ease;
 }
 .pv-icon-btn:hover { color: var(--color-primary); border-color: var(--color-primary); }
@@ -97,7 +97,7 @@ body { font-family: 'Inter', sans-serif; }
 .profile-bio.empty { color: var(--color-text-muted); font-style: italic; }
 
 /* ---------- Interests "spotlight" panel — distinct from the plain .tag pills elsewhere ---------- */
-.pv-interests-panel { margin-top: 1.4rem; padding: 1rem 1.1rem; border-radius: var(--radius-sm); background: linear-gradient(135deg, #EFEAF8, #F7F2FF); }
+.pv-interests-panel { margin-top: 1.4rem; padding: 1rem 1.1rem; border-radius: var(--radius-sm); background: var(--color-bg); border: 1px solid var(--color-border); }
 :root[data-theme="dark"] .pv-interests-panel { background: linear-gradient(135deg, rgba(196,181,253,0.12), rgba(196,181,253,0.05)); }
 .pv-interest-chip { display: inline-flex; align-items: center; gap: 0.4rem; background: var(--color-surface); color: var(--color-primary); padding: 0.4rem 0.85rem 0.4rem 0.6rem; border-radius: var(--radius-pill); font-size: 0.82rem; font-weight: 600; margin: 0 0.4rem 0.4rem 0; box-shadow: 0 1px 3px rgba(45,27,105,0.08); }
 .pv-interest-chip .pv-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--color-accent); flex-shrink: 0; }
@@ -119,7 +119,7 @@ body { font-family: 'Inter', sans-serif; }
 .pv-ach-title { padding: 0.55rem 0.65rem; font-size: 0.78rem; font-weight: 700; color: var(--color-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pv-ach-empty {
     grid-column: 1 / -1; text-align: center; padding: 2rem 1rem; color: var(--color-text-muted);
-    border: 1.5px dashed var(--color-border); border-radius: var(--radius-sm); font-size: 0.88rem;
+    border: 1px dashed var(--color-border); border-radius: var(--radius-sm); font-size: 0.88rem;
 }
 .pv-ach-empty i { font-size: 1.6rem; color: var(--color-border); display: block; margin-bottom: 0.6rem; }
 
@@ -135,7 +135,7 @@ body { font-family: 'Inter', sans-serif; }
 .ach-modal-body .ach-date { font-size: 0.78rem; color: var(--color-text-muted); margin-bottom: 0.6rem; }
 .ach-modal-body p { font-size: 0.92rem; color: var(--color-text); line-height: 1.5; }
 .ach-modal-close {
-    background: transparent; border: 1.5px solid var(--color-border); color: var(--color-text-muted);
+    background: transparent; border: 1px solid var(--color-border); color: var(--color-text-muted);
     padding: 0.5rem 1rem; border-radius: var(--radius-pill); cursor: pointer; margin-top: 1rem; font-size: 0.85rem;
     transition: transform .18s cubic-bezier(.34,1.56,.64,1);
 }
@@ -148,7 +148,7 @@ body { font-family: 'Inter', sans-serif; }
 .follow-list-card h3 button { background: none; border: none; color: var(--color-text-muted); cursor: pointer; font-size: 1rem; }
 .follow-list-item { display: flex; align-items: center; gap: 0.7rem; padding: 0.6rem 0; text-decoration: none; color: inherit; border-bottom: 1px solid var(--color-border); }
 .follow-list-item:last-child { border-bottom: none; }
-.follow-list-avatar { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; background: linear-gradient(135deg,#EFEAF8,#E4DBF7); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--color-primary); font-family: 'Sora', sans-serif; font-size: 0.85rem; }
+.follow-list-avatar { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; background: var(--color-bg); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--color-primary); font-family: 'Sora', sans-serif; font-size: 0.85rem; }
 .follow-list-item .fl-name { font-size: 0.88rem; font-weight: 700; color: var(--color-text); }
 .follow-list-item .fl-username { font-size: 0.76rem; color: var(--color-text-muted); }
 .fl-empty { color: var(--color-text-muted); font-size: 0.85rem; padding: 0.4rem 0; }
@@ -161,7 +161,7 @@ body { font-family: 'Inter', sans-serif; }
 .report-field label { display: block; font-size: 0.8rem; font-weight: 700; color: var(--color-text-muted); margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.4px; }
 .report-field select, .report-field textarea, .report-field input {
     width: 100%; box-sizing: border-box; padding: 0.7rem 0.9rem; border-radius: var(--radius-sm);
-    border: 1.5px solid var(--color-border); font-family: 'Inter', sans-serif; font-size: 0.95rem; resize: vertical;
+    border: 1px solid var(--color-border); font-family: 'Inter', sans-serif; font-size: 0.95rem; resize: vertical;
     background: var(--color-bg); color: var(--color-text);
 }
 </style>
@@ -204,6 +204,15 @@ body { font-family: 'Inter', sans-serif; }
             <div id="notifList"></div>
         </div>
     </div>
+        <div class="lang-switcher">
+            <button class="lang-switcher-btn" type="button" aria-label="Tilni tanlang"><i class="fas fa-globe lang-globe"></i><span class="lang-switcher-label">UZ</span><i class="fas fa-chevron-down lang-chev"></i></button>
+            <div class="lang-switcher-panel">
+                <button class="lang-option" data-lang="uz" type="button">O'zbek</button>
+                <button class="lang-option" data-lang="qq" type="button">Qaraqalpaqsha</button>
+                <button class="lang-option" data-lang="ru" type="button">Русский</button>
+                <button class="lang-option" data-lang="en" type="button">English</button>
+            </div>
+        </div>
         <button class="theme-toggle" id="themeToggle" aria-label="Mavzuni almashtirish"><i class="fas fa-moon"></i></button>
 </nav>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -246,7 +255,7 @@ body { font-family: 'Inter', sans-serif; }
         <div class="pv-card card">
             <div class="pv-card-head"><i class="fas fa-user"></i> Haqida</div>
             <p class="profile-bio" id="viewBio"></p>
-            <div id="viewLookingForRow" style="display:none; margin-bottom:1rem; padding:0.7rem 0.9rem; border-radius:var(--radius-sm); background:linear-gradient(135deg,#EFEAF8,#F7F2FF);">
+            <div id="viewLookingForRow" style="display:none; margin-bottom:1rem; padding:0.7rem 0.9rem; border-radius:var(--radius-sm); background:var(--color-bg); border:1px solid var(--color-border);">
                 <span style="font-size:0.75rem; font-weight:700; color:var(--color-primary); text-transform:uppercase; letter-spacing:0.3px;"><i class="fas fa-magnifying-glass"></i> Qidiryapti</span>
                 <div id="viewLookingForText" style="font-size:0.9rem; margin-top:0.2rem;"></div>
             </div>
@@ -309,7 +318,7 @@ body { font-family: 'Inter', sans-serif; }
                 </div>
                 <div style="display:flex; gap:0.8rem;">
                     <button type="submit" class="btn btn-primary btn-zoom" style="flex:1; justify-content:center;">Yuborish</button>
-                    <button type="button" class="btn btn-cancel" id="closeReportModal" style="border:1.5px solid var(--color-border); background:transparent; color:var(--color-text-muted);">Bekor qilish</button>
+                    <button type="button" class="btn btn-cancel" id="closeReportModal" style="border:1px solid var(--color-border); background:transparent; color:var(--color-text-muted);">Bekor qilish</button>
                 </div>
                 <div class="save-status" id="reportStatus" style="font-size:0.85rem; margin-top:0.6rem; min-height:1.2em;"></div>
             </form>
