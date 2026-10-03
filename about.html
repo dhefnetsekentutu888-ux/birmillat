@@ -69,7 +69,7 @@ body { font-family: 'Inter', sans-serif; }
 .feature-card { padding: 1.5rem; text-decoration: none; color: inherit; display: block; transition: transform 0.2s cubic-bezier(.16,1,.3,1), box-shadow 0.2s ease; }
 .feature-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-hover); }
 .feature-icon {
-    width: 46px; height: 46px; border-radius: 14px; background: #EFEAF8; color: var(--color-primary);
+    width: 46px; height: 46px; border-radius: 14px; background: var(--color-bg); color: var(--color-primary);
     display: flex; align-items: center; justify-content: center; font-size: 1.15rem; margin-bottom: 0.9rem;
 }
 .feature-card h3 { font-family: 'Sora', sans-serif; font-size: 1.02rem; margin-bottom: 0.5rem; }
@@ -90,7 +90,7 @@ body { font-family: 'Inter', sans-serif; }
 .founder-social-btn {
     display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none;
     padding: 0.55rem 1.05rem; border-radius: 999px; font-weight: 700; font-size: 0.85rem;
-    border: 1.5px solid var(--color-border); color: var(--color-text);
+    border: 1px solid var(--color-border); color: var(--color-text);
     transition: transform .18s cubic-bezier(.34,1.56,.64,1), background .2s ease, color .2s ease, border-color .2s ease;
 }
 .founder-social-btn:hover { transform: scale(1.05); }
@@ -108,7 +108,7 @@ body { font-family: 'Inter', sans-serif; }
 }
 .guide-item summary::-webkit-details-marker { display: none; }
 .guide-item summary .guide-num {
-    width: 26px; height: 26px; border-radius: 50%; background: #EFEAF8; color: var(--color-primary);
+    width: 26px; height: 26px; border-radius: 50%; background: var(--color-bg); color: var(--color-primary);
     display: flex; align-items: center; justify-content: center; font-size: 0.78rem; flex-shrink: 0;
 }
 .guide-item summary .guide-chevron { margin-left: auto; color: var(--color-text-muted); transition: transform 0.25s ease; }
@@ -132,7 +132,7 @@ body { font-family: 'Inter', sans-serif; }
 .channel-icon { width: 44px; height: 44px; border-radius: 50%; margin: 0 auto 0.8rem; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: #fff; }
 .channel-icon.telegram { background: #29A9EA; }
 .channel-icon.instagram { background: linear-gradient(45deg, #F58529, #DD2A7B, #8134AF, #515BD4); }
-.channel-icon.support { background: var(--color-primary); }
+.channel-icon.support { background: var(--color-primary-solid); }
 .channel-card h4 { font-size: 0.95rem; margin-bottom: 0.3rem; }
 .channel-card p { font-size: 0.8rem; color: var(--color-text-muted); margin: 0; }
 
@@ -178,6 +178,15 @@ body { font-family: 'Inter', sans-serif; }
             <a href="/founders.html">Ijtimoiy tarmoq</a>
             <a href="/login">Kirish</a>
             <a href="/register" class="btn btn-primary btn-zoom" style="padding:0.5rem 1.15rem;">Ro'yxatdan o'tish</a>
+        </div>
+        <div class="lang-switcher">
+            <button class="lang-switcher-btn" type="button" aria-label="Tilni tanlang"><i class="fas fa-globe lang-globe"></i><span class="lang-switcher-label">UZ</span><i class="fas fa-chevron-down lang-chev"></i></button>
+            <div class="lang-switcher-panel">
+                <button class="lang-option" data-lang="uz" type="button">O'zbek</button>
+                <button class="lang-option" data-lang="qq" type="button">Qaraqalpaqsha</button>
+                <button class="lang-option" data-lang="ru" type="button">Русский</button>
+                <button class="lang-option" data-lang="en" type="button">English</button>
+            </div>
         </div>
         <button class="theme-toggle" id="themeToggle" aria-label="Mavzuni almashtirish"><i class="fas fa-moon"></i></button>
 </nav>
