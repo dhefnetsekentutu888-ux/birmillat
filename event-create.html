@@ -33,7 +33,7 @@
 
     .question-row { display: flex; gap: 0.6rem; align-items: center; margin-bottom: 0.7rem; }
     .question-row input[type="text"] {
-        flex: 1; padding: 0.6rem 0.85rem; border-radius: var(--radius-sm); border: 1.5px solid var(--color-border);
+        flex: 1; padding: 0.6rem 0.85rem; border-radius: var(--radius-sm); border: 1px solid var(--color-border);
         font-family: 'Inter', sans-serif; font-size: 0.9rem; background: var(--color-bg); color: var(--color-text);
     }
     .question-row label { display: flex; align-items: center; gap: 0.35rem; font-size: 0.78rem; color: var(--color-text-muted); white-space: nowrap; flex-shrink: 0; }
@@ -48,7 +48,7 @@
     }
     .form-field input, .form-field textarea, .form-field select {
         width: 100%; box-sizing: border-box; padding: 0.75rem 1rem; border-radius: var(--radius-sm);
-        border: 1.5px solid var(--color-border); font-family: 'Inter', sans-serif; font-size: 0.95rem; resize: vertical;
+        border: 1px solid var(--color-border); font-family: 'Inter', sans-serif; font-size: 0.95rem; resize: vertical;
         background: var(--color-bg); color: var(--color-text); transition: border-color .15s ease, box-shadow .15s ease;
     }
     .form-field input:focus, .form-field textarea:focus, .form-field select:focus {
@@ -75,7 +75,7 @@
     .submit-status.success { color: var(--color-success); }
     .submit-status.error { color: var(--color-error); }
     .approval-note {
-        background: #EFEAF8; border: 1px solid var(--color-border); border-radius: 14px;
+        background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 14px;
         padding: 0.85rem 1.1rem; font-size: 0.85rem; color: var(--color-primary); margin-bottom: 1.5rem;
         display: flex; gap: 0.6rem; align-items: flex-start;
     }
@@ -83,13 +83,13 @@
 
     .gradient-submit {
         width: 100%; border: none; cursor: pointer;
-        background: linear-gradient(135deg, var(--color-accent), var(--color-primary));
-        color: #fff; font-weight: 700; font-size: 0.98rem; padding: 0.95rem; border-radius: 999px;
+        background: var(--color-accent);
+        color: var(--color-on-accent); font-weight: 700; font-size: 0.98rem; padding: 0.95rem; border-radius: var(--radius-btn);
         display: flex; align-items: center; justify-content: center; gap: 0.6rem;
-        box-shadow: 0 10px 24px rgba(255,107,91,0.3);
+        box-shadow: 0 8px 20px rgba(255,107,91,0.26);
         transition: transform .2s cubic-bezier(.34,1.56,.64,1), box-shadow .2s ease;
     }
-    .gradient-submit:hover { transform: scale(1.02); box-shadow: 0 14px 30px rgba(255,107,91,0.4); }
+    .gradient-submit:hover { transform: scale(1.02); box-shadow: 0 10px 24px rgba(255,107,91,0.34); }
     .gradient-submit:active { transform: scale(.96); }
 
     @media (max-width: 560px) {
@@ -135,6 +135,15 @@
             <div id="notifList"></div>
         </div>
     </div>
+        <div class="lang-switcher">
+            <button class="lang-switcher-btn" type="button" aria-label="Tilni tanlang"><i class="fas fa-globe lang-globe"></i><span class="lang-switcher-label">UZ</span><i class="fas fa-chevron-down lang-chev"></i></button>
+            <div class="lang-switcher-panel">
+                <button class="lang-option" data-lang="uz" type="button">O'zbek</button>
+                <button class="lang-option" data-lang="qq" type="button">Qaraqalpaqsha</button>
+                <button class="lang-option" data-lang="ru" type="button">Русский</button>
+                <button class="lang-option" data-lang="en" type="button">English</button>
+            </div>
+        </div>
         <button class="theme-toggle" id="themeToggle" aria-label="Mavzuni almashtirish"><i class="fas fa-moon"></i></button>
 </nav>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
