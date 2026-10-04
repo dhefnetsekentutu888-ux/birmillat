@@ -75,5 +75,8 @@
   "home.events_sub": "Events coming up soon",
   "home.communities_title": "Popular communities",
   "home.communities_sub": "Communities with the most members",
-  "home.see_all": "See all"
+  "home.see_all": "See all",
+  "events.page_title": "Events",
+  "communities.page_title": "Communities",
+  "volunteer.page_title": "Volunteering"
 }
