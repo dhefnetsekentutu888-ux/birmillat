@@ -111,6 +111,17 @@
                 .then(function (dict) { i18nCache[lang] = dict; return dict; });
         }
 
+        // Pages that fetch their own content (volunteer/event/community cards,
+        // recommended users, etc.) render it well after this script's initial
+        // pass has already run, so anything they inject stays untranslated
+        // unless that page's own code asks for another pass. Exposed globally
+        // so any page can call window.BirMillatI18n.refresh() right after it
+        // finishes writing new [data-i18n] elements into the DOM.
+        window.BirMillatI18n = {
+            currentLang: getPreferredLang,
+            refresh: function () { return applyTranslations(getPreferredLang()); }
+        };
+
         function applyTranslations(lang) {
             return loadDict(lang).then(function (dict) {
                 document.querySelectorAll('[data-i18n]').forEach(function (el) {
