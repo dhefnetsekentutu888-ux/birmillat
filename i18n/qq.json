@@ -78,5 +78,16 @@
   "home.see_all": "Barlig'i",
   "events.page_title": "Ilaj-ta'dbirler",
   "communities.page_title": "Jama'a'tler",
-  "volunteer.page_title": "Volontyorlik"
+  "volunteer.page_title": "Volontyorlik",
+  "vol.hero_sub": "Ja'rdem kerek loyixalar usi jerde orın aladı. Qol ko'terin' — shólkemlestiriwshi siz benen baylanısadı.",
+  "vol.new_post": "Jarnama jaylastırıw",
+  "vol.filter_all": "Barlıg'ı",
+  "vol.offline": "Oflayn",
+  "vol.online": "Onlayn",
+  "vol.all_cities": "Barlıq qalalar",
+  "vol.search_placeholder": "Rol yamasa tiykarg'ı so'z boyınsha izlew",
+  "vol.loading": "Juklenbekte...",
+  "vol.empty": "Házirshe bul boyınsha jarnamalar joq.",
+  "vol.empty_cta": "Birinshi bolıp jaylastırın' →",
+  "vol.load_error": "Juklep bolmadı. Betti qayta juklen'."
 }
