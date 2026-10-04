@@ -75,5 +75,8 @@
   "home.events_sub": "Мероприятия, которые скоро состоятся",
   "home.communities_title": "Популярные сообщества",
   "home.communities_sub": "Сообщества с наибольшим числом участников",
-  "home.see_all": "Все"
+  "home.see_all": "Все",
+  "events.page_title": "Мероприятия",
+  "communities.page_title": "Сообщества",
+  "volunteer.page_title": "Волонтёрство"
 }
