@@ -131,32 +131,32 @@ body { font-family: 'Inter', sans-serif; }
 
     <div class="page-container">
         <div class="page-head reveal">
-            <h1><i class="fas fa-magnifying-glass"></i> Foydalanuvchi qidirish</h1>
-            <p>Ism, foydalanuvchi nomi yoki qiziqish bo'yicha qidiring</p>
+            <h1><i class="fas fa-magnifying-glass"></i> <span data-i18n="search.title">Foydalanuvchi qidirish</span></h1>
+            <p data-i18n="search.sub">Ism, foydalanuvchi nomi yoki qiziqish bo'yicha qidiring</p>
         </div>
 
         <div class="search-bar reveal">
-            <input type="text" id="searchInput" placeholder="Masalan: @jasur_dev yoki Python">
-            <button id="searchBtn" class="btn-zoom"><i class="fas fa-magnifying-glass"></i> Qidirish</button>
+            <input type="text" id="searchInput" placeholder="Masalan: @jasur_dev yoki Python" data-i18n-placeholder="search.input_placeholder">
+            <button id="searchBtn" class="btn-zoom"><i class="fas fa-magnifying-glass"></i> <span data-i18n="search.btn">Qidirish</span></button>
         </div>
 
         <div class="filter-bar reveal" id="filterBar">
-            <button class="filter-chip active" data-category="">Hammasi</button>
+            <button class="filter-chip active" data-category="" data-i18n="search.filter_all">Hammasi</button>
             <button class="filter-chip" data-category="IELTS">IELTS</button>
-            <button class="filter-chip" data-category="IT">IT / Dasturlash</button>
-            <button class="filter-chip" data-category="Sun'iy intellekt">Sun'iy intellekt</button>
-            <button class="filter-chip" data-category="O'yinlar">O'yinlar</button>
-            <button class="filter-chip" data-category="Sport">Sport</button>
-            <button class="filter-chip" data-category="Sayohat">Sayohat</button>
-            <button class="filter-chip" data-category="Startup">Startup</button>
-            <button class="filter-chip" data-category="Dizayn">Dizayn</button>
+            <button class="filter-chip" data-category="IT" data-i18n="search.cat_it">IT / Dasturlash</button>
+            <button class="filter-chip" data-category="Sun'iy intellekt" data-i18n="search.cat_ai">Sun'iy intellekt</button>
+            <button class="filter-chip" data-category="O'yinlar" data-i18n="search.cat_games">O'yinlar</button>
+            <button class="filter-chip" data-category="Sport" data-i18n="search.cat_sport">Sport</button>
+            <button class="filter-chip" data-category="Sayohat" data-i18n="search.cat_travel">Sayohat</button>
+            <button class="filter-chip" data-category="Startup" data-i18n="search.cat_startup">Startup</button>
+            <button class="filter-chip" data-category="Dizayn" data-i18n="search.cat_design">Dizayn</button>
         </div>
 
         <div class="results-meta" id="resultsMeta"></div>
         <div class="users-grid reveal-stagger reveal" id="usersGrid"></div>
     </div>
 
-    <footer>BirMillat – qiziqishlar asosida do'stlar toping. · <a href="/privacy" style="color:inherit;">Maxfiylik siyosati</a><br><span style="opacity:0.8;">Founder — Bekhruz Ravshanov</span></footer>
+    <footer><span data-i18n="footer.tagline">BirMillat – qiziqishlar asosida do'stlar toping.</span> · <a href="/privacy" style="color:inherit;" data-i18n="foot.privacy">Maxfiylik siyosati</a><br><span style="opacity:0.8;" data-i18n-html="foot.founder">Founder — Bekhruz Ravshanov</span></footer>
 
     <script>
         let activeCategory = '';
@@ -183,7 +183,8 @@ body { font-family: 'Inter', sans-serif; }
             document.getElementById('resultsMeta').textContent = meta || '';
 
             if (users.length === 0) {
-                grid.innerHTML = `<div class="empty-state">Hech kim topilmadi. Boshqa so'z bilan urinib ko'ring.</div>`;
+                grid.innerHTML = `<div class="empty-state" data-i18n="search.empty">Hech kim topilmadi. Boshqa so'z bilan urinib ko'ring.</div>`;
+                if (window.BirMillatI18n) window.BirMillatI18n.refresh();
                 return;
             }
 
@@ -204,17 +205,19 @@ body { font-family: 'Inter', sans-serif; }
                     <div class="common-interests">
                         ${interests.slice(0, 3).map(t => `<span class="interest-badge">#${t}</span>`).join('')}
                         ${interests.length > 3 ? `<span class="interest-badge">+${interests.length - 3}</span>` : ''}
-                        ${interests.length === 0 ? `<span class="interest-badge" style="opacity:0.6">Qiziqish ko'rsatilmagan</span>` : ''}
+                        ${interests.length === 0 ? `<span class="interest-badge" style="opacity:0.6" data-i18n="common.no_interests">Qiziqish ko'rsatilmagan</span>` : ''}
                     </div>
                 `;
                 grid.appendChild(card);
             });
+            if (window.BirMillatI18n) window.BirMillatI18n.refresh();
         }
 
         async function runSearch() {
             const q = document.getElementById('searchInput').value.trim();
             const grid = document.getElementById('usersGrid');
-            grid.innerHTML = `<p style="color:var(--color-text-muted)">Qidirilmoqda...</p>`;
+            grid.innerHTML = `<p style="color:var(--color-text-muted)" data-i18n="search.searching">Qidirilmoqda...</p>`;
+            if (window.BirMillatI18n) window.BirMillatI18n.refresh();
 
             try {
                 let url;
@@ -228,9 +231,12 @@ body { font-family: 'Inter', sans-serif; }
                 const res = await fetch(url);
                 if (!res.ok) { renderUsers([], ''); return; }
                 const users = await res.json();
+                const t = window.BirMillatI18n ? window.BirMillatI18n.t : function (k, v, fb) { return fb.replace(/\{(\w+)\}/g, (_, x) => v[x]); };
                 const metaText = q
-                    ? `"${q}" bo'yicha ${users.length} natija topildi`
-                    : (activeCategory ? `${activeCategory} toifasida ${users.length} foydalanuvchi` : `${users.length} foydalanuvchi`);
+                    ? t('search.meta_query', { q: q, n: users.length }, `"${q}" bo'yicha {n} natija topildi`)
+                    : (activeCategory
+                        ? t('search.meta_category', { cat: activeCategory, n: users.length }, `${activeCategory} toifasida {n} foydalanuvchi`)
+                        : t('search.meta_count', { n: users.length }, `{n} foydalanuvchi`));
                 renderUsers(users, metaText);
             } catch (e) {
                 console.error('Search failed:', e);
