@@ -65,6 +65,103 @@
         if (closeBtn) closeBtn.addEventListener('click', closeSidebar);
         if (overlay) overlay.addEventListener('click', closeSidebar);
 
+        // ---------- Language switcher (shared across every page) ----------
+        // The choice itself is cached by the browser, not by this script: it
+        // lives in the bm_lang cookie (1-year expiry, set by server.js), so it
+        // is sent back to the server automatically on every request and read
+        // here on every page load — pick a language once, every page after
+        // that already reflects it with no re-selection needed, until the
+        // person explicitly changes it again.
+        var LANGS = { uz: 'O\u02bbzbekcha', qq: 'Qaraqalpaqsha', ru: '\u0420\u0443\u0441\u0441\u043a\u0438\u0439', en: 'English' };
+        var i18nCache = {};
+
+        function getCookie(name) {
+            var m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+            return m ? decodeURIComponent(m[1]) : null;
+        }
+
+        function getPreferredLang() {
+            var saved = getCookie('bm_lang');
+            return (saved && LANGS[saved]) ? saved : 'uz';
+        }
+
+        function loadDict(lang) {
+            if (i18nCache[lang]) return Promise.resolve(i18nCache[lang]);
+            return fetch('/i18n/' + lang + '.json')
+                .then(function (r) { return r.ok ? r.json() : {}; })
+                .catch(function () { return {}; })
+                .then(function (dict) { i18nCache[lang] = dict; return dict; });
+        }
+
+        // Every page's baseline text is already Uzbek (written directly in the
+        // HTML), so uz never needs a fetch or a dictionary swap — only qq/ru/en do.
+        function applyTranslations(lang) {
+            if (lang === 'uz') return Promise.resolve();
+            return loadDict(lang).then(function (dict) {
+                document.querySelectorAll('[data-i18n]').forEach(function (el) {
+                    var key = el.getAttribute('data-i18n');
+                    if (dict[key]) el.textContent = dict[key];
+                });
+                // Trusted content only — these dictionaries are files we write
+                // ourselves, never user input, so innerHTML here is safe.
+                document.querySelectorAll('[data-i18n-html]').forEach(function (el) {
+                    var key = el.getAttribute('data-i18n-html');
+                    if (dict[key]) el.innerHTML = dict[key];
+                });
+                document.querySelectorAll('[data-i18n-placeholder]').forEach(function (el) {
+                    var key = el.getAttribute('data-i18n-placeholder');
+                    if (dict[key]) el.setAttribute('placeholder', dict[key]);
+                });
+            });
+        }
+
+        document.querySelectorAll('.lang-switcher').forEach(function (root) {
+            var btn = root.querySelector('.lang-switcher-btn');
+            var label = root.querySelector('.lang-switcher-label');
+            var panel = root.querySelector('.lang-switcher-panel');
+            if (!btn || !panel) return;
+
+            function render(lang) {
+                if (label) label.textContent = lang.toUpperCase();
+                panel.querySelectorAll('.lang-option').forEach(function (opt) {
+                    opt.classList.toggle('active', opt.dataset.lang === lang);
+                });
+            }
+
+            function applyLang(lang, isUserChoice) {
+                document.documentElement.setAttribute('lang', lang === 'qq' ? 'kaa' : lang);
+                render(lang);
+                applyTranslations(lang);
+                if (isUserChoice) {
+                    // The server sets the cookie (Set-Cookie on the response) and,
+                    // for a logged-in user, saves it to their account — this is a
+                    // same-origin fetch so the session cookie rides along automatically.
+                    fetch('/api/lang', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ lang: lang })
+                    }).catch(function () {});
+                }
+            }
+
+            render(getPreferredLang());
+            applyLang(getPreferredLang(), false);
+
+            btn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                root.classList.toggle('open');
+            });
+            panel.querySelectorAll('.lang-option').forEach(function (opt) {
+                opt.addEventListener('click', function () {
+                    applyLang(opt.dataset.lang, true);
+                    root.classList.remove('open');
+                });
+            });
+            document.addEventListener('click', function (e) {
+                if (root.classList.contains('open') && !root.contains(e.target)) root.classList.remove('open');
+            });
+        });
+
         // ---------- Notification bell (only wired on pages that have it) ----------
         var bellBtn = document.getElementById('notifBell');
         var bellDot = document.getElementById('notifDot');
