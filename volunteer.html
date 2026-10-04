@@ -156,25 +156,25 @@ body { font-family: 'Inter', sans-serif; }
         <div class="vol-hero-inner">
             <div>
                 <h1><i class="fas fa-hand-holding-heart"></i> <span data-i18n="volunteer.page_title">Volontyorlik</span></h1>
-                <p>Yordam kerak bo'lgan loyihalar shu yerda joylashadi. Qo'l ko'taring — tashkilotchi siz bilan bog'lanadi.</p>
+                <p data-i18n="vol.hero_sub">Yordam kerak bo'lgan loyihalar shu yerda joylashadi. Qo'l ko'taring — tashkilotchi siz bilan bog'lanadi.</p>
             </div>
-            <a href="/volunteer/create" id="newVolBtn" class="vol-new-btn btn-zoom"><i class="fas fa-plus"></i> E'lon joylash</a>
+            <a href="/volunteer/create" id="newVolBtn" class="vol-new-btn btn-zoom"><i class="fas fa-plus"></i> <span data-i18n="vol.new_post">E'lon joylash</span></a>
         </div>
     </div>
 
     <div class="vol-container">
         <div class="filter-panel card reveal">
             <div class="mode-filter" id="modeFilter">
-                <button class="active" data-mode="">Hammasi</button>
-                <button data-mode="offline"><i class="fas fa-location-dot"></i> Oflayn</button>
-                <button data-mode="online"><i class="fas fa-video"></i> Onlayn</button>
+                <button class="active" data-mode="" data-i18n="vol.filter_all">Hammasi</button>
+                <button data-mode="offline"><i class="fas fa-location-dot"></i> <span data-i18n="vol.offline">Oflayn</span></button>
+                <button data-mode="online"><i class="fas fa-video"></i> <span data-i18n="vol.online">Onlayn</span></button>
             </div>
             <select class="vol-select" id="citySelect">
-                <option value="">Barcha shaharlar</option>
+                <option value="" data-i18n="vol.all_cities">Barcha shaharlar</option>
             </select>
             <div class="search-wrap">
                 <i class="fas fa-magnifying-glass"></i>
-                <input type="text" id="searchInput" placeholder="Rol yoki kalit so'z bo'yicha qidirish">
+                <input type="text" id="searchInput" placeholder="Rol yoki kalit so'z bo'yicha qidirish" data-i18n-placeholder="vol.search_placeholder">
             </div>
         </div>
 
@@ -242,7 +242,7 @@ body { font-family: 'Inter', sans-serif; }
 
         async function loadOpportunities() {
             const grid = document.getElementById('volGrid');
-            grid.innerHTML = `<p style="color:var(--color-text-muted)">Yuklanmoqda...</p>`;
+            grid.innerHTML = `<p style="color:var(--color-text-muted)" data-i18n="vol.loading">Yuklanmoqda...</p>`; if (window.BirMillatI18n) window.BirMillatI18n.refresh();
             try {
                 const params = new URLSearchParams();
                 if (activeMode) params.append('mode', activeMode);
@@ -255,14 +255,15 @@ body { font-family: 'Inter', sans-serif; }
                 const opportunities = await res.json();
 
                 if (opportunities.length === 0) {
-                    grid.innerHTML = `<div class="empty-state">Hozircha bu bo'yicha e'lonlar yo'q. <a href="/volunteer/create">Birinchi bo'lib joylang →</a></div>`;
+                    grid.innerHTML = `<div class="empty-state"><span data-i18n="vol.empty">Hozircha bu bo'yicha e'lonlar yo'q.</span> <a href="/volunteer/create" data-i18n="vol.empty_cta">Birinchi bo'lib joylang →</a></div>`;
+                    if (window.BirMillatI18n) window.BirMillatI18n.refresh();
                     return;
                 }
 
                 grid.innerHTML = opportunities.map(o => `
                     <a class="vol-card card" href="/volunteer/${o.id}">
                         <div class="vol-badges">
-                            <span class="vol-badge mode-${o.mode}"><i class="fas ${o.mode === 'online' ? 'fa-video' : 'fa-location-dot'}"></i> ${o.mode === 'online' ? 'Onlayn' : 'Oflayn'}</span>
+                            <span class="vol-badge mode-${o.mode}"><i class="fas ${o.mode === 'online' ? 'fa-video' : 'fa-location-dot'}"></i> <span data-i18n="${o.mode === 'online' ? 'vol.online' : 'vol.offline'}">${o.mode === 'online' ? 'Onlayn' : 'Oflayn'}</span></span>
                             ${o.city ? `<span class="vol-badge city">${o.city}</span>` : ''}
                         </div>
                         <h3>${o.title}</h3>
@@ -275,9 +276,11 @@ body { font-family: 'Inter', sans-serif; }
                             <span class="hand-count"><i class="fas fa-hand"></i> ${o.responseCount}</span>
                         </div>
                     </a>`).join('');
+                if (window.BirMillatI18n) window.BirMillatI18n.refresh();
             } catch (e) {
                 console.error('Failed to load opportunities:', e);
-                grid.innerHTML = `<div class="empty-state">Yuklab bo'lmadi. Sahifani qaytadan yuklang.</div>`;
+                grid.innerHTML = `<div class="empty-state" data-i18n="vol.load_error">Yuklab bo'lmadi. Sahifani qaytadan yuklang.</div>`;
+                if (window.BirMillatI18n) window.BirMillatI18n.refresh();
             }
         }
 
