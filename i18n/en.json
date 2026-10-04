@@ -78,5 +78,16 @@
   "home.see_all": "See all",
   "events.page_title": "Events",
   "communities.page_title": "Communities",
-  "volunteer.page_title": "Volunteering"
+  "volunteer.page_title": "Volunteering",
+  "vol.hero_sub": "Projects that need help show up here. Raise your hand — the organizer will reach out to you.",
+  "vol.new_post": "Post a listing",
+  "vol.filter_all": "All",
+  "vol.offline": "Offline",
+  "vol.online": "Online",
+  "vol.all_cities": "All cities",
+  "vol.search_placeholder": "Search by role or keyword",
+  "vol.loading": "Loading...",
+  "vol.empty": "No listings here yet.",
+  "vol.empty_cta": "Be the first to post →",
+  "vol.load_error": "Couldn't load. Refresh the page."
 }
