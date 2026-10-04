@@ -3,7 +3,6 @@
   "nav.social": "Social",
   "nav.login": "Log in",
   "nav.register": "Sign up",
-
   "hero.eyebrow": "A new platform for young people",
   "hero.h1": "Find <span class=\"lp-underline\">real friends</span> who share your interests",
   "hero.sub": "Coding, AI, gaming, sports, or travel — whoever you want to connect with, they're already here. Join communities, go to events, grow together.",
@@ -13,7 +12,6 @@
   "hero.stat_communities": "communities",
   "hero.stat_events": "events",
   "hero.scroll_cue": "Scroll down",
-
   "steps.kicker": "Process",
   "steps.title": "How it works",
   "steps.sub": "Three steps — that simple",
@@ -23,15 +21,12 @@
   "steps.s2_body": "Discover people through recommendations and interest-based search.",
   "steps.s3_title": "Chat, grow",
   "steps.s3_body": "Message in real time, attend events, make friends.",
-
   "comm.kicker": "Active now",
   "comm.title": "Communities",
   "comm.sub": "Real communities on BirMillat — sign up to join any of them.",
-
   "people.kicker": "Our community",
   "people.title": "Members",
   "people.sub": "Members from different interests and regions. Sign up to see full profiles.",
-
   "cats.kicker": "Topics",
   "cats.title": "Find what fits you",
   "cats.sub": "Every topic has active communities and friends waiting",
@@ -43,10 +38,8 @@
   "cats.tech_body": "IT, AI, design",
   "cats.motiv_title": "Motivation",
   "cats.motiv_body": "A goal-driven community",
-
   "cta.title": "Our mission",
   "cta.body": "Bring young people together around their interests and give them room to grow.",
-
   "foot.desc": "A platform where young people in Uzbekistan find friends through shared interests.",
   "foot.col_platform": "Platform",
   "foot.members": "Members",
@@ -57,5 +50,30 @@
   "foot.col_social": "Social",
   "foot.support_bot": "Support (bot)",
   "foot.copyright": "© 2026 BirMillat. All rights reserved.",
-  "foot.founder": "Founder — <b>Bekhruz Ravshanov</b>"
+  "foot.founder": "Founder — <b>Bekhruz Ravshanov</b>",
+  "nav.home": "Home",
+  "nav.recommend": "Recommendations",
+  "nav.events": "Events",
+  "nav.communities": "Communities",
+  "nav.volunteer": "Volunteering",
+  "nav.articles": "Articles",
+  "nav.search": "Search",
+  "nav.messages": "Messages",
+  "nav.profile": "Profile",
+  "nav.logout": "Log out",
+  "nav.notifications": "Notifications",
+  "home.announce_kicker": "News",
+  "home.welcome": "Welcome",
+  "home.hero_sub": "On BirMillat you'll find real friends and a community <strong>built around your interests</strong>. Chat, share ideas, grow together.",
+  "home.edit_profile": "Edit profile",
+  "home.your_interests": "Your interests",
+  "home.recommended_title": "Recommended for you",
+  "home.recommended_sub": "People whose interests match yours",
+  "home.articles_title": "Latest articles",
+  "home.articles_sub": "The newest articles from community members",
+  "home.events_title": "Upcoming events",
+  "home.events_sub": "Events coming up soon",
+  "home.communities_title": "Popular communities",
+  "home.communities_sub": "Communities with the most members",
+  "home.see_all": "See all"
 }
