@@ -75,6 +75,24 @@
         var LANGS = { uz: 'O\u02bbzbekcha', qq: 'Qaraqalpaqsha', ru: '\u0420\u0443\u0441\u0441\u043a\u0438\u0439', en: 'English' };
         var i18nCache = {};
 
+        // The page's baseline text is already Uzbek, written directly in the
+        // HTML — but only until the FIRST time some other language overwrites
+        // it. After that, nothing in the DOM remembers what the original
+        // Uzbek said, so switching back to uz had nothing to restore from and
+        // silently did nothing. Fix: snapshot the real baseline once, right
+        // now, before any translation has had a chance to run, and treat uz
+        // as just another cached dictionary from then on — no special-casing.
+        (function captureUzBaseline() {
+            var dict = {};
+            document.querySelectorAll('[data-i18n]').forEach(function (el) {
+                dict[el.getAttribute('data-i18n')] = el.textContent;
+            });
+            document.querySelectorAll('[data-i18n-html]').forEach(function (el) {
+                dict[el.getAttribute('data-i18n-html')] = el.innerHTML;
+            });
+            i18nCache.uz = dict;
+        })();
+
         function getCookie(name) {
             var m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
             return m ? decodeURIComponent(m[1]) : null;
@@ -93,10 +111,7 @@
                 .then(function (dict) { i18nCache[lang] = dict; return dict; });
         }
 
-        // Every page's baseline text is already Uzbek (written directly in the
-        // HTML), so uz never needs a fetch or a dictionary swap — only qq/ru/en do.
         function applyTranslations(lang) {
-            if (lang === 'uz') return Promise.resolve();
             return loadDict(lang).then(function (dict) {
                 document.querySelectorAll('[data-i18n]').forEach(function (el) {
                     var key = el.getAttribute('data-i18n');
