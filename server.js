@@ -174,6 +174,11 @@ async function initDb() {
     // Moderation: block/unblock via Telegram bot admin command
     try { await db.execute(`ALTER TABLE users ADD COLUMN is_blocked INTEGER DEFAULT 0`); } catch (e) {}
 
+    // Language preference (uz / qq / ru / en) — set from the nav language
+    // switcher (see /api/lang below); lets a logged-in user's choice follow
+    // them to a new device instead of being stuck to one browser's cookie.
+    try { await db.execute(`ALTER TABLE users ADD COLUMN lang TEXT DEFAULT 'uz'`); } catch (e) {}
+
     // Two-way support chat: tracks every message in either direction so an
     // admin reply (via Telegram's native Reply feature) can be routed back
     // to the correct user, whether they reached out via Telegram or the website.
@@ -2153,6 +2158,46 @@ app.use(sessionMiddleware);
 // this line is what lets it actually run.
 app.use(express.static(path.join(__dirname), { index: false }));
 
+// ---------- Language preference (uz / qq / ru / en) ----------
+// Pages are static HTML served via res.sendFile — there's no template engine
+// to inject translated strings into, so the actual text-swapping happens
+// client-side (theme.js fetches /i18n/<lang>.json and rewrites every
+// [data-i18n] element). Keeping the preference itself server-aware is still
+// worth it: it's what lets a Telegram notification or an email eventually go
+// out in the right language instead of always Uzbek, and it means a logged-in
+// user's choice can later be saved to their account instead of just this
+// browser's cookie. For now it just round-trips the cookie the client sets.
+const SUPPORTED_LANGS = ['uz', 'qq', 'ru', 'en'];
+function parseLangCookie(req) {
+    const header = req.headers.cookie || '';
+    const match = header.split(';').map(s => s.trim()).find(s => s.startsWith('bm_lang='));
+    const value = match ? decodeURIComponent(match.split('=')[1] || '') : '';
+    return SUPPORTED_LANGS.includes(value) ? value : 'uz';
+}
+app.use((req, res, next) => {
+    req.lang = parseLangCookie(req);
+    next();
+});
+app.get('/api/lang', (req, res) => {
+    res.json({ lang: req.lang, supported: SUPPORTED_LANGS });
+});
+app.post('/api/lang', express.json(), (req, res) => {
+    const lang = SUPPORTED_LANGS.includes(req.body && req.body.lang) ? req.body.lang : null;
+    if (!lang) return res.status(400).json({ error: 'unsupported language' });
+    res.cookie('bm_lang', lang, {
+        maxAge: 365 * 24 * 60 * 60 * 1000,
+        httpOnly: false, // theme.js needs to read this directly too
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production'
+    });
+    // Logged-in users get it remembered on their account too, so the choice
+    // follows them to a new device instead of being stuck per-browser.
+    if (req.session && req.session.userId) {
+        db.execute({ sql: 'UPDATE users SET lang = ? WHERE id = ?', args: [lang, req.session.userId] }).catch(() => {});
+    }
+    res.json({ lang });
+});
+
 // ---------- Helper: render pages ----------
 function renderRegisterPage(message, isError = true) {
     const msgClass = isError ? 'error' : 'success';
@@ -2388,6 +2433,14 @@ app.post('/login', async (req, res) => {
 
         req.session.userId = user.id;
         req.session.username = user.username;
+        if (user.lang && SUPPORTED_LANGS.includes(user.lang)) {
+            res.cookie('bm_lang', user.lang, {
+                maxAge: 365 * 24 * 60 * 60 * 1000,
+                httpOnly: false,
+                sameSite: 'lax',
+                secure: process.env.NODE_ENV === 'production'
+            });
+        }
         res.redirect(safeNext);
     } catch (err) {
         console.error('Login error:', err);
