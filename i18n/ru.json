@@ -78,5 +78,16 @@
   "home.see_all": "Все",
   "events.page_title": "Мероприятия",
   "communities.page_title": "Сообщества",
-  "volunteer.page_title": "Волонтёрство"
+  "volunteer.page_title": "Волонтёрство",
+  "vol.hero_sub": "Здесь размещаются проекты, которым нужна помощь. Поднимите руку — организатор свяжется с вами.",
+  "vol.new_post": "Разместить объявление",
+  "vol.filter_all": "Все",
+  "vol.offline": "Офлайн",
+  "vol.online": "Онлайн",
+  "vol.all_cities": "Все города",
+  "vol.search_placeholder": "Поиск по роли или ключевому слову",
+  "vol.loading": "Загрузка...",
+  "vol.empty": "Пока нет объявлений по этому запросу.",
+  "vol.empty_cta": "Разместите первым →",
+  "vol.load_error": "Не удалось загрузить. Обновите страницу."
 }
