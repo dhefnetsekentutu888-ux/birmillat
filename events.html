@@ -38,11 +38,11 @@ body { font-family: 'Inter', sans-serif; }
 .ev-hero p { color: #D9D2EE; font-size: 0.92rem; max-width: 480px; }
 .ev-new-btn {
     display: inline-flex; align-items: center; gap: 0.55rem; border: none; cursor: pointer; text-decoration: none;
-    background: linear-gradient(135deg, #FF6B5B, #FF8B7D); color: #fff; font-weight: 700; font-size: 0.95rem;
-    padding: 0.85rem 1.5rem; border-radius: 999px; box-shadow: 0 10px 24px rgba(255,107,91,0.35);
+    background: var(--color-accent); color: var(--color-on-accent); font-weight: 700; font-size: 0.95rem;
+    padding: 0.85rem 1.5rem; border-radius: var(--radius-btn); box-shadow: 0 8px 20px rgba(255,107,91,0.28);
     transition: transform .2s cubic-bezier(.34,1.56,.64,1), box-shadow .2s ease;
 }
-.ev-new-btn:hover { transform: scale(1.04); box-shadow: 0 14px 30px rgba(255,107,91,0.45); }
+.ev-new-btn:hover { transform: scale(1.04); box-shadow: 0 10px 24px rgba(255,107,91,0.36); }
 .ev-new-btn:active { transform: scale(.94); }
 
 .ev-container { max-width: 1000px; margin: 0 auto; padding: 0 1.5rem 3rem; }
@@ -57,16 +57,16 @@ body { font-family: 'Inter', sans-serif; }
     font-weight: 700; font-size: 0.88rem; color: var(--color-text-muted); cursor: pointer;
     display: flex; align-items: center; gap: 0.5rem; transition: background .2s ease, color .2s ease;
 }
-.ev-tab.active { background: linear-gradient(135deg, var(--color-primary), #4A2F9E); color: #fff; }
+.ev-tab.active { background: var(--color-primary-solid); color: #fff; }
 
 .filter-bar { display: flex; flex-wrap: wrap; gap: 0.55rem; margin: 1.6rem 0 2.2rem; }
 .filter-chip {
-    background: var(--color-surface); border: 1.5px solid var(--color-border); color: var(--color-text);
+    background: var(--color-surface); border: 1px solid var(--color-border); color: var(--color-text);
     padding: 0.45rem 1rem; border-radius: 999px; font-size: 0.82rem; font-weight: 600;
     cursor: pointer; transition: transform .18s cubic-bezier(.34,1.56,.64,1), border-color .15s ease, background .15s ease, color .15s ease;
 }
 .filter-chip:hover { border-color: var(--color-primary); transform: scale(1.04); }
-.filter-chip.active { background: var(--color-primary); border-color: var(--color-primary); color: white; }
+.filter-chip.active { background: var(--color-primary-solid); border-color: var(--color-primary-solid); color: white; }
 
 /* ---------- Upcoming: chronological timeline ---------- */
 .timeline { position: relative; }
@@ -85,7 +85,7 @@ body { font-family: 'Inter', sans-serif; }
 .date-card:hover { transform: translateX(5px); box-shadow: var(--shadow-hover); }
 .date-block {
     flex-shrink: 0; width: 56px; height: 56px; border-radius: 16px;
-    background: linear-gradient(150deg, #EFEAF8, #E4DBF7);
+    background: var(--color-bg); border: 1px solid var(--color-border);
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     color: var(--color-primary);
 }
@@ -94,7 +94,7 @@ body { font-family: 'Inter', sans-serif; }
 .date-card-body { flex: 1; min-width: 0; }
 .date-card-top { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.3rem; flex-wrap: wrap; }
 .cat-pill {
-    font-size: 0.68rem; font-weight: 700; color: var(--color-accent); background: #FFEAE6;
+    font-size: 0.68rem; font-weight: 700; color: var(--color-accent); background: rgba(255,107,91,0.12);
     padding: 0.15rem 0.55rem; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.3px;
 }
 .date-card h3 { font-size: 1.02rem; margin: 0 0 0.3rem; font-family: 'Sora', sans-serif; }
@@ -108,7 +108,7 @@ body { font-family: 'Inter', sans-serif; }
 .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 1.2rem; }
 .gallery-card { text-decoration: none; color: inherit; display: block; overflow: hidden; padding: 0; transition: transform 0.22s cubic-bezier(.16,1,.3,1), box-shadow 0.22s ease; }
 .gallery-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-hover); }
-.gallery-media { position: relative; width: 100%; aspect-ratio: 4/3; background: linear-gradient(135deg,#EFEAF8,#E4DBF7); overflow: hidden; }
+.gallery-media { position: relative; width: 100%; aspect-ratio: 4/3; background: var(--color-bg); overflow: hidden; }
 .gallery-media img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .4s ease; }
 .gallery-card:hover .gallery-media img { transform: scale(1.06); }
 .gallery-media .fallback { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; color: var(--color-primary); opacity: 0.4; }
@@ -148,25 +148,34 @@ body { font-family: 'Inter', sans-serif; }
         <button class="nav-toggle" id="navToggle" aria-label="Menyu"><i class="fas fa-bars"></i></button>
         <div class="nav-links" id="navLinks">
             <button class="sidebar-close" id="sidebarClose" aria-label="Yopish"><i class="fas fa-xmark"></i></button>
-            <a href="/home"><i class="fas fa-house"></i> Bosh sahifa</a>
-            <a href="/recommend"><i class="fas fa-wand-magic-sparkles"></i> Tavsiyalar</a>
-            <a href="/events" class="active"><i class="fas fa-calendar-days"></i> Tadbirlar</a>
-            <a href="/communities"><i class="fas fa-people-group"></i> Jamoalar</a>
-            <a href="/volunteer"><i class="fas fa-hand-holding-heart"></i> Volontyorlik</a>
-            <a href="/articles"><i class="fas fa-newspaper"></i> Maqolalar</a>
-            <a href="/search"><i class="fas fa-magnifying-glass"></i> Qidiruv</a>
-            <a href="/messages"><i class="fas fa-comment-dots"></i> Xabarlar</a>
-            <a href="/profile"><i class="fas fa-user"></i> Profil</a>
-            <a href="/logout"><i class="fas fa-right-from-bracket"></i> Chiqish</a>
+            <a href="/home"><i class="fas fa-house"></i> <span data-i18n="nav.home">Bosh sahifa</span></a>
+            <a href="/recommend"><i class="fas fa-wand-magic-sparkles"></i> <span data-i18n="nav.recommend">Tavsiyalar</span></a>
+            <a href="/events" class="active"><i class="fas fa-calendar-days"></i> <span data-i18n="nav.events">Tadbirlar</span></a>
+            <a href="/communities"><i class="fas fa-people-group"></i> <span data-i18n="nav.communities">Jamoalar</span></a>
+            <a href="/volunteer"><i class="fas fa-hand-holding-heart"></i> <span data-i18n="nav.volunteer">Volontyorlik</span></a>
+            <a href="/articles"><i class="fas fa-newspaper"></i> <span data-i18n="nav.articles">Maqolalar</span></a>
+            <a href="/search"><i class="fas fa-magnifying-glass"></i> <span data-i18n="nav.search">Qidiruv</span></a>
+            <a href="/messages"><i class="fas fa-comment-dots"></i> <span data-i18n="nav.messages">Xabarlar</span></a>
+            <a href="/profile"><i class="fas fa-user"></i> <span data-i18n="nav.profile">Profil</span></a>
+            <a href="/logout"><i class="fas fa-right-from-bracket"></i> <span data-i18n="nav.logout">Chiqish</span></a>
         </div>
         <a class="user-badge" id="userBadge" href="/profile"><img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ...</a>
     <div class="notif-bell-wrap">
         <button class="notif-bell" id="notifBell" aria-label="Bildirishnomalar"><i class="fas fa-bell"></i><span class="notif-dot" id="notifDot"></span></button>
         <div class="notif-panel" id="notifPanel">
-            <div class="notif-panel-header">Bildirishnomalar</div>
+            <div class="notif-panel-header" data-i18n="nav.notifications">Bildirishnomalar</div>
             <div id="notifList"></div>
         </div>
     </div>
+        <div class="lang-switcher">
+            <button class="lang-switcher-btn" type="button" aria-label="Tilni tanlang"><i class="fas fa-globe lang-globe"></i><span class="lang-switcher-label">UZ</span><i class="fas fa-chevron-down lang-chev"></i></button>
+            <div class="lang-switcher-panel">
+                <button class="lang-option" data-lang="uz" type="button">O'zbek</button>
+                <button class="lang-option" data-lang="qq" type="button">Qaraqalpaqsha</button>
+                <button class="lang-option" data-lang="ru" type="button">Русский</button>
+                <button class="lang-option" data-lang="en" type="button">English</button>
+            </div>
+        </div>
         <button class="theme-toggle" id="themeToggle" aria-label="Mavzuni almashtirish"><i class="fas fa-moon"></i></button>
 </nav>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -174,7 +183,7 @@ body { font-family: 'Inter', sans-serif; }
     <div class="ev-hero">
         <div class="ev-hero-inner">
             <div>
-                <h1><i class="fas fa-calendar-days"></i> Tadbirlar</h1>
+                <h1><i class="fas fa-calendar-days"></i> <span data-i18n="events.page_title">Tadbirlar</span></h1>
                 <p>O'zbekiston bo'ylab yoshlar uchrashadigan, birga rivojlanadigan tadbirlar. Tadbiringizni siz ham qo'shing.</p>
             </div>
             <a href="/events/create" id="newEventBtn" class="ev-new-btn btn-zoom"><i class="fas fa-plus"></i> Tadbir qo'shish</a>
