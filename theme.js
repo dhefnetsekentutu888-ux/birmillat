@@ -119,7 +119,21 @@
         // finishes writing new [data-i18n] elements into the DOM.
         window.BirMillatI18n = {
             currentLang: getPreferredLang,
-            refresh: function () { return applyTranslations(getPreferredLang()); }
+            refresh: function () { return applyTranslations(getPreferredLang()); },
+            // For sentences built with a number or search term plugged in
+            // (e.g. "3 users found"), where there's no fixed DOM text to
+            // snapshot as the uz baseline. Call with the Uzbek version as
+            // `fallback`; a dictionary only needs the key if that language
+            // has a translation for it. {name} in the template/fallback gets
+            // replaced from vars.
+            t: function (key, vars, fallback) {
+                var lang = getPreferredLang();
+                var dict = i18nCache[lang] || {};
+                var template = dict[key] || fallback || key;
+                return template.replace(/\{(\w+)\}/g, function (_, k) {
+                    return (vars && vars[k] != null) ? vars[k] : '';
+                });
+            }
         };
 
         function applyTranslations(lang) {
