@@ -90,7 +90,7 @@ body { font-family: 'Inter', sans-serif; }
         <button class="nav-toggle" id="navToggle" aria-label="Menyu"><i class="fas fa-bars"></i></button>
         <div class="nav-links" id="navLinks">
             <button class="sidebar-close" id="sidebarClose" aria-label="Yopish"><i class="fas fa-xmark"></i></button>
-            <a href="/login">Kirish</a>
+            <a href="/login" data-i18n="nav.login">Kirish</a>
         </div>
         <div class="lang-switcher">
             <button class="lang-switcher-btn" type="button" aria-label="Tilni tanlang"><i class="fas fa-globe lang-globe"></i><span class="lang-switcher-label">UZ</span><i class="fas fa-chevron-down lang-chev"></i></button>
@@ -108,27 +108,27 @@ body { font-family: 'Inter', sans-serif; }
     <div class="contact-shell reveal">
         <div class="contact-grid">
             <div class="contact-info">
-                <h1><i class="fas fa-envelope"></i> Biz bilan bog'lanish</h1>
-                <p>Reklama, hamkorlik yoki boshqa savollar bo'yicha murojaat qiling — xabaringiz to'g'ridan-to'g'ri jamoamizga yetib boradi.</p>
+                <h1><i class="fas fa-envelope"></i> <span data-i18n="contact.title">Biz bilan bog'lanish</span></h1>
+                <p data-i18n="contact.sub">Reklama, hamkorlik yoki boshqa savollar bo'yicha murojaat qiling — xabaringiz to'g'ridan-to'g'ri jamoamizga yetib boradi.</p>
                 <div class="contact-info-row"><span class="ic"><i class="fab fa-telegram"></i></span> <a href="https://t.me/birmillatUZB" target="_blank" rel="noopener">@birmillatUZB</a></div>
                 <div class="contact-info-row"><span class="ic"><i class="fab fa-instagram"></i></span> <a href="https://instagram.com/birmillat.uz" target="_blank" rel="noopener">@birmillat.uz</a></div>
             </div>
             <div class="contact-form-panel">
                 <form id="contactForm">
                     <div class="form-field">
-                        <label for="nameInput">Ismingiz</label>
-                        <input type="text" id="nameInput" placeholder="Ismingiz (ixtiyoriy)">
+                        <label for="nameInput" data-i18n="contact.name_label">Ismingiz</label>
+                        <input type="text" id="nameInput" placeholder="Ismingiz (ixtiyoriy)" data-i18n-placeholder="contact.name_placeholder">
                     </div>
                     <div class="form-field">
-                        <label for="contactInput">Aloqa uchun (telefon, Telegram, email)</label>
-                        <input type="text" id="contactInput" placeholder="@username yoki +998...">
+                        <label for="contactInput" data-i18n="contact.contact_label">Aloqa uchun (telefon, Telegram, email)</label>
+                        <input type="text" id="contactInput" placeholder="@username yoki +998..." data-i18n-placeholder="contact.contact_placeholder">
                     </div>
                     <div class="form-field">
-                        <label for="messageInput">Xabar</label>
-                        <textarea id="messageInput" rows="5" placeholder="Xabaringizni shu yerga yozing..." required></textarea>
+                        <label for="messageInput" data-i18n="contact.message_label">Xabar</label>
+                        <textarea id="messageInput" rows="5" placeholder="Xabaringizni shu yerga yozing..." required data-i18n-placeholder="contact.message_placeholder"></textarea>
                     </div>
                     <button type="submit" class="gradient-submit">
-                        <i class="fas fa-paper-plane"></i> Yuborish
+                        <i class="fas fa-paper-plane"></i> <span data-i18n="contact.submit">Yuborish</span>
                     </button>
                     <div class="submit-status" id="submitStatus"></div>
                 </form>
@@ -136,7 +136,7 @@ body { font-family: 'Inter', sans-serif; }
         </div>
     </div>
 
-    <footer>BirMillat – qiziqishlar asosida do'stlar toping. · <a href="/privacy" style="color:inherit;">Maxfiylik siyosati</a><br><span style="opacity:0.8;">Founder — Bekhruz Ravshanov</span></footer>
+    <footer><span data-i18n="footer.tagline">BirMillat – qiziqishlar asosida do'stlar toping.</span> · <a href="/privacy" style="color:inherit;" data-i18n="foot.privacy">Maxfiylik siyosati</a><br><span style="opacity:0.8;" data-i18n-html="foot.founder">Founder — Bekhruz Ravshanov</span></footer>
 
     <script>
         document.getElementById('contactForm').addEventListener('submit', async (e) => {
@@ -146,7 +146,7 @@ body { font-family: 'Inter', sans-serif; }
 
             if (!message) return;
 
-            statusEl.textContent = 'Yuborilmoqda...';
+            statusEl.textContent = window.BirMillatI18n ? window.BirMillatI18n.t('contact.sending', {}, 'Yuborilmoqda...') : 'Yuborilmoqda...';
             statusEl.className = 'submit-status';
 
             try {
@@ -161,12 +161,12 @@ body { font-family: 'Inter', sans-serif; }
                 });
                 if (!res.ok) throw new Error('Server error');
 
-                statusEl.textContent = "Xabaringiz yuborildi! Tez orada javob beramiz.";
+                statusEl.textContent = window.BirMillatI18n ? window.BirMillatI18n.t('contact.success', {}, "Xabaringiz yuborildi! Tez orada javob beramiz.") : "Xabaringiz yuborildi! Tez orada javob beramiz.";
                 statusEl.className = 'submit-status success';
                 document.getElementById('contactForm').reset();
             } catch (err) {
                 console.error('Contact submit failed:', err);
-                statusEl.textContent = "Xatolik yuz berdi. Qaytadan urinib ko'ring.";
+                statusEl.textContent = window.BirMillatI18n ? window.BirMillatI18n.t('contact.error', {}, "Xatolik yuz berdi. Qaytadan urinib ko'ring.") : "Xatolik yuz berdi. Qaytadan urinib ko'ring.";
                 statusEl.className = 'submit-status error';
             }
         });
