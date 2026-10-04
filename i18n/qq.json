@@ -75,5 +75,8 @@
   "home.events_sub": "Jaqin waqıtta bolıp o'tetug'in ilaj-ta'dbirler",
   "home.communities_title": "Ko'p tarqalg'an jama'a'tler",
   "home.communities_sub": "En' ko'p a'zalı jama'a'tler",
-  "home.see_all": "Barlig'i"
+  "home.see_all": "Barlig'i",
+  "events.page_title": "Ilaj-ta'dbirler",
+  "communities.page_title": "Jama'a'tler",
+  "volunteer.page_title": "Volontyorlik"
 }
