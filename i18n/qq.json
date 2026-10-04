@@ -3,7 +3,6 @@
   "nav.social": "Social tarmaqlar",
   "nav.login": "Kiriw",
   "nav.register": "Dizimnen o'tiw",
-
   "hero.eyebrow": "Jaslar ushin jana' platforma",
   "hero.h1": "Qizig'iwshiliklerin'iz boyinsha <span class=\"lp-underline\">ha'qiyqiy dostlar</span> tabin'",
   "hero.sub": "Programmalastiriw, jasalma intellekt, oyinlar, sport yamasa sayaxat — kim menen pikirlesiwdi qa'legen bolsan'iz, olar usi jerde. Jama'a'tlerge qosilin', ilaj-ta'dbirlerge barin', birge o'sin'.",
@@ -13,7 +12,6 @@
   "hero.stat_communities": "jama'a't",
   "hero.stat_events": "ilaj-ta'dbir",
   "hero.scroll_cue": "To'menge qarap aylandirin'",
-
   "steps.kicker": "Process",
   "steps.title": "Qalay isleydi",
   "steps.sub": "Ush qa'dem — sonsha a'piwayi",
@@ -23,15 +21,12 @@
   "steps.s2_body": "Qizig'iwshiliklerin'iz boyinsha usinis va izlew arqali adamlardi tabin'.",
   "steps.s3_title": "Pikirlesin', o'sin'",
   "steps.s3_body": "Real waqitta xabar jazin', ilaj-ta'dbirlerge qatnasin', dostlar tabin'.",
-
   "comm.kicker": "Qa'zir belsendi",
   "comm.title": "Jama'a'tler",
   "comm.sub": "BirMillat'tag'i ha'qiyqiy jama'a'tler — olardan birewine qosiliw ushin dizimnen o'tin'.",
-
   "people.kicker": "Bizin' jama'a'timiz",
   "people.title": "A'zalarimiz",
   "people.sub": "Ha'r qiyli qizig'iwshilik va wa'layatlardan bolg'an a'zalar. Tolig' profillerdi ko'riw ushin dizimnen o'tin'.",
-
   "cats.kicker": "Bag'darlar",
   "cats.title": "Sizge sa'ykesin tabin'",
   "cats.sub": "Ha'r bir bag'darda belsendi jama'a'tler va dostlar bar",
@@ -43,10 +38,8 @@
   "cats.tech_body": "IT, JI, dizayn",
   "cats.motiv_title": "Motivatsiya",
   "cats.motiv_body": "Maqsetli jama'a't",
-
   "cta.title": "Bizin' maqsetimiz",
   "cta.body": "Jaslardi qizig'iwshiliklari boyinsha birlestiriw va olarg'a rawajlaniw imkaniyatin jaratiw.",
-
   "foot.desc": "Qizig'iwshilikler boyinsha dostlar tabatug'in, O'zbekstandag'i jaslar ushin platforma.",
   "foot.col_platform": "Platforma",
   "foot.members": "A'zalar",
@@ -57,5 +50,30 @@
   "foot.col_social": "Social tarmaqlar",
   "foot.support_bot": "Ja'rdem (bot)",
   "foot.copyright": "© 2026 BirMillat. Barlig' huqiqlar qorg'algan.",
-  "foot.founder": "Tiykarlawshi — <b>Bexruz Ravshanov</b>"
+  "foot.founder": "Tiykarlawshi — <b>Bexruz Ravshanov</b>",
+  "nav.home": "Bas bet",
+  "nav.recommend": "Usinislar",
+  "nav.events": "Ilaj-ta'dbirler",
+  "nav.communities": "Jama'a'tler",
+  "nav.volunteer": "Volontyorlik",
+  "nav.articles": "Maqalalar",
+  "nav.search": "Izlew",
+  "nav.messages": "Xabarlar",
+  "nav.profile": "Profil",
+  "nav.logout": "Shig'iw",
+  "nav.notifications": "Bildirgiler",
+  "home.announce_kicker": "Jan'alik",
+  "home.welcome": "Xosh keldin'iz",
+  "home.hero_sub": "BirMillat'ta siz <strong>qizig'iwshiliklerin'iz boyinsha</strong> ha'qiyqiy dostlar va jama'a't tabasiz. Pikirlesin', pikir alisin', birge o'sin'.",
+  "home.edit_profile": "Profildi redaktorlaw",
+  "home.your_interests": "Sizin' qizig'iwshilikleringiz",
+  "home.recommended_title": "Sizge usinis etiledi",
+  "home.recommended_sub": "Qizig'iwshilikleri sizinkine sa'ykes keletug'in paydalanıwshilar",
+  "home.articles_title": "Son'g'i maqalalar",
+  "home.articles_sub": "Jama'a't a'zalari jazg'an en' jan'a maqalalar",
+  "home.events_title": "Jaqinlasıp kiyatırg'an ilaj-ta'dbirler",
+  "home.events_sub": "Jaqin waqıtta bolıp o'tetug'in ilaj-ta'dbirler",
+  "home.communities_title": "Ko'p tarqalg'an jama'a'tler",
+  "home.communities_sub": "En' ko'p a'zalı jama'a'tler",
+  "home.see_all": "Barlig'i"
 }
