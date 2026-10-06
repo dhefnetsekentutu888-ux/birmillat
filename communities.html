@@ -132,38 +132,38 @@ body { font-family: 'Inter', sans-serif; }
         <div class="page-head reveal">
             <div>
                 <h1><i class="fas fa-people-group"></i> <span data-i18n="communities.page_title">Jamoalar</span></h1>
-                <p>Qiziqishlaringiz bo'yicha guruhlarga qo'shiling yoki o'zingiznikini yarating</p>
+                <p data-i18n="communities.hero_sub">Qiziqishlaringiz bo'yicha guruhlarga qo'shiling yoki o'zingiznikini yarating</p>
             </div>
-            <button class="btn btn-primary btn-zoom" id="createBtn"><i class="fas fa-plus"></i> Jamoa yaratish</button>
+            <button class="btn btn-primary btn-zoom" id="createBtn"><i class="fas fa-plus"></i> <span data-i18n="communities.new_btn">Jamoa yaratish</span></button>
         </div>
 
         <div class="filter-bar reveal" id="filterBar">
-            <button class="filter-chip active" data-category="">Hammasi</button>
-            <button class="filter-chip" data-category="IELTS">IELTS</button>
-            <button class="filter-chip" data-category="IT">IT / Dasturlash</button>
-            <button class="filter-chip" data-category="Startup">Startup</button>
-            <button class="filter-chip" data-category="Sport">Sport</button>
-            <button class="filter-chip" data-category="Sayohat">Sayohat</button>
-            <button class="filter-chip" data-category="Boshqa">Boshqa</button>
+            <button class="filter-chip active" data-category="" data-i18n="search.filter_all">Hammasi</button>
+            <button class="filter-chip" data-category="IELTS" data-i18n="search.cat_ielts">IELTS</button>
+            <button class="filter-chip" data-category="IT" data-i18n="search.cat_it">IT / Dasturlash</button>
+            <button class="filter-chip" data-category="Startup" data-i18n="search.cat_startup">Startup</button>
+            <button class="filter-chip" data-category="Sport" data-i18n="search.cat_sport">Sport</button>
+            <button class="filter-chip" data-category="Sayohat" data-i18n="search.cat_travel">Sayohat</button>
+            <button class="filter-chip" data-category="Boshqa" data-i18n="events.cat_other">Boshqa</button>
         </div>
 
         <div class="comm-grid reveal-stagger reveal" id="commGrid">
-            <p style="color:var(--color-text-muted)">Yuklanmoqda...</p>
+            <p style="color:var(--color-text-muted)" data-i18n="vol.loading">Yuklanmoqda...</p>
         </div>
     </div>
 
-    <footer>BirMillat – qiziqishlar asosida do'stlar toping. · <a href="/support" style="color:inherit;">Yordam</a> · <a href="/privacy" style="color:inherit;">Maxfiylik siyosati</a><br><span style="opacity:0.8;">Founder — Bekhruz Ravshanov</span></footer>
+    <footer><span data-i18n="footer.tagline">BirMillat – qiziqishlar asosida do'stlar toping.</span> · <a href="/support" style="color:inherit;" data-i18n="foot.support">Yordam</a> · <a href="/privacy" style="color:inherit;" data-i18n="foot.privacy">Maxfiylik siyosati</a><br><span style="opacity:0.8;" data-i18n-html="foot.founder">Founder — Bekhruz Ravshanov</span></footer>
 
     <div class="create-modal" id="createModal">
         <div class="card create-modal-card">
-            <h2 style="font-size:1.2rem; margin-bottom:1rem;"><i class="fas fa-people-group" style="color:var(--color-accent);"></i> Yangi jamoa</h2>
+            <h2 style="font-size:1.2rem; margin-bottom:1rem;"><i class="fas fa-people-group" style="color:var(--color-accent);"></i> <span data-i18n="communities.modal_title">Yangi jamoa</span></h2>
             <form id="createForm">
                 <div class="form-field">
-                    <label for="commName">Jamoa nomi</label>
-                    <input type="text" id="commName" placeholder="Masalan: Toshkent Dasturchilari" required>
+                    <label for="commName" data-i18n="communities.name_label">Jamoa nomi</label>
+                    <input type="text" id="commName" placeholder="Masalan: Toshkent Dasturchilari" required data-i18n-placeholder="communities.name_placeholder">
                 </div>
                 <div class="form-field">
-                    <label for="commCategory">Kategoriya</label>
+                    <label for="commCategory" data-i18n="communities.category_label">Kategoriya</label>
                     <select id="commCategory">
                         <option value="IELTS">IELTS</option>
                         <option value="IT">IT / Dasturlash</option>
@@ -174,16 +174,16 @@ body { font-family: 'Inter', sans-serif; }
                     </select>
                 </div>
                 <div class="form-field">
-                    <label for="commDesc">Tavsif (ixtiyoriy)</label>
-                    <textarea id="commDesc" rows="3" placeholder="Jamoa nima haqida?"></textarea>
+                    <label for="commDesc" data-i18n="communities.desc_label">Tavsif (ixtiyoriy)</label>
+                    <textarea id="commDesc" rows="3" placeholder="Jamoa nima haqida?" data-i18n-placeholder="communities.desc_placeholder"></textarea>
                 </div>
                 <div class="form-field">
-                    <label for="commImage">Jamoa rasmi (ixtiyoriy)</label>
+                    <label for="commImage" data-i18n="communities.image_label">Jamoa rasmi (ixtiyoriy)</label>
                     <input type="file" id="commImage" accept="image/*">
                 </div>
                 <div style="display:flex; gap:0.8rem;">
-                    <button type="submit" class="btn btn-primary btn-zoom" style="flex:1; justify-content:center;">Yaratish</button>
-                    <button type="button" class="btn btn-cancel" id="closeCreateModal" style="border:1px solid var(--color-border); background:transparent; color:var(--color-text-muted);">Bekor qilish</button>
+                    <button type="submit" class="btn btn-primary btn-zoom" style="flex:1; justify-content:center;" data-i18n="communities.create_submit">Yaratish</button>
+                    <button type="button" class="btn btn-cancel" id="closeCreateModal" style="border:1px solid var(--color-border); background:transparent; color:var(--color-text-muted);" data-i18n="communities.cancel">Bekor qilish</button>
                 </div>
                 <div class="create-status" id="createStatus"></div>
             </form>
@@ -204,7 +204,7 @@ body { font-family: 'Inter', sans-serif; }
 
         async function loadCommunities(category = '') {
             const grid = document.getElementById('commGrid');
-            grid.innerHTML = `<p style="color:var(--color-text-muted)">Yuklanmoqda...</p>`;
+            grid.innerHTML = `<p style="color:var(--color-text-muted)" data-i18n="vol.loading">Yuklanmoqda...</p>`; if (window.BirMillatI18n) window.BirMillatI18n.refresh();
             try {
                 const url = category ? `/api/communities?category=${encodeURIComponent(category)}` : '/api/communities';
                 const res = await fetch(url);
@@ -212,7 +212,8 @@ body { font-family: 'Inter', sans-serif; }
                 const communities = await res.json();
 
                 if (communities.length === 0) {
-                    grid.innerHTML = `<div class="empty-state">Hozircha bu toifada jamoalar yo'q. <a href="#" onclick="document.getElementById('createBtn').click(); return false;">Birinchi bo'lib yarating →</a></div>`;
+                    grid.innerHTML = `<div class="empty-state"><span data-i18n="communities.empty">Hozircha bu toifada jamoalar yo'q.</span> <a href="#" onclick="document.getElementById('createBtn').click(); return false;" data-i18n="communities.empty_cta">Birinchi bo'lib yarating →</a></div>`;
+                    if (window.BirMillatI18n) window.BirMillatI18n.refresh();
                     return;
                 }
 
@@ -224,7 +225,7 @@ body { font-family: 'Inter', sans-serif; }
                     card.innerHTML = `
                         <div class="comm-icon">${c.image_url ? `<img src="${c.image_url}" alt="" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">` : `<i class="fas fa-people-group"></i>`}</div>
                         <h3>${c.name}</h3>
-                        <div class="comm-desc">${c.description || "Tavsif qo'shilmagan"}</div>
+                        <div class="comm-desc">${c.description || (window.BirMillatI18n ? window.BirMillatI18n.t('communities.no_desc', {}, "Tavsif qo'shilmagan") : "Tavsif qo'shilmagan")}</div>
                         <div class="comm-meta">
                             <i class="fas fa-tag"></i> ${c.category}
                             <span>·</span>
@@ -233,9 +234,11 @@ body { font-family: 'Inter', sans-serif; }
                     `;
                     grid.appendChild(card);
                 });
+                if (window.BirMillatI18n) window.BirMillatI18n.refresh();
             } catch (e) {
                 console.error('Failed to load communities:', e);
-                grid.innerHTML = `<div class="empty-state">Yuklab bo'lmadi. Sahifani qaytadan yuklang.</div>`;
+                grid.innerHTML = `<div class="empty-state" data-i18n="vol.load_error">Yuklab bo'lmadi. Sahifani qaytadan yuklang.</div>`;
+                if (window.BirMillatI18n) window.BirMillatI18n.refresh();
             }
         }
 
