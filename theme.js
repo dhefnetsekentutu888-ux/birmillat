@@ -24,6 +24,40 @@
     // of the wrong theme on load.
     applyTheme(getPreferredTheme());
 
+    // formatUzDate(ts): called from several pages (articles.html among them)
+    // but was never actually defined anywhere client-side — only a same-named
+    // server.js helper existed, which the browser can't reach. Every call was
+    // throwing a ReferenceError, silently caught by the calling page's own
+    // try/catch and shown as a generic "failed to load" instead of content.
+    // Matches server.js's formatUzDateServer: Asia/Tashkent timezone (so it's
+    // correct regardless of the visitor's or server's own timezone), "D Month
+    // YYYY, HH:MM". Language-aware, same pattern as events.html's own month
+    // tables, since there's no fixed DOM text here to snapshot a baseline from.
+    var FULL_MONTHS = {
+        uz: ['yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun', 'iyul', 'avgust', 'sentabr', 'oktabr', 'noyabr', 'dekabr'],
+        ru: ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'],
+        en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+        qq: ['yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun', 'iyul', 'avgust', 'sentyabr', 'oktyabr', 'noyabr', 'dekabr']
+    };
+    window.formatUzDate = function (ts) {
+        var lang = (window.BirMillatI18n && window.BirMillatI18n.currentLang()) || 'uz';
+        var months = FULL_MONTHS[lang] || FULL_MONTHS.uz;
+        var parts = new Intl.DateTimeFormat('en-US', {
+            timeZone: 'Asia/Tashkent',
+            day: 'numeric', month: 'numeric', year: 'numeric',
+            hour: '2-digit', minute: '2-digit', hour12: false
+        }).formatToParts(new Date(ts));
+        function get(type) { return parts.find(function (p) { return p.type === type; }).value; }
+        var day = get('day');
+        var month = months[parseInt(get('month'), 10) - 1];
+        var year = get('year');
+        var hour = get('hour') === '24' ? '00' : get('hour');
+        var minute = get('minute');
+        return lang === 'en'
+            ? (month + ' ' + day + ', ' + year + ', ' + hour + ':' + minute)
+            : (day + ' ' + month + ' ' + year + ', ' + hour + ':' + minute);
+    };
+
     document.addEventListener('DOMContentLoaded', function () {
         updateToggleIcon(document.documentElement.getAttribute('data-theme'));
         var btn = document.getElementById('themeToggle');
