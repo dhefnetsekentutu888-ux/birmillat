@@ -119,28 +119,28 @@ body { font-family: 'Inter', sans-serif; }
 
     <div class="page-container">
         <div class="page-head reveal">
-            <h1><i class="fas fa-wand-magic-sparkles"></i> Sizga tavsiya etiladi</h1>
-            <p>Qiziqishlari siznikiga mos keladigan foydalanuvchilar</p>
+            <h1><i class="fas fa-wand-magic-sparkles"></i> <span data-i18n="home.recommended_title">Sizga tavsiya etiladi</span></h1>
+            <p data-i18n="home.recommended_sub">Qiziqishlari siznikiga mos keladigan foydalanuvchilar</p>
         </div>
 
         <div class="filter-bar reveal" id="filterBar">
-            <button class="filter-chip active" data-category="">Hammasi</button>
-            <button class="filter-chip" data-category="IELTS">IELTS</button>
-            <button class="filter-chip" data-category="IT">IT / Dasturlash</button>
-            <button class="filter-chip" data-category="Sun'iy intellekt">Sun'iy intellekt</button>
-            <button class="filter-chip" data-category="O'yinlar">O'yinlar</button>
-            <button class="filter-chip" data-category="Sport">Sport</button>
-            <button class="filter-chip" data-category="Sayohat">Sayohat</button>
-            <button class="filter-chip" data-category="Startup">Startup</button>
-            <button class="filter-chip" data-category="Dizayn">Dizayn</button>
+            <button class="filter-chip active" data-category="" data-i18n="search.filter_all">Hammasi</button>
+            <button class="filter-chip" data-category="IELTS" data-i18n="search.cat_ielts">IELTS</button>
+            <button class="filter-chip" data-category="IT" data-i18n="search.cat_it">IT / Dasturlash</button>
+            <button class="filter-chip" data-category="Sun'iy intellekt" data-i18n="search.cat_ai">Sun'iy intellekt</button>
+            <button class="filter-chip" data-category="O'yinlar" data-i18n="search.cat_games">O'yinlar</button>
+            <button class="filter-chip" data-category="Sport" data-i18n="search.cat_sport">Sport</button>
+            <button class="filter-chip" data-category="Sayohat" data-i18n="search.cat_travel">Sayohat</button>
+            <button class="filter-chip" data-category="Startup" data-i18n="search.cat_startup">Startup</button>
+            <button class="filter-chip" data-category="Dizayn" data-i18n="search.cat_design">Dizayn</button>
         </div>
 
         <div class="users-grid reveal-stagger reveal" id="usersGrid">
-            <p style="color:var(--color-text-muted)">Yuklanmoqda...</p>
+            <p style="color:var(--color-text-muted)" data-i18n="vol.loading">Yuklanmoqda...</p>
         </div>
     </div>
 
-    <footer>BirMillat – qiziqishlar asosida do'stlar toping. · <a href="/privacy" style="color:inherit;">Maxfiylik siyosati</a><br><span style="opacity:0.8;">Founder — Bekhruz Ravshanov</span></footer>
+    <footer><span data-i18n="footer.tagline">BirMillat – qiziqishlar asosida do'stlar toping.</span> · <a href="/privacy" style="color:inherit;" data-i18n="foot.privacy">Maxfiylik siyosati</a><br><span style="opacity:0.8;" data-i18n-html="foot.founder">Founder — Bekhruz Ravshanov</span></footer>
 
     <script>
         let myInterests = [];
@@ -171,7 +171,7 @@ body { font-family: 'Inter', sans-serif; }
 
         async function loadUsers(category = '') {
             const grid = document.getElementById('usersGrid');
-            grid.innerHTML = `<p style="color:var(--color-text-muted)">Yuklanmoqda...</p>`;
+            grid.innerHTML = `<p style="color:var(--color-text-muted)" data-i18n="vol.loading">Yuklanmoqda...</p>`; if (window.BirMillatI18n) window.BirMillatI18n.refresh();
             try {
                 const url = category ? `/api/search?category=${encodeURIComponent(category)}` : '/api/search';
                 const res = await fetch(url);
@@ -182,7 +182,8 @@ body { font-family: 'Inter', sans-serif; }
                              .sort((a, b) => b.score - a.score);
 
                 if (users.length === 0) {
-                    grid.innerHTML = `<div class="empty-state">Hozircha bu toifada foydalanuvchilar yo'q.</div>`;
+                    grid.innerHTML = `<div class="empty-state" data-i18n="recommend.empty">Hozircha bu toifada foydalanuvchilar yo'q.</div>`;
+                    if (window.BirMillatI18n) window.BirMillatI18n.refresh();
                     return;
                 }
 
@@ -203,15 +204,17 @@ body { font-family: 'Inter', sans-serif; }
                         <div class="common-interests">
                             ${interests.slice(0, 3).map(t => `<span class="interest-badge">#${t}</span>`).join('')}
                             ${interests.length > 3 ? `<span class="interest-badge">+${interests.length - 3}</span>` : ''}
-                            ${interests.length === 0 ? `<span class="interest-badge" style="opacity:0.6">Qiziqish ko'rsatilmagan</span>` : ''}
+                            ${interests.length === 0 ? `<span class="interest-badge" style="opacity:0.6" data-i18n="common.no_interests">Qiziqish ko'rsatilmagan</span>` : ''}
                         </div>
-                        ${user.score > 0 ? `<div class="match-pill"><i class="fas fa-bolt"></i> ${user.score} mos qiziqish</div>` : ''}
+                        ${user.score > 0 ? `<div class="match-pill"><i class="fas fa-bolt"></i> ${user.score} ${window.BirMillatI18n ? window.BirMillatI18n.t('recommend.matches', {}, 'mos qiziqish') : 'mos qiziqish'}</div>` : ''}
                     `;
                     grid.appendChild(card);
                 });
+                if (window.BirMillatI18n) window.BirMillatI18n.refresh();
             } catch (e) {
                 console.error('Failed to load users:', e);
-                grid.innerHTML = `<div class="empty-state">Yuklab bo'lmadi. Sahifani qaytadan yuklang.</div>`;
+                grid.innerHTML = `<div class="empty-state" data-i18n="vol.load_error">Yuklab bo'lmadi. Sahifani qaytadan yuklang.</div>`;
+                if (window.BirMillatI18n) window.BirMillatI18n.refresh();
             }
         }
 
