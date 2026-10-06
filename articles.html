@@ -113,19 +113,19 @@ body { font-family: 'Inter', sans-serif; }
     <div class="ar-container">
         <div class="ar-head reveal">
             <div>
-                <span class="ar-kicker">Jamoa fikrlari</span>
-                <h1><i class="fas fa-newspaper" style="color:var(--color-accent); font-size:.85em;"></i> Maqolalar</h1>
-                <p>Tadqiqotlaringiz va fikrlaringizni ulashing</p>
+                <span class="ar-kicker" data-i18n="articles.kicker">Jamoa fikrlari</span>
+                <h1><i class="fas fa-newspaper" style="color:var(--color-accent); font-size:.85em;"></i> <span data-i18n="nav.articles">Maqolalar</span></h1>
+                <p data-i18n="articles.hero_sub">Tadqiqotlaringiz va fikrlaringizni ulashing</p>
             </div>
-            <a href="/articles/create" id="newArticleBtn" class="btn btn-primary btn-zoom"><i class="fas fa-plus"></i> Maqola yozish</a>
+            <a href="/articles/create" id="newArticleBtn" class="btn btn-primary btn-zoom"><i class="fas fa-plus"></i> <span data-i18n="articles.new_btn">Maqola yozish</span></a>
         </div>
 
         <div class="ar-list reveal-stagger reveal" id="articlesList">
-            <p style="color:var(--color-text-muted)">Yuklanmoqda...</p>
+            <p style="color:var(--color-text-muted)" data-i18n="vol.loading">Yuklanmoqda...</p>
         </div>
     </div>
 
-    <footer>BirMillat – qiziqishlar asosida do'stlar toping. · <a href="/about" style="color:inherit;">BirMillat nima?</a> · <a href="/support" style="color:inherit;">Yordam</a><br><span style="opacity:0.8;">Founder — Bekhruz Ravshanov</span></footer>
+    <footer><span data-i18n="footer.tagline">BirMillat – qiziqishlar asosida do'stlar toping.</span> · <a href="/about" style="color:inherit;" data-i18n="nav.about">BirMillat nima?</a> · <a href="/support" style="color:inherit;" data-i18n="foot.support">Yordam</a><br><span style="opacity:0.8;" data-i18n-html="foot.founder">Founder — Bekhruz Ravshanov</span></footer>
 
     <script>
         function initials(name) {
@@ -144,7 +144,7 @@ body { font-family: 'Inter', sans-serif; }
                 const res = await fetch('/api/me');
                 if (!res.ok) {
                     document.getElementById('userBadge').outerHTML =
-                        '<a href="/register" class="btn btn-primary btn-zoom" style="padding:0.45rem 1.1rem; font-size:0.85rem;">Ro\'yxatdan o\'tish</a>';
+                        '<a href="/register" class="btn btn-primary btn-zoom" style="padding:0.45rem 1.1rem; font-size:0.85rem;" data-i18n="nav.register">Ro\'yxatdan o\'tish</a>'; if (window.BirMillatI18n) window.BirMillatI18n.refresh();
                     const bell = document.querySelector('.notif-bell-wrap');
                     if (bell) bell.style.display = 'none';
                     document.getElementById('newArticleBtn').setAttribute('href', '/register');
@@ -163,7 +163,8 @@ body { font-family: 'Inter', sans-serif; }
                 const articles = await res.json();
 
                 if (articles.length === 0) {
-                    list.innerHTML = `<div class="ar-empty">Hozircha maqolalar yo'q. <a href="/articles/create">Birinchi bo'lib yozing →</a></div>`;
+                    list.innerHTML = `<div class="ar-empty"><span data-i18n="articles.empty">Hozircha maqolalar yo'q.</span> <a href="/articles/create" data-i18n="articles.empty_cta">Birinchi bo'lib yozing →</a></div>`;
+                    if (window.BirMillatI18n) window.BirMillatI18n.refresh();
                     return;
                 }
 
@@ -188,9 +189,11 @@ body { font-family: 'Inter', sans-serif; }
                     `;
                     list.appendChild(card);
                 });
+                if (window.BirMillatI18n) window.BirMillatI18n.refresh();
             } catch (e) {
                 console.error('Failed to load articles:', e);
-                list.innerHTML = `<div class="ar-empty">Yuklab bo'lmadi. Sahifani qaytadan yuklang.</div>`;
+                list.innerHTML = `<div class="ar-empty" data-i18n="vol.load_error">Yuklab bo'lmadi. Sahifani qaytadan yuklang.</div>`;
+                if (window.BirMillatI18n) window.BirMillatI18n.refresh();
             }
         }
 
