@@ -184,37 +184,37 @@ body { font-family: 'Inter', sans-serif; }
         <div class="ev-hero-inner">
             <div>
                 <h1><i class="fas fa-calendar-days"></i> <span data-i18n="events.page_title">Tadbirlar</span></h1>
-                <p>O'zbekiston bo'ylab yoshlar uchrashadigan, birga rivojlanadigan tadbirlar. Tadbiringizni siz ham qo'shing.</p>
+                <p data-i18n="events.hero_sub">O'zbekiston bo'ylab yoshlar uchrashadigan, birga rivojlanadigan tadbirlar. Tadbiringizni siz ham qo'shing.</p>
             </div>
-            <a href="/events/create" id="newEventBtn" class="ev-new-btn btn-zoom"><i class="fas fa-plus"></i> Tadbir qo'shish</a>
+            <a href="/events/create" id="newEventBtn" class="ev-new-btn btn-zoom"><i class="fas fa-plus"></i> <span data-i18n="events.new_btn">Tadbir qo'shish</span></a>
         </div>
     </div>
 
     <div class="ev-container">
         <div class="ev-tabs reveal">
-            <button class="ev-tab active" id="tabUpcoming" data-tab="upcoming"><i class="fas fa-hourglass-half"></i> Kelayotgan tadbirlar</button>
-            <button class="ev-tab" id="tabPast" data-tab="past"><i class="fas fa-images"></i> Tashkil qilingan tadbirlar</button>
+            <button class="ev-tab active" id="tabUpcoming" data-tab="upcoming"><i class="fas fa-hourglass-half"></i> <span data-i18n="events.tab_upcoming">Kelayotgan tadbirlar</span></button>
+            <button class="ev-tab" id="tabPast" data-tab="past"><i class="fas fa-images"></i> <span data-i18n="events.tab_past">Tashkil qilingan tadbirlar</span></button>
         </div>
 
         <div class="filter-bar reveal" id="filterBar">
-            <button class="filter-chip active" data-category="">Hammasi</button>
-            <button class="filter-chip" data-category="IELTS">IELTS</button>
-            <button class="filter-chip" data-category="IT">IT / Dasturlash</button>
-            <button class="filter-chip" data-category="Startup">Startup</button>
-            <button class="filter-chip" data-category="Sport">Sport</button>
-            <button class="filter-chip" data-category="Volontyorlik">Volontyorlik</button>
-            <button class="filter-chip" data-category="Boshqa">Boshqa</button>
+            <button class="filter-chip active" data-category="" data-i18n="search.filter_all">Hammasi</button>
+            <button class="filter-chip" data-category="IELTS" data-i18n="search.cat_ielts">IELTS</button>
+            <button class="filter-chip" data-category="IT" data-i18n="search.cat_it">IT / Dasturlash</button>
+            <button class="filter-chip" data-category="Startup" data-i18n="search.cat_startup">Startup</button>
+            <button class="filter-chip" data-category="Sport" data-i18n="search.cat_sport">Sport</button>
+            <button class="filter-chip" data-category="Volontyorlik" data-i18n="nav.volunteer">Volontyorlik</button>
+            <button class="filter-chip" data-category="Boshqa" data-i18n="events.cat_other">Boshqa</button>
         </div>
 
         <div id="upcomingView">
-            <div class="timeline reveal" id="timelineList"><p style="color:var(--color-text-muted)">Yuklanmoqda...</p></div>
+            <div class="timeline reveal" id="timelineList"><p style="color:var(--color-text-muted)" data-i18n="vol.loading">Yuklanmoqda...</p></div>
         </div>
         <div id="pastView" style="display:none;">
             <div class="gallery-grid reveal-stagger reveal" id="galleryGrid"></div>
         </div>
     </div>
 
-    <footer>BirMillat – qiziqishlar asosida do'stlar toping. · <a href="/about" style="color:inherit;">BirMillat nima?</a> · <a href="/privacy" style="color:inherit;">Maxfiylik siyosati</a><br><span style="opacity:0.8;">Founder — Bekhruz Ravshanov</span></footer>
+    <footer><span data-i18n="footer.tagline">BirMillat – qiziqishlar asosida do'stlar toping.</span> · <a href="/about" style="color:inherit;" data-i18n="nav.about">BirMillat nima?</a> · <a href="/privacy" style="color:inherit;" data-i18n="foot.privacy">Maxfiylik siyosati</a><br><span style="opacity:0.8;" data-i18n-html="foot.founder">Founder — Bekhruz Ravshanov</span></footer>
 
     <script>
         let activeCategory = '';
@@ -241,8 +241,25 @@ body { font-family: 'Inter', sans-serif; }
             } catch (e) { console.error(e); }
         }
 
-        const UZ_MONTHS_SHORT = ['Yan', 'Fev', 'Mar', 'Apr', 'May', 'Iyun', 'Iyul', 'Avg', 'Sen', 'Okt', 'Noy', 'Dek'];
-        const UZ_WEEKDAYS = ['Yakshanba', 'Dushanba', 'Seshanba', 'Chorshanba', 'Payshanba', 'Juma', 'Shanba'];
+        // Month/weekday names are baked into the date logic itself, not just
+        // page text — so a plain data-i18n swap can't reach them. Keep one
+        // table per language and pick the active one at the moment it's
+        // needed (the language can change without a page reload).
+        const MONTHS_SHORT = {
+            uz: ['Yan', 'Fev', 'Mar', 'Apr', 'May', 'Iyun', 'Iyul', 'Avg', 'Sen', 'Okt', 'Noy', 'Dek'],
+            ru: ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'],
+            en: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+            qq: ['Qan', 'Fev', 'Mar', 'Apr', 'May', 'Iyun', 'Iyul', 'Avg', 'Sen', 'Okt', 'Noy', 'Dek']
+        };
+        const WEEKDAYS = {
+            uz: ['Yakshanba', 'Dushanba', 'Seshanba', 'Chorshanba', 'Payshanba', 'Juma', 'Shanba'],
+            ru: ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'],
+            en: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+            qq: ['Jeksembi', 'Dúysembi', 'Seysembi', 'Sarsembi', 'Piyshembi', 'Juma', 'Shembi']
+        };
+        function activeLang() { return (window.BirMillatI18n ? window.BirMillatI18n.currentLang() : 'uz') || 'uz'; }
+        function UZ_MONTHS_SHORT_FN() { return MONTHS_SHORT[activeLang()] || MONTHS_SHORT.uz; }
+        function UZ_WEEKDAYS_FN() { return WEEKDAYS[activeLang()] || WEEKDAYS.uz; }
 
         function isSameDay(a, b) {
             return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
@@ -251,9 +268,10 @@ body { font-family: 'Inter', sans-serif; }
         function relativeDayLabel(d) {
             const today = new Date();
             const tomorrow = new Date(); tomorrow.setDate(today.getDate() + 1);
-            if (isSameDay(d, today)) return 'Bugun';
-            if (isSameDay(d, tomorrow)) return 'Ertaga';
-            return UZ_WEEKDAYS[d.getDay()];
+            const t = window.BirMillatI18n ? window.BirMillatI18n.t : function (k, v, fb) { return fb; };
+            if (isSameDay(d, today)) return t('common.today', {}, 'Bugun');
+            if (isSameDay(d, tomorrow)) return t('common.tomorrow', {}, 'Ertaga');
+            return UZ_WEEKDAYS_FN()[d.getDay()];
         }
 
         function loadTurnstileScript() {
@@ -269,7 +287,8 @@ body { font-family: 'Inter', sans-serif; }
         function renderTimeline(events) {
             const list = document.getElementById('timelineList');
             if (events.length === 0) {
-                list.innerHTML = `<div class="ev-empty">Hozircha bu toifada tadbirlar yo'q. <a href="/events/create">Birinchi bo'lib o'zingiz qo'shing →</a></div>`;
+                list.innerHTML = `<div class="ev-empty"><span data-i18n="events.empty">Hozircha bu toifada tadbirlar yo'q.</span> <a href="/events/create" data-i18n="events.empty_cta">Birinchi bo'lib o'zingiz qo'shing →</a></div>`;
+                if (window.BirMillatI18n) window.BirMillatI18n.refresh();
                 return;
             }
 
@@ -287,7 +306,7 @@ body { font-family: 'Inter', sans-serif; }
 
             list.innerHTML = groups.map(group => {
                 const d = group.date;
-                const dateLabel = `${d.getDate()} ${UZ_MONTHS_SHORT[d.getMonth()]}, ${d.getFullYear()}`;
+                const dateLabel = `${d.getDate()} ${UZ_MONTHS_SHORT_FN()[d.getMonth()]}, ${d.getFullYear()}`;
                 const cards = group.items.map(ev => {
                     const hh = String(d.getHours()).padStart(2, '0');
                     const mm = String(new Date(ev.event_date).getMinutes()).padStart(2, '0');
@@ -298,14 +317,14 @@ body { font-family: 'Inter', sans-serif; }
                         <a class="date-card card" href="/events/${ev.id}">
                             <div class="date-block">
                                 <div class="day">${evTime.getDate()}</div>
-                                <div class="time">${UZ_MONTHS_SHORT[evTime.getMonth()]}</div>
+                                <div class="time">${UZ_MONTHS_SHORT_FN()[evTime.getMonth()]}</div>
                             </div>
                             <div class="date-card-body">
-                                <div class="date-card-top"><span class="cat-pill">${ev.category || 'Tadbir'}</span></div>
+                                <div class="date-card-top"><span class="cat-pill">${ev.category || (window.BirMillatI18n ? window.BirMillatI18n.t('events.default_cat', {}, 'Tadbir') : 'Tadbir')}</span></div>
                                 <h3>${ev.title}</h3>
                                 <div class="date-card-meta">
                                     <span><i class="fas fa-clock"></i> ${evHH}:${evMM}</span>
-                                    <span><i class="fas ${ev.mode === 'online' ? 'fa-video' : 'fa-location-dot'}"></i> ${ev.mode === 'online' ? 'Onlayn' : (ev.location || "Joy ko'rsatilmagan")}</span>
+                                    <span><i class="fas ${ev.mode === 'online' ? 'fa-video' : 'fa-location-dot'}"></i> ${ev.mode === 'online' ? (window.BirMillatI18n ? window.BirMillatI18n.t('vol.online', {}, 'Onlayn') : 'Onlayn') : (ev.location || (window.BirMillatI18n ? window.BirMillatI18n.t('events.no_location', {}, "Joy ko'rsatilmagan") : "Joy ko'rsatilmagan"))}</span>
                                     <span><i class="fas fa-users"></i> ${ev.attendee_count}${ev.capacity ? '/' + ev.capacity : ''}</span>
                                 </div>
                             </div>
@@ -318,17 +337,19 @@ body { font-family: 'Inter', sans-serif; }
                         ${cards}
                     </div>`;
             }).join('');
+            if (window.BirMillatI18n) window.BirMillatI18n.refresh();
         }
 
         function renderGallery(events) {
             const grid = document.getElementById('galleryGrid');
             if (events.length === 0) {
-                grid.innerHTML = `<div class="ev-empty">Hozircha o'tgan tadbirlar yo'q.</div>`;
+                grid.innerHTML = `<div class="ev-empty" data-i18n="events.empty_past">Hozircha o'tgan tadbirlar yo'q.</div>`;
+                if (window.BirMillatI18n) window.BirMillatI18n.refresh();
                 return;
             }
             grid.innerHTML = events.map(ev => {
                 const d = new Date(ev.event_date);
-                const dateLabel = `${d.getDate()} ${UZ_MONTHS_SHORT[d.getMonth()]}`;
+                const dateLabel = `${d.getDate()} ${UZ_MONTHS_SHORT_FN()[d.getMonth()]}`;
                 const media = ev.coverImageUrl
                     ? `<img src="${ev.coverImageUrl}" alt="" loading="lazy">`
                     : `<div class="fallback"><i class="fas fa-calendar-check"></i></div>`;
@@ -339,16 +360,17 @@ body { font-family: 'Inter', sans-serif; }
                             <h3>${ev.title}</h3>
                             <div class="gallery-foot">
                                 <span><i class="fas fa-users"></i> ${ev.attendee_count}</span>
-                                <span><i class="fas fa-camera"></i> ${ev.teamPostCount} rasm</span>
+                                <span><i class="fas fa-camera"></i> ${ev.teamPostCount} ${window.BirMillatI18n ? window.BirMillatI18n.t('events.photos', {}, 'rasm') : 'rasm'}</span>
                             </div>
                         </div>
                     </a>`;
             }).join('');
+            if (window.BirMillatI18n) window.BirMillatI18n.refresh();
         }
 
         async function loadUpcoming(category) {
             const list = document.getElementById('timelineList');
-            list.innerHTML = `<p style="color:var(--color-text-muted)">Yuklanmoqda...</p>`;
+            list.innerHTML = `<p style="color:var(--color-text-muted)" data-i18n="vol.loading">Yuklanmoqda...</p>`; if (window.BirMillatI18n) window.BirMillatI18n.refresh();
             try {
                 const url = category ? `/api/events?category=${encodeURIComponent(category)}` : '/api/events';
                 const res = await fetch(url);
@@ -357,13 +379,13 @@ body { font-family: 'Inter', sans-serif; }
                 renderTimeline(events);
             } catch (e) {
                 console.error('Failed to load upcoming events:', e);
-                list.innerHTML = `<div class="ev-empty">Yuklab bo'lmadi. Sahifani qaytadan yuklang.</div>`;
+                list.innerHTML = `<div class="ev-empty" data-i18n="vol.load_error">Yuklab bo'lmadi. Sahifani qaytadan yuklang.</div>`; if (window.BirMillatI18n) window.BirMillatI18n.refresh();
             }
         }
 
         async function loadPast(category) {
             const grid = document.getElementById('galleryGrid');
-            grid.innerHTML = `<p style="color:var(--color-text-muted)">Yuklanmoqda...</p>`;
+            grid.innerHTML = `<p style="color:var(--color-text-muted)" data-i18n="vol.loading">Yuklanmoqda...</p>`; if (window.BirMillatI18n) window.BirMillatI18n.refresh();
             try {
                 const url = category ? `/api/events/past?category=${encodeURIComponent(category)}` : '/api/events/past';
                 const res = await fetch(url);
@@ -384,7 +406,7 @@ body { font-family: 'Inter', sans-serif; }
                 renderGallery(withCovers);
             } catch (e) {
                 console.error('Failed to load past events:', e);
-                grid.innerHTML = `<div class="ev-empty">Yuklab bo'lmadi. Sahifani qaytadan yuklang.</div>`;
+                grid.innerHTML = `<div class="ev-empty" data-i18n="vol.load_error">Yuklab bo'lmadi. Sahifani qaytadan yuklang.</div>`; if (window.BirMillatI18n) window.BirMillatI18n.refresh();
             }
         }
 
