@@ -149,97 +149,99 @@
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
     <div class="form-shell reveal">
-        <h1><i class="fas fa-calendar-plus"></i> Yangi tadbir</h1>
-        <p>Tadbiringizni qo'shing — jamoamiz tasdiqlagandan so'ng u barchaga ko'rinadi.</p>
+        <h1><i class="fas fa-calendar-plus"></i> <span data-i18n="evform.title_new">Yangi tadbir</span></h1>
+        <p data-i18n="evform.sub">Tadbiringizni qo'shing — jamoamiz tasdiqlagandan so'ng u barchaga ko'rinadi.</p>
 
         <div class="approval-note">
             <i class="fas fa-circle-info"></i>
-            <span>Har bir tadbir e'lon qilinishidan oldin ko'rib chiqiladi. Odatda bu tez orada amalga oshadi.</span>
+            <span data-i18n="evform.approval">Har bir tadbir e'lon qilinishidan oldin ko'rib chiqiladi. Odatda bu tez orada amalga oshadi.</span>
         </div>
 
         <form id="eventForm">
             <div class="form-section card">
-                <div class="form-section-title"><i class="fas fa-circle-info"></i> Asosiy ma'lumot</div>
+                <div class="form-section-title"><i class="fas fa-circle-info"></i> <span data-i18n="evform.sec_basic">Asosiy ma'lumot</span></div>
                 <div class="form-field">
-                    <label for="titleInput">Tadbir nomi</label>
-                    <input type="text" id="titleInput" placeholder="Masalan: IELTS Speaking Club" required>
+                    <label for="titleInput" data-i18n="evform.title_label">Tadbir nomi</label>
+                    <input type="text" id="titleInput" placeholder="Masalan: IELTS Speaking Club" required data-i18n-placeholder="evform.title_placeholder">
                 </div>
                 <div class="form-field">
-                    <label for="categorySelect">Kategoriya</label>
+                    <label for="categorySelect" data-i18n="communities.category_label">Kategoriya</label>
                     <select id="categorySelect">
-                        <option value="IELTS">IELTS</option>
-                        <option value="IT">IT / Dasturlash</option>
-                        <option value="Startup">Startup</option>
-                        <option value="Sport">Sport</option>
-                        <option value="Volontyorlik">Volontyorlik</option>
-                        <option value="Boshqa">Boshqa</option>
+                        <option value="IELTS" data-i18n="search.cat_ielts">IELTS</option>
+                        <option value="IT" data-i18n="search.cat_it">IT / Dasturlash</option>
+                        <option value="Startup" data-i18n="search.cat_startup">Startup</option>
+                        <option value="Sport" data-i18n="search.cat_sport">Sport</option>
+                        <option value="Volontyorlik" data-i18n="nav.volunteer">Volontyorlik</option>
+                        <option value="Boshqa" data-i18n="events.cat_other">Boshqa</option>
                     </select>
                 </div>
                 <div class="form-field">
-                    <label for="descInput">Tavsif</label>
-                    <textarea id="descInput" rows="4" placeholder="Tadbir haqida qisqacha ma'lumot"></textarea>
+                    <label for="descInput" data-i18n="evform.desc_label">Tavsif</label>
+                    <textarea id="descInput" rows="4" placeholder="Tadbir haqida qisqacha ma'lumot" data-i18n-placeholder="evform.desc_placeholder"></textarea>
                 </div>
             </div>
 
             <div class="form-section card">
-                <div class="form-section-title"><i class="fas fa-location-dot"></i> Joylashuv va vaqt</div>
+                <div class="form-section-title"><i class="fas fa-location-dot"></i> <span data-i18n="evform.sec_place">Joylashuv va vaqt</span></div>
                 <div class="form-field">
-                    <label>Format</label>
+                    <label data-i18n="evform.format">Format</label>
                     <div class="mode-toggle">
-                        <button type="button" class="mode-btn active" data-mode="in_person"><i class="fas fa-location-dot"></i> Yuzma-yuz</button>
-                        <button type="button" class="mode-btn" data-mode="online"><i class="fas fa-video"></i> Onlayn</button>
+                        <button type="button" class="mode-btn active" data-mode="in_person"><i class="fas fa-location-dot"></i> <span data-i18n="evform.in_person">Yuzma-yuz</span></button>
+                        <button type="button" class="mode-btn" data-mode="online"><i class="fas fa-video"></i> <span data-i18n="vol.online">Onlayn</span></button>
                     </div>
                 </div>
                 <div class="form-field" id="locationField">
-                    <label for="locationInput">Manzil</label>
-                    <input type="text" id="locationInput" placeholder="Masalan: Toshkent, Amir Temur ko'chasi 1">
+                    <label for="locationInput" data-i18n="evform.address">Manzil</label>
+                    <input type="text" id="locationInput" placeholder="Masalan: Toshkent, Amir Temur ko'chasi 1" data-i18n-placeholder="evform.address_placeholder">
                     <div class="map-preview-wrap" id="mapPreviewWrap" style="display:none;">
                         <iframe id="mapPreviewFrame" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
                     </div>
                 </div>
                 <div class="form-field">
-                    <label for="dateInput">Sana va vaqt</label>
+                    <label for="dateInput" data-i18n="evform.datetime">Sana va vaqt</label>
                     <input type="datetime-local" id="dateInput" required>
                 </div>
                 <div class="form-field">
-                    <label for="capacityInput">Maksimal qatnashuvchilar (ixtiyoriy)</label>
-                    <input type="number" id="capacityInput" min="1" placeholder="Cheklov yo'q">
+                    <label for="capacityInput" data-i18n="evform.capacity">Maksimal qatnashuvchilar (ixtiyoriy)</label>
+                    <input type="number" id="capacityInput" min="1" placeholder="Cheklov yo'q" data-i18n-placeholder="evform.no_limit">
                 </div>
             </div>
 
             <div class="form-section card">
-                <div class="form-section-title"><i class="fas fa-link"></i> Qo'shimcha havolalar (ixtiyoriy)</div>
+                <div class="form-section-title"><i class="fas fa-link"></i> <span data-i18n="evform.sec_links">Qo'shimcha havolalar (ixtiyoriy)</span></div>
                 <div class="form-field">
-                    <label for="socialLinkInput">Ijtimoiy tarmoq havolasi</label>
+                    <label for="socialLinkInput" data-i18n="evform.social_link">Ijtimoiy tarmoq havolasi</label>
                     <input type="url" id="socialLinkInput" placeholder="https://t.me/... yoki https://instagram.com/...">
                 </div>
                 <div class="form-field">
-                    <label for="mapLinkInput">Google Maps havolasi</label>
+                    <label for="mapLinkInput" data-i18n="evform.map_link">Google Maps havolasi</label>
                     <input type="url" id="mapLinkInput" placeholder="https://maps.app.goo.gl/... yoki https://goo.gl/maps/...">
                 </div>
                 <div class="form-field">
-                    <label for="planLinkInput">Tadbir rejasi havolasi</label>
-                    <input type="url" id="planLinkInput" placeholder="Reja/dastur hujjatiga havola">
+                    <label for="planLinkInput" data-i18n="evform.plan_link">Tadbir rejasi havolasi</label>
+                    <input type="url" id="planLinkInput" placeholder="Reja/dastur hujjatiga havola" data-i18n-placeholder="evform.plan_placeholder">
                 </div>
             </div>
 
             <div class="form-section card">
-                <div class="form-section-title"><i class="fas fa-list-check"></i> Ro'yxatdan o'tish savollari <span style="font-weight:400; color:var(--color-text-muted); font-size:0.82rem;">(ixtiyoriy, tavsiya etiladi)</span></div>
-                <p style="color:var(--color-text-muted); font-size:0.85rem; margin-bottom:0.8rem;">Ko'pchilik faqat taxallus qoldiradi — masalan "To'liq ism sharifingiz" yoki "Maktabingiz" kabi savol qo'shsangiz, kim kelishini aniq bilasiz.</p>
+                <div class="form-section-title"><i class="fas fa-list-check"></i> <span data-i18n="evform.sec_questions">Ro'yxatdan o'tish savollari</span> <span style="font-weight:400; color:var(--color-text-muted); font-size:0.82rem;" data-i18n="evform.questions_hint">(ixtiyoriy, tavsiya etiladi)</span></div>
+                <p style="color:var(--color-text-muted); font-size:0.85rem; margin-bottom:0.8rem;" data-i18n="evform.questions_desc">Ko'pchilik faqat taxallus qoldiradi — masalan "To'liq ism sharifingiz" yoki "Maktabingiz" kabi savol qo'shsangiz, kim kelishini aniq bilasiz.</p>
                 <div id="questionsList"></div>
-                <button type="button" class="btn btn-outline btn-zoom" id="addQuestionBtn" style="margin-top:0.5rem;"><i class="fas fa-plus"></i> Savol qo'shish</button>
+                <button type="button" class="btn btn-outline btn-zoom" id="addQuestionBtn" style="margin-top:0.5rem;"><i class="fas fa-plus"></i> <span data-i18n="evform.add_question">Savol qo'shish</span></button>
             </div>
 
             <button type="submit" class="gradient-submit">
-                <i class="fas fa-paper-plane"></i> Ko'rib chiqishga yuborish
+                <i class="fas fa-paper-plane"></i> <span data-i18n="evform.submit_review">Ko'rib chiqishga yuborish</span>
             </button>
             <div class="submit-status" id="submitStatus"></div>
         </form>
     </div>
 
-    <footer>BirMillat – qiziqishlar asosida do'stlar toping. · <a href="/privacy" style="color:inherit;">Maxfiylik siyosati</a><br><span style="opacity:0.8;">Founder — Bekhruz Ravshanov</span></footer>
+    <footer><span data-i18n="footer.tagline">BirMillat – qiziqishlar asosida do'stlar toping.</span> · <a href="/privacy" style="color:inherit;" data-i18n="foot.privacy">Maxfiylik siyosati</a><br><span style="opacity:0.8;" data-i18n-html="foot.founder">Founder — Bekhruz Ravshanov</span></footer>
 
     <script>
+        const tr = (k, fb) => window.BirMillatI18n ? window.BirMillatI18n.t(k, {}, fb) : fb;
+        const rf = () => { if (window.BirMillatI18n) window.BirMillatI18n.refresh(); };
         let selectedMode = 'in_person';
 
         async function loadMe() {
@@ -260,12 +262,12 @@
                 const locationLabel = locationField.querySelector('label');
                 const locationInput = document.getElementById('locationInput');
                 if (selectedMode === 'online') {
-                    locationLabel.textContent = 'Onlayn havola';
-                    locationInput.placeholder = 'Masalan: Zoom/Google Meet havolasi';
+                    locationLabel.setAttribute('data-i18n', 'evform.online_link'); locationLabel.textContent = 'Onlayn havola';
+                    locationInput.setAttribute('data-i18n-placeholder', 'evform.online_placeholder'); locationInput.placeholder = 'Masalan: Zoom/Google Meet havolasi'; rf();
                     document.getElementById('mapPreviewWrap').style.display = 'none';
                 } else {
-                    locationLabel.textContent = 'Manzil';
-                    locationInput.placeholder = "Masalan: Toshkent, Amir Temur ko'chasi 1";
+                    locationLabel.setAttribute('data-i18n', 'evform.address'); locationLabel.textContent = 'Manzil';
+                    locationInput.setAttribute('data-i18n-placeholder', 'evform.address_placeholder'); locationInput.placeholder = "Masalan: Toshkent, Amir Temur ko'chasi 1"; rf();
                     updateMapPreview();
                 }
             });
@@ -296,17 +298,18 @@
             row.className = 'question-row';
             row.dataset.rowId = rowId;
             row.innerHTML = `
-                <input type="text" maxlength="120" placeholder="Masalan: To'liq ism sharifingiz" value="${label.replace(/"/g, '&quot;')}">
-                <label><input type="checkbox" ${required ? 'checked' : ''}> Majburiy</label>
+                <input type="text" maxlength="120" placeholder="Masalan: To'liq ism sharifingiz" data-i18n-placeholder="evform.q_placeholder" value="${label.replace(/"/g, '&quot;')}">
+                <label><input type="checkbox" ${required ? 'checked' : ''}> <span data-i18n="evform.required">Majburiy</span></label>
                 <button type="button" class="question-remove-btn" aria-label="O'chirish"><i class="fas fa-xmark"></i></button>
             `;
             row.querySelector('.question-remove-btn').addEventListener('click', () => row.remove());
             list.appendChild(row);
+            rf();
         }
 
         document.getElementById('addQuestionBtn').addEventListener('click', () => {
             if (document.querySelectorAll('.question-row').length >= 10) {
-                alert("Ko'pi bilan 10 ta savol qo'shishingiz mumkin");
+                alert(tr('evform.max_questions', "Ko'pi bilan 10 ta savol qo'shishingiz mumkin"));
                 return;
             }
             addQuestionRow();
@@ -335,12 +338,12 @@
 
             const registrationQuestions = collectQuestions();
             if (registrationQuestions === null) {
-                statusEl.textContent = "Savollarning barchasi to'ldirilishi kerak";
+                statusEl.textContent = tr('evform.fill_questions', "Savollarning barchasi to'ldirilishi kerak");
                 statusEl.className = 'submit-status error';
                 return;
             }
 
-            statusEl.textContent = 'Yuborilmoqda...';
+            statusEl.textContent = tr('contact.sending', 'Yuborilmoqda...');
             statusEl.className = 'submit-status';
 
             try {
@@ -364,12 +367,12 @@
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error || 'Server error');
 
-                statusEl.textContent = "Tadbiringiz ko'rib chiqish uchun yuborildi! Tasdiqlangach, /tadbirlar bo'limida ko'rinadi.";
+                statusEl.textContent = tr('evform.submitted', "Tadbiringiz ko'rib chiqish uchun yuborildi! Tasdiqlangach, /tadbirlar bo'limida ko'rinadi.");
                 statusEl.className = 'submit-status success';
                 document.getElementById('eventForm').reset();
             } catch (err) {
                 console.error('Event submit failed:', err);
-                statusEl.textContent = err.message || "Xatolik yuz berdi. Qaytadan urinib ko'ring.";
+                statusEl.textContent = err.message || tr('contact.error', "Xatolik yuz berdi. Qaytadan urinib ko'ring.");
                 statusEl.className = 'submit-status error';
             }
         });
