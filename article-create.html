@@ -129,28 +129,29 @@ body { font-family: 'Inter', sans-serif; }
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
     <form class="compose-shell reveal" id="articleForm">
-        <div class="compose-eyebrow"><i class="fas fa-pen-nib"></i> Yangi maqola</div>
+        <div class="compose-eyebrow"><i class="fas fa-pen-nib"></i> <span data-i18n="artform.eyebrow">Yangi maqola</span></div>
 
         <div class="rules-note">
             <i class="fas fa-circle-info"></i>
-            <span>Nusxa ko'chirilgan yoki noqonuniy kontent shikoyat qilinishi mumkin. Qoidabuzarlik uchun ogohlantirish beriladi — 3 marta ogohlantirilgan hisoblar bloklanadi.</span>
+            <span data-i18n="artform.rules">Nusxa ko'chirilgan yoki noqonuniy kontent shikoyat qilinishi mumkin. Qoidabuzarlik uchun ogohlantirish beriladi — 3 marta ogohlantirilgan hisoblar bloklanadi.</span>
         </div>
 
-        <input type="text" id="titleInput" placeholder="Sarlavha yozing..." required autocomplete="off">
-        <textarea id="contentInput" placeholder="Fikringizni shu yerdan boshlang..." required></textarea>
+        <input type="text" id="titleInput" placeholder="Sarlavha yozing..." required autocomplete="off" data-i18n-placeholder="artform.title_placeholder">
+        <textarea id="contentInput" placeholder="Fikringizni shu yerdan boshlang..." required data-i18n-placeholder="artform.body_placeholder"></textarea>
     </form>
 
     <div class="publish-bar">
         <div class="publish-bar-inner">
-            <span class="word-count" id="wordCount"><i class="fas fa-align-left"></i> 0 so'z</span>
+            <span class="word-count" id="wordCount"><i class="fas fa-align-left"></i> <span id="wcNum">0</span> <span data-i18n="artform.words">so'z</span></span>
             <button type="submit" form="articleForm" class="publish-btn" id="publishBtn">
-                <i class="fas fa-paper-plane"></i> E'lon qilish
+                <i class="fas fa-paper-plane"></i> <span data-i18n="artform.publish">E'lon qilish</span>
             </button>
         </div>
     </div>
     <div class="submit-status" id="submitStatus" style="position:fixed; bottom:4.4rem; left:0; right:0;"></div>
 
     <script>
+        const tr = (k, fb) => window.BirMillatI18n ? window.BirMillatI18n.t(k, {}, fb) : fb;
         async function loadMe() {
             try {
                 const res = await fetch('/api/me');
@@ -164,7 +165,7 @@ body { font-family: 'Inter', sans-serif; }
         const wordCountEl = document.getElementById('wordCount');
         function updateWordCount() {
             const words = contentInput.value.trim().split(/\s+/).filter(Boolean).length;
-            wordCountEl.innerHTML = `<i class="fas fa-align-left"></i> ${words} so'z`;
+            document.getElementById('wcNum').textContent = words;
         }
         contentInput.addEventListener('input', updateWordCount);
 
@@ -178,7 +179,7 @@ body { font-family: 'Inter', sans-serif; }
             if (!title || !content) return;
 
             publishBtn.disabled = true;
-            statusEl.textContent = 'Yuborilmoqda...';
+            statusEl.textContent = tr('contact.sending', 'Yuborilmoqda...');
             statusEl.className = 'submit-status';
 
             try {
@@ -193,7 +194,7 @@ body { font-family: 'Inter', sans-serif; }
                 window.location.href = `/articles/${data.id}`;
             } catch (err) {
                 console.error('Article submit failed:', err);
-                statusEl.textContent = err.message || "Xatolik yuz berdi. Qaytadan urinib ko'ring.";
+                statusEl.textContent = err.message || tr('contact.error', "Xatolik yuz berdi. Qaytadan urinib ko'ring.");
                 statusEl.className = 'submit-status error';
                 publishBtn.disabled = false;
             }
