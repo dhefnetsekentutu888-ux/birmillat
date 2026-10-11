@@ -79,10 +79,10 @@ body { font-family: 'Inter', sans-serif; }
         <button class="nav-toggle" id="navToggle" aria-label="Menyu"><i class="fas fa-bars"></i></button>
         <div class="nav-links" id="navLinks">
             <button class="sidebar-close" id="sidebarClose" aria-label="Yopish"><i class="fas fa-xmark"></i></button>
-            <a href="/home"><i class="fas fa-house"></i> Bosh sahifa</a>
-            <a href="/events" class="active"><i class="fas fa-calendar-days"></i> Tadbirlar</a>
-            <a href="/profile"><i class="fas fa-user"></i> Profil</a>
-            <a href="/logout"><i class="fas fa-right-from-bracket"></i> Chiqish</a>
+            <a href="/home"><i class="fas fa-house"></i> <span data-i18n="nav.home">Bosh sahifa</span></a>
+            <a href="/events" class="active"><i class="fas fa-calendar-days"></i> <span data-i18n="nav.events">Tadbirlar</span></a>
+            <a href="/profile"><i class="fas fa-user"></i> <span data-i18n="nav.profile">Profil</span></a>
+            <a href="/logout"><i class="fas fa-right-from-bracket"></i> <span data-i18n="nav.logout">Chiqish</span></a>
         </div>
         <a class="user-badge" id="userBadge" href="/profile"><img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ...</a>
         <div class="lang-switcher">
@@ -99,10 +99,12 @@ body { font-family: 'Inter', sans-serif; }
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
     <div class="scan-shell reveal" id="scanRoot">
-        <p style="color:var(--color-text-muted); text-align:center; padding:3rem 0;">Yuklanmoqda...</p>
+        <p style="color:var(--color-text-muted); text-align:center; padding:3rem 0;" data-i18n="vol.loading">Yuklanmoqda...</p>
     </div>
 
     <script>
+        const tr = (k, fb) => window.BirMillatI18n ? window.BirMillatI18n.t(k, {}, fb) : fb;
+        const rf = () => { if (window.BirMillatI18n) window.BirMillatI18n.refresh(); };
         function getEventId() {
             const parts = window.location.pathname.split('/').filter(Boolean);
             return parts[1]; // /events/:id/scan
@@ -135,7 +137,7 @@ body { font-family: 'Inter', sans-serif; }
                 <i class="fas ${iconClass} scan-result-icon"></i>
                 <div class="scan-result-name">${name}</div>
                 <div class="scan-result-sub">${sub}</div>
-                <button class="scan-again-btn" id="scanAgainBtn">Yana skanerlash</button>
+                <button class="scan-again-btn" id="scanAgainBtn">${tr('scan.again', 'Yana skanerlash')}</button>
             `;
             document.getElementById('scanAgainBtn').addEventListener('click', () => {
                 el.classList.remove('show');
@@ -150,17 +152,17 @@ body { font-family: 'Inter', sans-serif; }
                 const res = await fetch(`/api/checkin/${token}`, { method: 'POST' });
                 const data = await res.json();
                 if (!res.ok) {
-                    showResult('err', 'fa-circle-xmark', "Chipta yaroqsiz", data.error || "Bu chipta topilmadi yoki noto'g'ri");
+                    showResult('err', 'fa-circle-xmark', tr('scan.invalid', "Chipta yaroqsiz"), data.error || tr('scan.invalid_sub', "Bu chipta topilmadi yoki noto'g'ri"));
                     return;
                 }
                 const name = data.attendee.name || data.attendee.username;
                 if (data.alreadyUsed) {
-                    showResult('warn', 'fa-triangle-exclamation', `@${data.attendee.username}`, `${name} — allaqachon kirgan`);
+                    showResult('warn', 'fa-triangle-exclamation', `@${data.attendee.username}`, `${name} — ${tr('scan.already', 'allaqachon kirgan')}`);
                 } else {
-                    showResult('ok', 'fa-circle-check', `@${data.attendee.username}`, `${name} — kirishga ruxsat berildi`);
+                    showResult('ok', 'fa-circle-check', `@${data.attendee.username}`, `${name} — ${tr('scan.allowed', 'kirishga ruxsat berildi')}`);
                 }
             } catch (e) {
-                showResult('err', 'fa-circle-xmark', 'Xatolik', "Tekshirib bo'lmadi. Qaytadan urinib ko'ring.");
+                showResult('err', 'fa-circle-xmark', tr('scan.error', 'Xatolik'), tr('scan.check_failed', "Tekshirib bo'lmadi. Qaytadan urinib ko'ring."));
             }
         }
 
@@ -178,7 +180,7 @@ body { font-family: 'Inter', sans-serif; }
                 document.getElementById('qrReaderWrap').innerHTML = `
                     <div class="denied-note">
                         <i class="fas fa-camera" style="font-size:2rem; display:block; margin-bottom:0.8rem; color:var(--color-border);"></i>
-                        Kameraga ruxsat berilmadi. Brauzer sozlamalaridan ruxsat bering yoki quyida qo'lda kod kiriting.
+                        ${tr('scan.camera_denied', "Kameraga ruxsat berilmadi. Brauzer sozlamalaridan ruxsat bering yoki quyida qo'lda kod kiriting.")}
                     </div>`;
             });
         }
@@ -190,30 +192,31 @@ body { font-family: 'Inter', sans-serif; }
 
             try {
                 const res = await fetch(`/api/events/${eventId}`);
-                if (!res.ok) { root.innerHTML = `<div class="denied-note">Tadbir topilmadi.</div>`; return; }
+                if (!res.ok) { root.innerHTML = `<div class="denied-note" data-i18n="scan.event_not_found">Tadbir topilmadi.</div>`; rf(); return; }
                 const event = await res.json();
 
                 if (!event.isManager) {
-                    root.innerHTML = `<div class="denied-note"><i class="fas fa-lock" style="font-size:2rem; display:block; margin-bottom:0.8rem; color:var(--color-border);"></i>Bu sahifa faqat tadbir tashkilotchilari uchun.</div>`;
+                    root.innerHTML = `<div class="denied-note"><i class="fas fa-lock" style="font-size:2rem; display:block; margin-bottom:0.8rem; color:var(--color-border);"></i><span data-i18n="scan.managers_only">Bu sahifa faqat tadbir tashkilotchilari uchun.</span></div>`;
+                    rf();
                     return;
                 }
 
                 root.innerHTML = `
                     <a href="/events/${event.id}" class="back-link"><i class="fas fa-arrow-left"></i> ${event.title}</a>
                     <div class="scan-head">
-                        <h1><i class="fas fa-qrcode" style="color:var(--color-accent);"></i> Chiptalarni skanerlash</h1>
-                        <p>Kamerani ishtirokchining QR koddiga qarating</p>
+                        <h1><i class="fas fa-qrcode" style="color:var(--color-accent);"></i> <span data-i18n="scan.title">Chiptalarni skanerlash</span></h1>
+                        <p data-i18n="scan.sub">Kamerani ishtirokchining QR koddiga qarating</p>
                     </div>
                     <div class="reader-card card" id="qrReaderWrap">
                         <div id="qrReader"></div>
                     </div>
                     <div class="scan-result" id="scanResult"></div>
                     <div class="manual-toggle">
-                        <button id="manualToggleBtn">Kamera ishlamayaptimi? Qo'lda kiriting</button>
+                        <button id="manualToggleBtn" data-i18n="scan.manual_toggle">Kamera ishlamayaptimi? Qo'lda kiriting</button>
                     </div>
                     <div class="manual-entry" id="manualEntry">
-                        <input type="text" id="manualTokenInput" placeholder="Chipta kodi">
-                        <button id="manualSubmitBtn">Tekshirish</button>
+                        <input type="text" id="manualTokenInput" placeholder="Chipta kodi" data-i18n-placeholder="scan.token_placeholder">
+                        <button id="manualSubmitBtn" data-i18n="scan.check">Tekshirish</button>
                     </div>
                 `;
 
@@ -225,14 +228,15 @@ body { font-family: 'Inter', sans-serif; }
                     if (val) processToken(extractToken(val));
                 });
 
+                rf();
                 initScanner();
             } catch (e) {
                 console.error('Scanner init failed:', e);
-                root.innerHTML = `<div class="denied-note">Yuklab bo'lmadi. Sahifani qaytadan yuklang.</div>`;
+                root.innerHTML = `<div class="denied-note" data-i18n="vol.load_error">Yuklab bo'lmadi. Sahifani qaytadan yuklang.</div>`; rf();
             }
         }
 
         init();
     </script>
 </body>
-</html>v
+</html>
