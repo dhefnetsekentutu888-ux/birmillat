@@ -2020,19 +2020,23 @@ async function deleteCommunityCascade(communityId) {
 }
 
 async function getCommunityMessages(communityId, limit = 100) {
+    // The NEWEST `limit` messages, returned oldest-first for display. (Previously
+    // this took the oldest ones, so busy communities stopped showing new messages.)
     const result = await db.execute({
-        sql: `SELECT
-                  m.*, users.username, users.name, users.photo_url,
-                  reply.content AS reply_content,
-                  reply_user.username AS reply_username,
-                  reply_user.name AS reply_name
-              FROM community_messages m
-              JOIN users ON users.id = m.sender_id
-              LEFT JOIN community_messages reply ON reply.id = m.reply_to_id
-              LEFT JOIN users reply_user ON reply_user.id = reply.sender_id
-              WHERE m.community_id = ?
-              ORDER BY m.created_at ASC
-              LIMIT ?`,
+        sql: `SELECT * FROM (
+                  SELECT
+                      m.*, users.username, users.name, users.photo_url,
+                      reply.content AS reply_content,
+                      reply_user.username AS reply_username,
+                      reply_user.name AS reply_name
+                  FROM community_messages m
+                  JOIN users ON users.id = m.sender_id
+                  LEFT JOIN community_messages reply ON reply.id = m.reply_to_id
+                  LEFT JOIN users reply_user ON reply_user.id = reply.sender_id
+                  WHERE m.community_id = ?
+                  ORDER BY m.created_at DESC, m.id DESC
+                  LIMIT ?
+              ) ORDER BY created_at ASC, id ASC`,
         args: [communityId, limit]
     });
     return result.rows;
