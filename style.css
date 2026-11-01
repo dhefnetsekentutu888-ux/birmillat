@@ -1040,3 +1040,13 @@ footer {
   }
   .navbar .logo svg > g > g { transition: none !important; }
 }
+
+/* ===== Brand: keep the logo and the profile-badge icon visible on dark backgrounds =====
+   The logo SVG is inline with hard-coded indigo (#2D1B69), which disappears on the dark
+   theme. Re-color it from the theme token instead (identical on light, lavender on dark). */
+.navbar .logo svg text { fill: var(--color-primary); }
+.navbar .logo svg [stroke="#2D1B69"] { stroke: var(--color-primary); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .user-badge img { filter: brightness(0) invert(1); opacity: 0.85; }
+}
+:root[data-theme="dark"] .user-badge img { filter: brightness(0) invert(1); opacity: 0.85; }
