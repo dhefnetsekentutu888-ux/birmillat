@@ -503,6 +503,8 @@ async function initDb() {
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_messages_pair ON messages (sender_id, receiver_id)`);
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_messages_pair2 ON messages (receiver_id, sender_id)`);
     try { await db.execute(`ALTER TABLE messages ADD COLUMN is_deleted INTEGER DEFAULT 0`); } catch (e) {}
+    // Which earlier message this one replies to (NULL = a normal message)
+    try { await db.execute(`ALTER TABLE messages ADD COLUMN reply_to_id INTEGER`); } catch (e) {}
     try { await db.execute(`ALTER TABLE community_messages ADD COLUMN is_deleted INTEGER DEFAULT 0`); } catch (e) {}
 
     // Moderation: counts how many articles this user has had removed for
@@ -1160,23 +1162,31 @@ async function getUsersByCategory(currentUsername, category) {
     return result.rows;
 }
 
-async function saveMessage(senderId, receiverId, content) {
+async function saveMessage(senderId, receiverId, content, replyToId = null) {
     const createdAt = Date.now();
     const result = await db.execute({
-        sql: `INSERT INTO messages (sender_id, receiver_id, content, created_at, is_read)
-              VALUES (?, ?, ?, ?, 0)`,
-        args: [senderId, receiverId, content, createdAt]
+        sql: `INSERT INTO messages (sender_id, receiver_id, content, created_at, is_read, reply_to_id)
+              VALUES (?, ?, ?, ?, 0, ?)`,
+        args: [senderId, receiverId, content, createdAt, replyToId]
     });
-    return { id: Number(result.lastInsertRowid), senderId, receiverId, content, createdAt };
+    return { id: Number(result.lastInsertRowid), senderId, receiverId, content, createdAt, replyToId };
 }
 
 async function getConversation(userIdA, userIdB) {
+    // The NEWEST 200 messages, returned oldest-first for display. (Previously
+    // this took the oldest 200, so long chats stopped showing new messages.)
+    // The LEFT JOIN pulls in the quoted message for replies.
     const result = await db.execute({
-        sql: `SELECT id, sender_id, receiver_id, content, created_at, is_read, is_deleted
-              FROM messages
-              WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?)
-              ORDER BY created_at ASC
-              LIMIT 200`,
+        sql: `SELECT * FROM (
+                  SELECT m.id, m.sender_id, m.receiver_id, m.content, m.created_at, m.is_read, m.is_deleted,
+                         m.reply_to_id,
+                         r.content AS reply_content, r.sender_id AS reply_sender_id, r.is_deleted AS reply_is_deleted
+                  FROM messages m
+                  LEFT JOIN messages r ON r.id = m.reply_to_id
+                  WHERE (m.sender_id = ? AND m.receiver_id = ?) OR (m.sender_id = ? AND m.receiver_id = ?)
+                  ORDER BY m.created_at DESC, m.id DESC
+                  LIMIT 200
+              ) ORDER BY created_at ASC, id ASC`,
         args: [userIdA, userIdB, userIdB, userIdA]
     });
     return result.rows;
@@ -1194,12 +1204,16 @@ async function deleteMessage(id, requesterId) {
 }
 
 async function getConversationList(userId) {
-    // Latest message per counterpart, newest conversations first
+    // Latest message per counterpart, newest conversations first, plus how many
+    // of their messages are still unread by this user.
     const result = await db.execute({
         sql: `
-            SELECT u.username, u.name,
+            SELECT u.id AS other_id, u.username, u.name, u.photo_url,
                    m.content AS last_message, m.created_at AS last_time,
-                   m.sender_id AS last_sender_id
+                   m.sender_id AS last_sender_id, m.is_deleted AS last_is_deleted,
+                   (SELECT COUNT(*) FROM messages x
+                     WHERE x.sender_id = latest.other_id AND x.receiver_id = ?
+                       AND COALESCE(x.is_read, 0) = 0 AND COALESCE(x.is_deleted, 0) = 0) AS unread
             FROM (
                 SELECT
                     CASE WHEN sender_id = ? THEN receiver_id ELSE sender_id END AS other_id,
@@ -1216,16 +1230,18 @@ async function getConversationList(userId) {
             JOIN users u ON u.id = latest.other_id
             ORDER BY m.created_at DESC
         `,
-        args: [userId, userId, userId, userId, userId]
+        args: [userId, userId, userId, userId, userId, userId]
     });
     return result.rows;
 }
 
+// Returns how many messages were newly marked as read.
 async function markMessagesRead(senderId, receiverId) {
-    await db.execute({
-        sql: `UPDATE messages SET is_read = 1 WHERE sender_id = ? AND receiver_id = ? AND is_read = 0`,
+    const result = await db.execute({
+        sql: `UPDATE messages SET is_read = 1 WHERE sender_id = ? AND receiver_id = ? AND COALESCE(is_read, 0) = 0`,
         args: [senderId, receiverId]
     });
+    return result.rowsAffected || 0;
 }
 
 // ---------- Articles ("Maqolalar") ----------
@@ -4122,7 +4138,18 @@ app.get('/api/conversations', async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
     try {
         const list = await getConversationList(req.session.userId);
-        res.json(list);
+        res.json(list.map(r => ({
+            username: r.username,
+            name: r.name,
+            photoUrl: r.photo_url || null,
+            last_message: r.last_message,
+            last_time: r.last_time,
+            last_sender_id: r.last_sender_id,
+            lastIsMine: r.last_sender_id === req.session.userId,
+            lastIsDeleted: !!r.last_is_deleted,
+            unread: Number(r.unread) || 0,
+            online: onlineUsers.has(Number(r.other_id))
+        })));
     } catch (err) {
         console.error('api/conversations error:', err);
         res.status(500).json({ error: 'Server error' });
@@ -4136,17 +4163,37 @@ app.get('/api/messages/:username', async (req, res) => {
         if (!otherUser) return res.status(404).json({ error: 'Foydalanuvchi topilmadi' });
 
         const rows = await getConversation(req.session.userId, otherUser.id);
-        await markMessagesRead(otherUser.id, req.session.userId);
+        const newlyRead = await markMessagesRead(otherUser.id, req.session.userId);
+        if (newlyRead > 0) {
+            // Let the other person's open chat turn its ticks into "read"
+            const otherSockets = onlineUsers.get(Number(otherUser.id));
+            if (otherSockets) {
+                const me = await getUserById(req.session.userId);
+                if (me) otherSockets.forEach(sid => io.to(sid).emit('messages_read', { byUsername: me.username }));
+            }
+        }
 
         res.json({
-            otherUser: { username: otherUser.username, name: otherUser.name },
+            otherUser: {
+                username: otherUser.username,
+                name: otherUser.name,
+                photoUrl: otherUser.photo_url || null,
+                online: onlineUsers.has(Number(otherUser.id))
+            },
             messages: rows.map(m => ({
                 id: m.id,
                 senderId: m.sender_id,
                 content: m.content,
                 createdAt: m.created_at,
                 isMine: m.sender_id === req.session.userId,
-                isDeleted: !!m.is_deleted
+                isDeleted: !!m.is_deleted,
+                isRead: !!m.is_read,
+                replyTo: m.reply_to_id ? {
+                    id: m.reply_to_id,
+                    senderId: m.reply_sender_id,
+                    content: m.reply_is_deleted ? '' : (m.reply_content || ''),
+                    isDeleted: !!m.reply_is_deleted || m.reply_content == null
+                } : null
             }))
         });
     } catch (err) {
@@ -6303,12 +6350,28 @@ io.on('connection', (socket) => {
     if (!onlineUsers.has(userId)) onlineUsers.set(userId, new Set());
     onlineUsers.get(userId).add(socket.id);
 
+    // This user's own username/name, looked up once per connection (the
+    // client needs it to know which chat an incoming message belongs to).
+    let myProfileCache = null;
+    async function getMyProfile() {
+        if (!myProfileCache) {
+            const me = await getUserById(userId);
+            myProfileCache = me ? { username: me.username, name: me.name } : { username: '', name: '' };
+        }
+        return myProfileCache;
+    }
+    const lastTypingSent = new Map(); // recipient username -> timestamp (rate limit)
+
     socket.on('send_message', async (data, callback) => {
         try {
-            const { toUsername, content } = data || {};
+            const { toUsername, content, replyToId } = data || {};
             const trimmed = (content || '').trim();
             if (!toUsername || !trimmed) {
                 if (callback) callback({ error: 'Xabar bo‘sh bo‘lishi mumkin emas' });
+                return;
+            }
+            if (trimmed.length > 4000) {
+                if (callback) callback({ error: 'Xabar juda uzun (4000 belgigacha)' });
                 return;
             }
             const receiver = await getUser(toUsername);
@@ -6317,13 +6380,39 @@ io.on('connection', (socket) => {
                 return;
             }
 
-            const saved = await saveMessage(userId, receiver.id, trimmed);
+            // A reply is only valid if the quoted message belongs to this same conversation
+            let validReplyId = null;
+            let replyTo = null;
+            if (replyToId) {
+                const quoted = await db.execute({
+                    sql: `SELECT id, content, sender_id, is_deleted FROM messages
+                          WHERE id = ? AND ((sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?))`,
+                    args: [replyToId, userId, receiver.id, receiver.id, userId]
+                });
+                const q = quoted.rows[0];
+                if (q) {
+                    validReplyId = Number(q.id);
+                    replyTo = {
+                        id: validReplyId,
+                        senderId: Number(q.sender_id),
+                        content: q.is_deleted ? '' : q.content,
+                        isDeleted: !!q.is_deleted
+                    };
+                }
+            }
+
+            const saved = await saveMessage(userId, receiver.id, trimmed, validReplyId);
+            const myProfile = await getMyProfile();
             const payload = {
                 id: saved.id,
                 senderId: userId,
+                senderUsername: myProfile.username,
+                senderName: myProfile.name,
                 receiverId: receiver.id,
                 content: trimmed,
-                createdAt: saved.createdAt
+                createdAt: saved.createdAt,
+                replyToId: validReplyId,
+                replyTo
             };
 
             // Deliver to receiver if they're online right now
@@ -6348,6 +6437,45 @@ io.on('connection', (socket) => {
         } catch (err) {
             console.error('send_message error:', err);
             if (callback) callback({ error: 'Server xatosi' });
+        }
+    });
+
+    // The other person opened the chat (or is looking at it) — mark their
+    // messages read and tell the sender so their ticks turn into "read".
+    socket.on('mark_read', async (data) => {
+        try {
+            const { withUsername } = data || {};
+            if (!withUsername || typeof withUsername !== 'string') return;
+            const other = await getUser(withUsername);
+            if (!other) return;
+            const changed = await markMessagesRead(other.id, userId);
+            if (changed > 0) {
+                const myProfile = await getMyProfile();
+                const otherSockets = onlineUsers.get(Number(other.id));
+                if (otherSockets) otherSockets.forEach(sid => io.to(sid).emit('messages_read', { byUsername: myProfile.username }));
+            }
+        } catch (err) {
+            console.error('mark_read error:', err);
+        }
+    });
+
+    // "is typing…" — relayed live, never stored. Rate-limited per recipient.
+    socket.on('typing', async (data) => {
+        try {
+            const toUsername = data && data.toUsername;
+            if (typeof toUsername !== 'string' || !toUsername) return;
+            const now = Date.now();
+            if (now - (lastTypingSent.get(toUsername) || 0) < 1500) return;
+            if (lastTypingSent.size > 200) lastTypingSent.clear();
+            lastTypingSent.set(toUsername, now);
+            const receiver = await getUser(toUsername);
+            if (!receiver) return;
+            const receiverSockets = onlineUsers.get(Number(receiver.id));
+            if (!receiverSockets) return;
+            const myProfile = await getMyProfile();
+            receiverSockets.forEach(sid => io.to(sid).emit('typing', { fromUsername: myProfile.username }));
+        } catch (err) {
+            console.error('typing error:', err);
         }
     });
 
