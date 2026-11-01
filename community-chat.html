@@ -282,8 +282,8 @@
 
         function avatarHtml(photoUrl, name) {
             return photoUrl
-                ? `<img src="${photoUrl}" alt="">`
-                : initials(name);
+                ? `<img src="${attrEsc(photoUrl)}" alt="">`
+                : escapeHtml(initials(name));
         }
 
         function formatTime(ts) {
@@ -294,6 +294,10 @@
             const div = document.createElement('div');
             div.textContent = str;
             return div.innerHTML;
+        }
+        // For values placed inside an HTML attribute (escapeHtml leaves quotes alone)
+        function attrEsc(str) {
+            return escapeHtml(str == null ? '' : str).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
         }
 
         async function loadMe() {
@@ -325,7 +329,7 @@
             }
 
             const replyQuoteHtml = (msg.replyTo && !msg.isDeleted)
-                ? `<div class="msg-reply-quote">${msg.replyTo.senderName || msg.replyTo.senderUsername}: ${escapeHtml(msg.replyTo.content)}</div>`
+                ? `<div class="msg-reply-quote">${escapeHtml(msg.replyTo.senderName || msg.replyTo.senderUsername || '')}: ${escapeHtml(msg.replyTo.content)}</div>`
                 : '';
 
             const bubbleContent = msg.isDeleted
@@ -343,7 +347,7 @@
                     <div class="msg-avatar">${avatarHtml(msg.senderPhoto, msg.senderName || msg.senderUsername)}</div>
                 </a>
                 <div class="msg-bubble-wrap">
-                    ${!isMine ? `<a class="msg-sender-name" href="/u/${encodeURIComponent(msg.senderUsername || '')}">${msg.senderName || msg.senderUsername}</a>` : ''}
+                    ${!isMine ? `<a class="msg-sender-name" href="/u/${encodeURIComponent(msg.senderUsername || '')}">${escapeHtml(msg.senderName || msg.senderUsername || '')}</a>` : ''}
                     <div class="msg-bubble ${isMine ? 'mine' : 'theirs'} ${msg.isDeleted ? 'deleted' : ''}">${bubbleContent}<span class="msg-time">${formatTime(msg.createdAt)}</span></div>
                     ${actionsHtml}
                 </div>
@@ -440,8 +444,8 @@
                         </div>
                         ${avatarClickable ? `<input type="file" id="commImageInput" accept="image/*" style="display:none;">` : ''}
                         <div>
-                            <h2>${community.name}</h2>
-                            <button class="sub member-count-btn" id="memberCountBtn"><i class="fas fa-users"></i> ${community.memberCount} a'zo · ${community.category}</button>
+                            <h2>${escapeHtml(community.name)}</h2>
+                            <button class="sub member-count-btn" id="memberCountBtn"><i class="fas fa-users"></i> ${community.memberCount} a'zo · ${escapeHtml(community.category || '')}</button>
                         </div>
                     </div>
                     <div class="chat-messages" id="chatMessages"></div>
@@ -516,7 +520,7 @@
                 row.innerHTML = `
                     <div class="member-avatar">${avatarHtml(m.photo_url, m.name || m.username)}</div>
                     <div class="member-name">
-                        <a href="/u/${m.username}">${m.name || m.username}</a>
+                        <a href="/u/${encodeURIComponent(m.username)}">${escapeHtml(m.name || m.username)}</a>
                         ${isCreatorMember ? `<span class="role-badge creator">Egasi</span>` : (isAdminMember ? `<span class="role-badge admin">Admin</span>` : '')}
                     </div>
                     ${community.isCreator && !isCreatorMember ? `
@@ -621,7 +625,7 @@
 
         function communityAvatarHtml(imageUrl, name) {
             return imageUrl
-                ? `<img src="${imageUrl}" alt="" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`
+                ? `<img src="${attrEsc(imageUrl)}" alt="" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`
                 : `<i class="fas fa-people-group"></i>`;
         }
 
@@ -639,11 +643,11 @@
                     <div style="width:72px; height:72px; border-radius:50%; background: var(--color-bg); display:flex; align-items:center; justify-content:center; font-size:1.8rem; color:var(--color-primary); margin:0 auto 1rem;">
                         ${communityAvatarHtml(community.imageUrl, community.name)}
                     </div>
-                    <h2 style="margin-bottom:0.4rem;">${community.name}</h2>
+                    <h2 style="margin-bottom:0.4rem;">${escapeHtml(community.name)}</h2>
                     <p style="color:var(--color-text-muted); font-size:0.85rem; margin-bottom:0.8rem;">
-                        <i class="fas fa-tag"></i> ${community.category} · <i class="fas fa-users"></i> ${community.memberCount} a'zo
+                        <i class="fas fa-tag"></i> ${escapeHtml(community.category || '')} · <i class="fas fa-users"></i> ${community.memberCount} a'zo
                     </p>
-                    <p style="color:var(--color-text-muted); margin-bottom:1.4rem;">${community.description || ''}</p>
+                    <p style="color:var(--color-text-muted); margin-bottom:1.4rem;">${escapeHtml(community.description || '')}</p>
                 `;
 
                 if (community.isPreview) {
