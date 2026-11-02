@@ -511,6 +511,10 @@ async function initDb() {
     // violating rules. Reaching 3 auto-bans the account (reuses setUserBlocked,
     // same mechanism as the existing Telegram /block command).
     try { await db.execute(`ALTER TABLE users ADD COLUMN warning_count INTEGER DEFAULT 0`); } catch (e) {}
+    // Public, shareable BM ID ("#BM" + 10 digits), unique per account. Existing accounts get one on startup.
+    try { await db.execute(`ALTER TABLE users ADD COLUMN bm_id TEXT`); } catch (e) {}
+    await db.execute(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_bm_id ON users (bm_id)`);
+    await backfillBmIds();
 
     // Articles ("Maqolalar") — publish immediately, no pre-review. Quality is
     // enforced after the fact via reports: anyone can report an article, you
@@ -652,10 +656,57 @@ async function getUserByTelegramChatId(chatId) {
     return result.rows[0] || null;
 }
 
+// ---------- BM ID: "#BM" + 10 random digits, unique per account ----------
+function randomBmId() {
+    let digits = '';
+    for (let i = 0; i < 10; i++) digits += crypto.randomInt(0, 10);   // crypto-grade randomness, not guessable
+    return '#BM' + digits;
+}
+async function generateUniqueBmId() {
+    for (let i = 0; i < 25; i++) {
+        const candidate = randomBmId();
+        const taken = await db.execute({ sql: 'SELECT 1 FROM users WHERE bm_id = ?', args: [candidate] });
+        if (taken.rows.length === 0) return candidate;
+    }
+    throw new Error('Could not generate a unique BM ID');
+}
+// Gives every account that has no ID one. Safe to run on every start.
+async function backfillBmIds() {
+    const missing = await db.execute(`SELECT id FROM users WHERE bm_id IS NULL OR bm_id = ''`);
+    for (const row of missing.rows) {
+        for (let attempt = 0; attempt < 5; attempt++) {
+            try {
+                await db.execute({
+                    sql: `UPDATE users SET bm_id = ? WHERE id = ? AND (bm_id IS NULL OR bm_id = '')`,
+                    args: [await generateUniqueBmId(), row.id]
+                });
+                break;
+            } catch (e) { /* unique-index collision: try another number */ }
+        }
+    }
+    if (missing.rows.length) console.log(`BM IDs assigned to ${missing.rows.length} existing account(s)`);
+}
+// Safety net for any account that somehow still has no ID when it is viewed
+async function ensureBmId(user) {
+    if (user.bm_id) return user.bm_id;
+    await backfillBmIds();
+    const fresh = await getUserById(user.id);
+    return fresh ? fresh.bm_id : null;
+}
+// Search: "#BM4821", "bm 4821" or 4+ bare digits → the digits to look for; anything else → null
+function parseBmIdQuery(q) {
+    const s = String(q || '').trim().replace(/[\s-]/g, '');
+    const m = s.match(/^#?(bm)?(\d{1,10})$/i);
+    if (!m) return null;
+    if (!m[1] && m[2].length < 4) return null;   // short bare numbers are probably a name/interest search
+    return m[2];
+}
+
 async function createUser(username, email, phone, passwordHash, isVerified = 0) {
+    const bmId = await generateUniqueBmId();
     const result = await db.execute({
-        sql: 'INSERT INTO users (username, email, phone, password, name, is_verified) VALUES (?, ?, ?, ?, ?, ?)',
-        args: [username, email || null, phone || null, passwordHash, username, isVerified]
+        sql: 'INSERT INTO users (username, email, phone, password, name, is_verified, bm_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        args: [username, email || null, phone || null, passwordHash, username, isVerified, bmId]
     });
     return Number(result.lastInsertRowid);
 }
@@ -1141,12 +1192,18 @@ async function getAllUsersExcept(username) {
 async function searchUsers(currentUsername, query) {
     // Matches against username, name, and the raw interests JSON text (simple substring match)
     const likeQuery = `%${query}%`;
+    // If the query looks like a BM ID, also match on it (and list ID matches first)
+    const idDigits = parseBmIdQuery(query);
+    const idLike = idDigits ? `#BM${idDigits}%` : null;
     const result = await db.execute({
-        sql: `SELECT username, name, bio, interests, photo_url, birthdate, region FROM users
+        sql: `SELECT username, name, bio, interests, photo_url, birthdate, region, bm_id FROM users
               WHERE username != ?
-              AND (username LIKE ? OR name LIKE ? OR interests LIKE ?)
+              AND (username LIKE ? OR name LIKE ? OR interests LIKE ?${idLike ? ' OR bm_id LIKE ?' : ''})
+              ${idLike ? 'ORDER BY (bm_id LIKE ?) DESC, id' : ''}
               LIMIT 50`,
-        args: [currentUsername, likeQuery, likeQuery, likeQuery]
+        args: idLike
+            ? [currentUsername, likeQuery, likeQuery, likeQuery, idLike, idLike]
+            : [currentUsername, likeQuery, likeQuery, likeQuery]
     });
     return result.rows;
 }
@@ -3520,6 +3577,7 @@ app.get('/api/me', async (req, res) => {
         const badges = await getBadgesForUser(user.id);
         res.json({
             id: user.id,
+            bmId: await ensureBmId(user),
             username: user.username,
             name: user.name,
             bio: user.bio,
@@ -3972,6 +4030,7 @@ app.get('/api/search', async (req, res) => {
             rows = await getAllUsersExcept(currentUser.username);
         }
 
+        const idDigits = q ? parseBmIdQuery(q) : null;
         const results = rows.map(u => ({
             username: u.username,
             name: u.name,
@@ -3979,7 +4038,9 @@ app.get('/api/search', async (req, res) => {
             interests: JSON.parse(u.interests || '[]'),
             photoUrl: u.photo_url,
             age: calculateAge(u.birthdate),
-            region: u.region
+            region: u.region,
+            bmId: u.bm_id || null,
+            matchedById: !!(idDigits && u.bm_id && u.bm_id.startsWith('#BM' + idDigits))
         }));
         res.json(results);
     } catch (err) {
@@ -4003,6 +4064,7 @@ app.get('/api/users/:username', async (req, res) => {
 
         res.json({
             username: user.username,
+            bmId: await ensureBmId(user),
             name: user.name,
             bio: user.bio,
             interests: JSON.parse(user.interests || '[]'),
