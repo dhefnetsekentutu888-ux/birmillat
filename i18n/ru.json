@@ -92,7 +92,7 @@
   "vol.load_error": "Не удалось загрузить. Обновите страницу.",
   "search.title": "Поиск пользователей",
   "search.sub": "Ищите по имени, никнейму или интересам",
-  "search.input_placeholder": "Например: @jasur_dev или Python",
+  "search.input_placeholder": "Например: @jasur_dev, #BM1234567890 или Python",
   "search.btn": "Искать",
   "search.filter_all": "Все",
   "search.cat_it": "IT / Программирование",
@@ -327,5 +327,6 @@
   "gc.change_photo": "Изменить фото",
   "gc.del_text": "Сообщение будет удалено у всех.",
   "gc.empty_title": "Сообщений пока нет",
-  "gc.empty_text": "Напишите первое сообщение."
+  "gc.empty_text": "Напишите первое сообщение.",
+  "bm.copy_id": "Скопировать ID"
 }
