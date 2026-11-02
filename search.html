@@ -76,6 +76,24 @@ body { font-family: 'Inter', sans-serif; }
     .page-container { padding: 1.3rem 1rem 2.5rem; }
     .users-grid { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 1rem; }
 }
+
+/* ===== BM ID chip (tap/click to copy) ===== */
+.bm-id-row { margin: 0.5rem 0 0; }
+.bm-id {
+  display: inline-flex; align-items: center; gap: 0.45rem; max-width: 100%;
+  min-height: 32px; padding: 0.2rem 0.75rem 0.2rem 0.85rem;
+  border-radius: 999px; border: 1px solid var(--color-border); background: var(--color-bg);
+  color: var(--color-primary); font: 600 0.8rem/1.2 'Inter', sans-serif; letter-spacing: 0.03em;
+  font-variant-numeric: tabular-nums; cursor: pointer; user-select: none; -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent; transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
+}
+.bm-id:hover { border-color: var(--color-primary); background: var(--color-surface); }
+.bm-id:active { transform: scale(0.97); }
+.bm-id:focus-visible { outline: 2px solid var(--color-primary-light); outline-offset: 2px; }
+.bm-id.is-copied { border-color: var(--color-success); color: var(--color-success); }
+.bm-id.is-match { border-color: var(--color-accent); background: rgba(255, 107, 91, 0.10); }
+.bm-id-ico { flex: none; opacity: 0.75; }
+@media (pointer: coarse) { .bm-id { min-height: 40px; font-size: 0.88rem; } }
 </style>
 </head>
 <body>
@@ -136,7 +154,7 @@ body { font-family: 'Inter', sans-serif; }
         </div>
 
         <div class="search-bar reveal">
-            <input type="text" id="searchInput" placeholder="Masalan: @jasur_dev yoki Python" data-i18n-placeholder="search.input_placeholder">
+            <input type="text" id="searchInput" placeholder="Masalan: @jasur_dev, #BM1234567890 yoki Python" data-i18n-placeholder="search.input_placeholder">
             <button id="searchBtn" class="btn-zoom"><i class="fas fa-magnifying-glass"></i> <span data-i18n="search.btn">Qidirish</span></button>
         </div>
 
@@ -161,6 +179,7 @@ body { font-family: 'Inter', sans-serif; }
     <script>
         let activeCategory = '';
 
+        function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
         function initials(name) {
             if (!name) return '?';
             const parts = name.trim().split(/\s+/);
@@ -191,19 +210,21 @@ body { font-family: 'Inter', sans-serif; }
             grid.innerHTML = '';
             users.forEach(user => {
                 const interests = user.interests || [];
+                // Found by ID? Then the ID takes the nickname's place on the card.
+                const handle = (user.matchedById && user.bmId) ? bmIdChipHtml(user.bmId, 'is-match') : `@${esc(user.username)}`;
                 const card = document.createElement('a');
                 card.className = 'user-card card';
                 card.href = `/u/${encodeURIComponent(user.username)}`;
                 card.innerHTML = `
                     <div class="card-top">
-                        <div class="avatar">${user.photoUrl ? `<img src="${user.photoUrl}" alt="" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">` : initials(user.name || user.username)}</div>
+                        <div class="avatar">${user.photoUrl ? `<img src="${esc(user.photoUrl)}" alt="" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">` : esc(initials(user.name || user.username))}</div>
                         <div class="user-info">
-                            <h3>${user.name || user.username}</h3>
-                            <div class="username">@${user.username}</div>
+                            <h3>${esc(user.name || user.username)}</h3>
+                            <div class="username">${handle}</div>
                         </div>
                     </div>
                     <div class="common-interests">
-                        ${interests.slice(0, 3).map(t => `<span class="interest-badge">#${t}</span>`).join('')}
+                        ${interests.slice(0, 3).map(t => `<span class="interest-badge">#${esc(t)}</span>`).join('')}
                         ${interests.length > 3 ? `<span class="interest-badge">+${interests.length - 3}</span>` : ''}
                         ${interests.length === 0 ? `<span class="interest-badge" style="opacity:0.6" data-i18n="common.no_interests">Qiziqish ko'rsatilmagan</span>` : ''}
                     </div>
@@ -264,5 +285,63 @@ body { font-family: 'Inter', sans-serif; }
             runSearch();
         })();
     </script>
+<script>
+/* BM ID chip: render + one-tap copy (works inside links/cards, desktop and mobile) */
+(function () {
+    var tr = function (k, fb) { return window.BirMillatI18n ? window.BirMillatI18n.t(k, null, fb) : fb; };
+    window.bmIdChipHtml = function (id, extra) {
+        if (!id) return '';
+        var safe = String(id).replace(/[^#A-Za-z0-9]/g, '');
+        var label = tr('bm.copy_id', 'ID ni nusxalash');
+        return '<span class="bm-id' + (extra ? ' ' + extra : '') + '" role="button" tabindex="0" data-copy="' + safe + '" title="' + label + '" aria-label="' + label + ': ' + safe + '">' +
+            '<span class="bm-id-text">' + safe + '</span>' +
+            '<svg class="bm-id-ico" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></span>';
+    };
+    function legacyCopy(text) {
+        var ta = document.createElement('textarea');
+        ta.value = text; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0';
+        document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0, text.length);
+        var ok = false; try { ok = document.execCommand('copy'); } catch (e) {}
+        ta.remove(); return ok;
+    }
+    function copy(text) {
+        if (navigator.clipboard && window.isSecureContext) {
+            return navigator.clipboard.writeText(text).then(function () { return true; }, function () { return legacyCopy(text); });
+        }
+        return Promise.resolve(legacyCopy(text));
+    }
+    function selectText(el) {
+        var r = document.createRange(); r.selectNodeContents(el.querySelector('.bm-id-text') || el);
+        var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+    }
+    function onCopy(el, e) {
+        e.preventDefault(); e.stopPropagation();           // don't follow the card/link around the chip
+        var label = el.querySelector('.bm-id-text');
+        copy(el.getAttribute('data-copy')).then(function (ok) {
+            if (!ok) { selectText(el); return; }            // last resort: highlight it so the user can copy manually
+            if (!el.getAttribute('data-orig')) el.setAttribute('data-orig', label.textContent);
+            label.textContent = tr('mx.copied', 'Nusxalandi');
+            el.classList.add('is-copied');
+            clearTimeout(el._t);
+            el._t = setTimeout(function () { label.textContent = el.getAttribute('data-orig'); el.classList.remove('is-copied'); }, 1500);
+        });
+    }
+    // Refresh the tooltip / screen-reader label in the current language when the chip is approached
+    // (the chip can be drawn before the translation file has finished loading)
+    ['mouseover', 'focusin', 'touchstart'].forEach(function (ev) {
+        document.addEventListener(ev, function (e) {
+            var el = e.target.closest && e.target.closest('[data-copy]'); if (!el) return;
+            var l = tr('bm.copy_id', 'ID ni nusxalash');
+            el.title = l; el.setAttribute('aria-label', l + ': ' + el.getAttribute('data-copy'));
+        }, true);
+    });
+    document.addEventListener('click', function (e) {
+        var el = e.target.closest && e.target.closest('[data-copy]'); if (el) onCopy(el, e);
+    }, true);
+    document.addEventListener('keydown', function (e) {
+        if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('[data-copy]')) onCopy(e.target, e);
+    });
+})();
+</script>
 </body>
 </html>
