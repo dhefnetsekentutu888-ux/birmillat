@@ -92,7 +92,7 @@
   "vol.load_error": "Couldn't load. Refresh the page.",
   "search.title": "Search users",
   "search.sub": "Search by name, username, or interest",
-  "search.input_placeholder": "e.g. @jasur_dev or Python",
+  "search.input_placeholder": "e.g. @jasur_dev, #BM1234567890 or Python",
   "search.btn": "Search",
   "search.filter_all": "All",
   "search.cat_it": "IT / Coding",
@@ -327,5 +327,6 @@
   "gc.change_photo": "Change photo",
   "gc.del_text": "It will be deleted for everyone.",
   "gc.empty_title": "No messages yet",
-  "gc.empty_text": "Be the first to say something."
+  "gc.empty_text": "Be the first to say something.",
+  "bm.copy_id": "Copy ID"
 }
