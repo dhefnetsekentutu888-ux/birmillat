@@ -92,7 +92,7 @@
   "vol.load_error": "Juklep bolmadı. Betti qayta juklen'.",
   "search.title": "Paydalanıwshını izlew",
   "search.sub": "Atı, nikı yamasa qızıǵıwshılıǵı boyınsha izlen'",
-  "search.input_placeholder": "Mısalı: @jasur_dev yamasa Python",
+  "search.input_placeholder": "Mısalı: @jasur_dev, #BM1234567890 yamasa Python",
   "search.btn": "Izlew",
   "search.filter_all": "Barlıg'ı",
   "search.cat_it": "IT / Programmalastırıw",
@@ -327,5 +327,6 @@
   "gc.change_photo": "Rasmni o'zgartirish",
   "gc.del_text": "Xabar hamma uchun o'chiriladi.",
   "gc.empty_title": "Hali xabarlar yo'q",
-  "gc.empty_text": "Jamoaga birinchi xabarni yozing."
+  "gc.empty_text": "Jamoaga birinchi xabarni yozing.",
+  "bm.copy_id": "ID ni nusxalash"
 }
