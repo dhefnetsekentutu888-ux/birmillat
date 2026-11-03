@@ -3,167 +3,163 @@
 <head>
 <script src="/theme.js"></script>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BirMillat – Profil</title>
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="manifest" href="/manifest.json">
 <link rel="apple-touch-icon" href="/favicon.png">
 <meta name="theme-color" content="#2D1B69">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="BirMillat">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>BirMillat – Profil</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="/style.css">
 <script src="/interactions.js" defer></script>
 <style>
-/* ==========================================================
-   Public profile — "identity showcase" layout. Deliberately not
-   a clone of profile.html's sidebar layout or of any mainstream
-   social app's profile page: a full-width hero banner (echoing
-   the logo's two-ring motif as a faint watermark) with the
-   avatar breaking out of the bottom edge, a stat strip, then a
-   two-column showcase below — a spotlighted interests panel and
-   a "yutuqlar" trophy shelf with its own ribbon-badge treatment.
-   pv- prefix (profile-view) to keep this independent of profile.html.
-   ========================================================== */
-body { font-family: 'Inter', sans-serif; }
+/* =========================================================
+   Profile page
+   ========================================================= */
+.pv-page { max-width: 1040px; margin: 0 auto; padding: 20px 16px 72px; font-family: 'Inter', sans-serif; opacity: 0; transition: opacity 0.25s ease; }
+.pv-page.ready { opacity: 1; }
+.pv-i { width: 20px; height: 20px; flex: none; }
 
-.pv-wrap { max-width: 1000px; margin: 0 auto; padding: 1.8rem 1.5rem 3rem; }
+/* ---------- Buttons ---------- */
+.pv-btn {
+  min-height: 46px; padding: 0 22px; display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+  border-radius: 23px; border: 1.5px solid var(--color-border); background: var(--color-surface); color: var(--color-text);
+  font: 600 15px 'Inter', sans-serif; text-decoration: none; cursor: pointer; white-space: nowrap;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
+}
+.pv-btn:hover { border-color: var(--color-primary); }
+.pv-btn:active { transform: scale(0.97); }
+.pv-btn:disabled { opacity: 0.6; cursor: default; }
+.pv-btn:focus-visible, .pv-stat:focus-visible, .pv-ach-card:focus-visible { outline: 2px solid var(--color-primary-light); outline-offset: 2px; }
+.pv-btn.primary { background: var(--color-accent); color: var(--color-on-accent); border-color: transparent; box-shadow: 0 6px 18px rgba(255, 107, 91, 0.28); }
+.pv-btn.primary:hover { background: var(--color-accent-light); }
+/* follow button states */
+.pv-btn.state-none { background: var(--color-primary-solid, #6D4FD6); color: #fff; border-color: transparent; }
+.pv-btn.state-none:hover { filter: brightness(1.1); }
+.pv-btn.state-pending { color: var(--color-text-muted); }
+.pv-btn.state-following { background: rgba(77, 208, 141, 0.12); border-color: var(--color-success); color: var(--color-success); }
+.pv-btn.state-following:hover { background: var(--color-error-bg); border-color: var(--color-error); color: var(--color-error); }
 
 /* ---------- Hero ---------- */
-.pv-hero { position: relative; overflow: hidden; padding: 0; margin-bottom: 3.6rem; }
-.pv-hero-band {
-    height: 148px; position: relative; overflow: hidden;
-    background: linear-gradient(120deg, var(--color-primary), #6B4FC9 55%, var(--color-accent) 130%);
+.pv-hero { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 26px; overflow: hidden; }
+.pv-cover {
+  height: 150px;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120' fill='none' stroke='%23fff' stroke-opacity='.13' stroke-width='2.6'%3E%3Cg transform='translate(30 30)'%3E%3Cellipse cx='-5' rx='9' ry='16' transform='rotate(-18)'/%3E%3Cellipse cx='5' rx='9' ry='16' transform='rotate(18)'/%3E%3C/g%3E%3Cg transform='translate(90 90)'%3E%3Cellipse cx='-5' rx='9' ry='16' transform='rotate(-18)'/%3E%3Cellipse cx='5' rx='9' ry='16' transform='rotate(18)'/%3E%3C/g%3E%3C/svg%3E") 0 0 / 120px 120px,
+    linear-gradient(118deg, #2D1B69 0%, #5B3FC0 58%, #FF6B5B 150%);
 }
-.pv-hero-rings { position: absolute; top: -30px; right: -20px; width: 220px; height: 220px; opacity: 0.16; }
-.pv-hero-body { position: relative; padding: 0 1.8rem 1.6rem; }
-.pv-avatar-wrap { position: relative; width: 112px; height: 112px; margin-top: -56px; }
-.pv-avatar, .pv-avatar-wrap .avatar-circle {
-    width: 112px; height: 112px; border-radius: 50%; object-fit: cover; display: block;
-    border: 5px solid var(--color-surface); background: var(--color-bg);
-    box-shadow: var(--shadow-hover);
+.pv-head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "avatar ident actions"; column-gap: 24px; align-items: start; padding: 0 28px 24px; }
+.pv-avatar {
+  --h: 255; grid-area: avatar; margin-top: -64px; position: relative; width: 128px; height: 128px; border-radius: 50%;
+  border: 5px solid var(--color-surface); overflow: hidden; display: grid; place-items: center;
+  background: hsl(var(--h) 70% 91%); color: hsl(var(--h) 55% 30%);
+  font: 800 2.4rem 'Sora', sans-serif; box-shadow: 0 8px 24px rgba(20, 12, 40, 0.28);
 }
-.pv-avatar-wrap .avatar-circle {
-    display: flex; align-items: center; justify-content: center;
-    font-family: 'Sora', sans-serif; font-size: 2.3rem; font-weight: 700; color: var(--color-primary);
+@media (prefers-color-scheme: dark) { .pv-avatar { background: hsl(var(--h) 34% 26%); color: hsl(var(--h) 90% 88%); } }
+:root[data-theme="dark"] .pv-avatar { background: hsl(var(--h) 34% 26%); color: hsl(var(--h) 90% 88%); }
+:root[data-theme="light"] .pv-avatar { background: hsl(var(--h) 70% 91%); color: hsl(var(--h) 55% 30%); }
+.pv-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: none; }
+
+.pv-ident { grid-area: ident; min-width: 0; padding-top: 18px; }
+.pv-ident h1 { font: 800 clamp(1.5rem, 3.4vw, 2rem)/1.15 'Sora', sans-serif; color: var(--color-text); overflow-wrap: anywhere; letter-spacing: -0.01em; }
+.pv-handle { margin-top: 6px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
+.pv-handle #viewUsername { color: var(--color-text-muted); font-size: 0.98rem; overflow-wrap: anywhere; }
+.pv-handle .bm-id-row { margin: 0; }
+.pv-meta { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 12px; color: var(--color-text-muted); font-size: 0.92rem; }
+.pv-meta span { display: inline-flex; align-items: center; gap: 7px; }
+.pv-meta .pv-i { width: 17px; height: 17px; color: var(--color-primary); opacity: 0.85; }
+.pv-badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.pv-badges:empty { display: none; }
+.badge-chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px 5px 8px; border-radius: 999px;
+  background: var(--color-bg); border: 1px solid var(--color-border); color: var(--color-text);
+  font: 600 0.8rem/1.2 'Inter', sans-serif;
 }
-.pv-hero-main { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 1.2rem; margin-top: 0.9rem; }
-.pv-id-name { font-family: 'Sora', sans-serif; font-size: 1.5rem; margin: 0 0 0.15rem; display: flex; align-items: center; gap: 0.5rem; }
-.pv-id-username { color: var(--color-text-muted); font-size: 0.92rem; }
-.pv-id-meta { display: flex; flex-wrap: wrap; gap: 0.9rem; margin-top: 0.6rem; }
-.pv-id-meta span { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.83rem; color: var(--color-text-muted); }
-.pv-id-meta i { color: var(--color-accent); width: 13px; }
+.badge-icon { font-size: 1rem; line-height: 1; }
 
-.pv-actions { display: flex; gap: 0.6rem; flex-wrap: wrap; }
-.pv-follow-btn {
-    display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.68rem 1.3rem; border-radius: var(--radius-pill);
-    font-weight: 700; font-size: 0.92rem; border: none; cursor: pointer; background: var(--color-primary-solid); color: #fff;
-    transition: transform .18s cubic-bezier(.34,1.56,.64,1), background .18s ease, color .18s ease, box-shadow .18s ease;
+.pv-actions { grid-area: actions; display: flex; gap: 10px; padding-top: 18px; }
+
+.pv-stats { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--color-border); }
+.pv-stat {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 74px; padding: 10px 8px;
+  background: none; border: 0; border-right: 1px solid var(--color-border); color: var(--color-text);
+  text-decoration: none; cursor: pointer; font-family: inherit; transition: background 0.15s ease;
 }
-.pv-follow-btn:hover { box-shadow: var(--shadow-hover); }
-.pv-follow-btn.state-pending { background: var(--color-bg); color: var(--color-text-muted); border: 1px solid var(--color-border); }
-.pv-follow-btn.state-following { background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border); }
-.pv-follow-btn.state-following:hover { background: #FFEAE6; color: var(--color-accent); border-color: var(--color-accent); }
-.pv-follow-btn.state-following:hover .pv-follow-label::before { content: "Kuzatishni bekor qilish"; }
-.pv-follow-btn.state-following .pv-follow-label::before { content: "Kuzatilmoqda"; }
-.pv-follow-btn.state-following .pv-follow-label { font-size: 0; }
-.pv-icon-btn {
-    width: 44px; height: 44px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
-    border: 1px solid var(--color-border); background: transparent; color: var(--color-text-muted); cursor: pointer;
-    transition: transform .18s cubic-bezier(.34,1.56,.64,1), color .18s ease, border-color .18s ease;
+.pv-stat:last-child { border-right: 0; }
+.pv-stat:hover { background: var(--color-bg); }
+.pv-stat b { font: 800 1.35rem/1.1 'Sora', sans-serif; font-variant-numeric: tabular-nums; }
+.pv-stat span { font-size: 0.8rem; line-height: 1.3; color: var(--color-text-muted); }
+
+/* ---------- Content ---------- */
+.pv-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; margin-top: 20px; align-items: start; }
+.pv-col { display: grid; gap: 20px; min-width: 0; }
+.pv-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 22px; padding: 22px 24px; min-width: 0; }
+.pv-card h2 { display: flex; align-items: center; gap: 10px; font: 700 1.05rem/1.3 'Sora', sans-serif; color: var(--color-text); margin-bottom: 12px; }
+.pv-count { display: inline-grid; place-items: center; min-width: 24px; height: 24px; padding: 0 8px; border-radius: 12px; background: var(--color-bg); color: var(--color-text-muted); font: 700 0.78rem/1 'Inter', sans-serif; }
+#viewBio { color: var(--color-text); line-height: 1.65; overflow-wrap: anywhere; white-space: pre-wrap; }
+#viewBio.empty { color: var(--color-text-muted); font-style: italic; }
+
+.pv-looking {
+  display: flex; gap: 14px; align-items: flex-start; padding: 20px 22px; border-radius: 22px;
+  background: rgba(255, 107, 91, 0.10); border: 1px solid rgba(255, 107, 91, 0.32);
 }
-.pv-icon-btn:hover { color: var(--color-primary); border-color: var(--color-primary); }
+.pv-looking[hidden] { display: none; }
+.pv-looking .ico { flex: none; width: 42px; height: 42px; display: grid; place-items: center; border-radius: 50%; background: var(--color-accent); color: var(--color-on-accent); }
+.pv-looking h2 { margin-bottom: 4px; font-size: 0.98rem; }
+.pv-looking p { color: var(--color-text); line-height: 1.55; overflow-wrap: anywhere; white-space: pre-wrap; }
 
-/* ---------- Stat strip ---------- */
-.pv-stats { display: flex; gap: 0; margin: 1.4rem 0 0; border-top: 1px solid var(--color-border); padding-top: 1.1rem; }
-.pv-stat { flex: 1; background: none; border: none; cursor: pointer; text-align: center; padding: 0.3rem; color: inherit; border-right: 1px solid var(--color-border); transition: transform .18s ease; }
-.pv-stat:last-child { border-right: none; }
-.pv-stat:hover { transform: translateY(-2px); }
-.pv-stat strong { display: block; font-family: 'Sora', sans-serif; font-size: 1.25rem; color: var(--color-text); }
-.pv-stat span { font-size: 0.72rem; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.4px; }
-
-/* ---------- Content grid ---------- */
-.pv-grid { display: grid; grid-template-columns: 1fr 1.3fr; gap: 1.4rem; align-items: start; }
-@media (max-width: 780px) { .pv-grid { grid-template-columns: 1fr; } }
-
-.pv-card { padding: 1.5rem; }
-.pv-card-head { display: flex; align-items: center; gap: 0.5rem; font-family: 'Sora', sans-serif; font-size: 1rem; font-weight: 700; margin-bottom: 1rem; }
-.pv-card-head i { color: var(--color-accent); }
-
-.profile-bio { font-size: 0.96rem; color: var(--color-text); line-height: 1.65; margin: 0; }
-.profile-bio.empty { color: var(--color-text-muted); font-style: italic; }
-
-/* ---------- Interests "spotlight" panel — distinct from the plain .tag pills elsewhere ---------- */
-.pv-interests-panel { margin-top: 1.4rem; padding: 1rem 1.1rem; border-radius: var(--radius-sm); background: var(--color-bg); border: 1px solid var(--color-border); }
-:root[data-theme="dark"] .pv-interests-panel { background: linear-gradient(135deg, rgba(196,181,253,0.12), rgba(196,181,253,0.05)); }
-.pv-interest-chip { display: inline-flex; align-items: center; gap: 0.4rem; background: var(--color-surface); color: var(--color-primary); padding: 0.4rem 0.85rem 0.4rem 0.6rem; border-radius: var(--radius-pill); font-size: 0.82rem; font-weight: 600; margin: 0 0.4rem 0.4rem 0; box-shadow: 0 1px 3px rgba(45,27,105,0.08); }
-.pv-interest-chip .pv-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--color-accent); flex-shrink: 0; }
-
-/* ---------- Yutuqlar (achievements) trophy shelf ---------- */
-.pv-ach-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 0.9rem; }
-.pv-ach-card {
-    position: relative; border-radius: var(--radius-sm); overflow: hidden; cursor: pointer;
-    background: var(--color-bg); border: 1px solid var(--color-border);
-    transition: transform 0.22s cubic-bezier(.34,1.56,.64,1), box-shadow 0.22s ease;
+.pv-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.pv-chip {
+  padding: 7px 14px; border-radius: 999px; background: rgba(109, 79, 214, 0.12); color: var(--color-primary);
+  font: 600 0.85rem/1.2 'Inter', sans-serif; overflow-wrap: anywhere;
 }
-.pv-ach-card:hover { transform: translateY(-4px) rotate(-0.6deg); box-shadow: var(--shadow-hover); }
-.pv-ach-card img { width: 100%; height: 92px; object-fit: cover; display: block; }
-.pv-ach-ribbon {
-    position: absolute; top: 6px; left: 6px; width: 26px; height: 26px; border-radius: 50%;
-    background: var(--color-accent); color: #fff; display: flex; align-items: center; justify-content: center;
-    font-size: 0.72rem; box-shadow: 0 2px 6px rgba(255,107,91,0.4);
-}
-.pv-ach-title { padding: 0.55rem 0.65rem; font-size: 0.78rem; font-weight: 700; color: var(--color-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pv-ach-empty {
-    grid-column: 1 / -1; text-align: center; padding: 2rem 1rem; color: var(--color-text-muted);
-    border: 1px dashed var(--color-border); border-radius: var(--radius-sm); font-size: 0.88rem;
-}
-.pv-ach-empty i { font-size: 1.6rem; color: var(--color-border); display: block; margin-bottom: 0.6rem; }
+.pv-chip.muted { background: var(--color-bg); color: var(--color-text-muted); font-weight: 500; }
 
-.not-found { text-align: center; padding: 4rem 1.5rem; color: var(--color-text-muted); }
-.not-found i { font-size: 2.4rem; color: var(--color-border); margin-bottom: 1rem; display: block; }
+/* ---------- Achievements ---------- */
+.pv-ach-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.pv-ach-card { position: relative; padding: 0; border: 1px solid var(--color-border); border-radius: 16px; overflow: hidden; background: var(--color-bg); cursor: pointer; text-align: left; font-family: inherit; color: var(--color-text); transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease; }
+.pv-ach-card:hover { transform: translateY(-3px); border-color: var(--color-primary); box-shadow: 0 10px 24px rgba(20, 12, 40, 0.18); }
+.pv-ach-card img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; background: var(--color-border); }
+.pv-ach-title { padding: 10px 12px 12px; font: 600 0.88rem/1.35 'Inter', sans-serif; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.pv-ach-star { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; background: var(--color-accent); color: var(--color-on-accent); box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25); }
+.pv-ach-star .pv-i { width: 15px; height: 15px; }
+.pv-empty { grid-column: 1 / -1; display: grid; justify-items: center; gap: 10px; padding: 30px 16px; border: 1.5px dashed var(--color-border); border-radius: 16px; color: var(--color-text-muted); text-align: center; font-size: 0.92rem; }
+.pv-empty .pv-i { width: 30px; height: 30px; opacity: 0.6; }
 
-.ach-modal { display: none; position: fixed; inset: 0; background: rgba(26,22,37,0.55); z-index: 200; align-items: center; justify-content: center; padding: 1.5rem; }
-.ach-modal.open { display: flex; }
-.ach-modal-card { background: var(--color-surface); border-radius: var(--radius-md); max-width: 420px; width: 100%; overflow: hidden; max-height: 90vh; overflow-y: auto; }
-.ach-modal-card img { width: 100%; max-height: 260px; object-fit: cover; display: block; }
-.ach-modal-body { padding: 1.4rem; }
-.ach-modal-body h3 { font-family: 'Sora', sans-serif; font-size: 1.1rem; margin-bottom: 0.4rem; }
-.ach-modal-body .ach-date { font-size: 0.78rem; color: var(--color-text-muted); margin-bottom: 0.6rem; }
-.ach-modal-body p { font-size: 0.92rem; color: var(--color-text); line-height: 1.5; }
-.ach-modal-close {
-    background: transparent; border: 1px solid var(--color-border); color: var(--color-text-muted);
-    padding: 0.5rem 1rem; border-radius: var(--radius-pill); cursor: pointer; margin-top: 1rem; font-size: 0.85rem;
-    transition: transform .18s cubic-bezier(.34,1.56,.64,1);
-}
-.ach-modal-close:hover { transform: scale(1.05); }
+/* ---------- Modals ---------- */
+.pv-modal { position: fixed; inset: 0; z-index: 600; display: none; align-items: center; justify-content: center; padding: 18px; background: rgba(10, 6, 24, 0.62); }
+.pv-modal.open { display: flex; animation: pv-fade 0.15s ease-out; }
+@keyframes pv-fade { from { opacity: 0; } to { opacity: 1; } }
+.pv-dialog { position: relative; width: min(520px, 100%); max-height: 88dvh; overflow: auto; background: var(--color-surface); border-radius: 24px; box-shadow: 0 24px 70px rgba(0, 0, 0, 0.5); animation: pv-pop 0.18s ease-out; }
+@keyframes pv-pop { from { opacity: 0; transform: translateY(10px) scale(0.97); } to { opacity: 1; transform: none; } }
+.pv-close { position: absolute; top: 10px; right: 10px; z-index: 2; width: 44px; height: 44px; display: grid; place-items: center; border: 0; border-radius: 50%; background: rgba(20, 12, 40, 0.55); color: #fff; cursor: pointer; transition: background 0.15s ease; }
+.pv-close:hover { background: rgba(20, 12, 40, 0.8); }
+.pv-dialog.plain .pv-close { background: var(--color-bg); color: var(--color-text-muted); }
+.pv-dialog.plain .pv-close:hover { color: var(--color-text); }
+#achModalImage { display: block; width: 100%; max-height: 52dvh; object-fit: cover; background: var(--color-border); }
+.pv-ach-body { padding: 20px 24px 26px; }
+.pv-ach-body h3 { font: 700 1.25rem/1.3 'Sora', sans-serif; color: var(--color-text); overflow-wrap: anywhere; }
+#achModalDate { margin-top: 4px; color: var(--color-text-muted); font-size: 0.88rem; }
+#achModalDesc { margin-top: 12px; color: var(--color-text); line-height: 1.6; overflow-wrap: anywhere; white-space: pre-wrap; }
+.pv-list-head { padding: 22px 70px 8px 24px; }
+.pv-list-head h3 { font: 700 1.2rem/1.3 'Sora', sans-serif; color: var(--color-text); }
+#followListBody { padding: 4px 12px 16px; }
+.follow-list-item { display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 8px 12px; border-radius: 14px; text-decoration: none; color: inherit; transition: background 0.12s ease; }
+.follow-list-item:hover { background: var(--color-bg); }
+.fl-av { --h: 255; position: relative; width: 46px; height: 46px; flex: none; border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: hsl(var(--h) 70% 91%); color: hsl(var(--h) 55% 30%); font: 700 0.95rem 'Sora', sans-serif; }
+@media (prefers-color-scheme: dark) { .fl-av { background: hsl(var(--h) 34% 26%); color: hsl(var(--h) 90% 88%); } }
+:root[data-theme="dark"] .fl-av { background: hsl(var(--h) 34% 26%); color: hsl(var(--h) 90% 88%); }
+:root[data-theme="light"] .fl-av { background: hsl(var(--h) 70% 91%); color: hsl(var(--h) 55% 30%); }
+.fl-av img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.fl-name { font: 600 0.98rem/1.3 'Inter', sans-serif; color: var(--color-text); overflow-wrap: anywhere; }
+.fl-username { font-size: 0.85rem; color: var(--color-text-muted); overflow-wrap: anywhere; }
+.fl-empty { padding: 30px 12px; text-align: center; color: var(--color-text-muted); }
 
-.follow-list-modal { display: none; position: fixed; inset: 0; background: rgba(26,22,37,0.5); z-index: 200; align-items: center; justify-content: center; padding: 1.5rem; }
-.follow-list-modal.open { display: flex; }
-.follow-list-card { max-width: 380px; width: 100%; max-height: 75vh; overflow-y: auto; padding: 1.4rem; }
-.follow-list-card h3 { font-family: 'Sora', sans-serif; font-size: 1.05rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
-.follow-list-card h3 button { background: none; border: none; color: var(--color-text-muted); cursor: pointer; font-size: 1rem; }
-.follow-list-item { display: flex; align-items: center; gap: 0.7rem; padding: 0.6rem 0; text-decoration: none; color: inherit; border-bottom: 1px solid var(--color-border); }
-.follow-list-item:last-child { border-bottom: none; }
-.follow-list-avatar { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; background: var(--color-bg); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--color-primary); font-family: 'Sora', sans-serif; font-size: 0.85rem; }
-.follow-list-item .fl-name { font-size: 0.88rem; font-weight: 700; color: var(--color-text); }
-.follow-list-item .fl-username { font-size: 0.76rem; color: var(--color-text-muted); }
-.fl-empty { color: var(--color-text-muted); font-size: 0.85rem; padding: 0.4rem 0; }
-
-.report-modal { display: none; position: fixed; inset: 0; background: rgba(26,22,37,0.5); z-index: 100; align-items: center; justify-content: center; padding: 1.5rem; }
-.report-modal.open, .report-modal[style*="flex"] { display: flex; }
-.report-modal-card { max-width: 420px; width: 100%; max-height: 90vh; overflow-y: auto; padding: 1.6rem; }
-.report-modal-card h2 { font-family: 'Sora', sans-serif; font-size: 1.15rem; }
-.report-field { margin-bottom: 1rem; }
-.report-field label { display: block; font-size: 0.8rem; font-weight: 700; color: var(--color-text-muted); margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.4px; }
-.report-field select, .report-field textarea, .report-field input {
-    width: 100%; box-sizing: border-box; padding: 0.7rem 0.9rem; border-radius: var(--radius-sm);
-    border: 1px solid var(--color-border); font-family: 'Inter', sans-serif; font-size: 0.95rem; resize: vertical;
-    background: var(--color-bg); color: var(--color-text);
-}
+.not-found { display: grid; justify-items: center; gap: 14px; padding: 90px 20px; text-align: center; color: var(--color-text-muted); }
+.not-found .pv-i { width: 54px; height: 54px; opacity: 0.6; }
+.not-found p { font: 600 1.1rem 'Sora', sans-serif; color: var(--color-text); }
 
 /* ===== BM ID chip (tap/click to copy) ===== */
 .bm-id-row { margin: 0.5rem 0 0; }
@@ -182,10 +178,31 @@ body { font-family: 'Inter', sans-serif; }
 .bm-id.is-match { border-color: var(--color-accent); background: rgba(255, 107, 91, 0.10); }
 .bm-id-ico { flex: none; opacity: 0.75; }
 @media (pointer: coarse) { .bm-id { min-height: 40px; font-size: 0.88rem; } }
+
+/* ---------- Tablet & phone ---------- */
+@media (max-width: 860px) {
+  .pv-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 640px) {
+  .pv-page { padding: 12px 12px 56px; }
+  .pv-hero { border-radius: 22px; }
+  .pv-cover { height: 112px; }
+  .pv-head { grid-template-columns: minmax(0, 1fr); grid-template-areas: "avatar" "ident" "actions"; padding: 0 18px 20px; }
+  .pv-avatar { width: 96px; height: 96px; margin-top: -52px; border-width: 4px; font-size: 1.9rem; }
+  .pv-ident { padding-top: 12px; }
+  .pv-actions { padding-top: 16px; }
+  .pv-actions .pv-btn { flex: 1; padding: 0 12px; min-width: 0; }
+  .pv-card { padding: 18px 18px; border-radius: 20px; }
+  .pv-looking { padding: 16px 18px; border-radius: 20px; }
+  .pv-modal { align-items: flex-end; padding: 0; }
+  .pv-dialog { width: 100%; border-radius: 24px 24px 0 0; max-height: 90dvh; }
+  .pv-ach-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (prefers-reduced-motion: reduce) { .pv-page, .pv-modal.open, .pv-dialog, .pv-ach-card { animation: none !important; transition: none !important; } }
 </style>
 </head>
 <body>
-    <nav class="navbar">
+<nav class="navbar">
         <a href="/home" class="logo"><svg width="160" height="45" viewBox="0 0 320 90" xmlns="http://www.w3.org/2000/svg" style="display:block;">
       <g transform="translate(45,45)">
         <g transform="rotate(-18)">
@@ -235,165 +252,100 @@ body { font-family: 'Inter', sans-serif; }
 </nav>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-    <div class="pv-wrap reveal" id="profileRoot">
-    <div class="pv-hero card">
-        <div class="pv-hero-band">
-            <svg class="pv-hero-rings" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                <ellipse cx="38" cy="50" rx="22" ry="40" fill="none" stroke="#fff" stroke-width="6" transform="rotate(-18 38 50)"/>
-                <ellipse cx="62" cy="50" rx="22" ry="40" fill="none" stroke="#fff" stroke-width="6" transform="rotate(18 62 50)"/>
-            </svg>
-        </div>
-        <div class="pv-hero-body">
-            <div class="pv-avatar-wrap">
-                <img id="avatarPhoto" class="pv-avatar" style="display:none;" alt="">
-                <div class="avatar-circle" id="avatarInitial">?</div>
-            </div>
-            <div class="pv-hero-main">
-                <div>
-                    <h1 class="pv-id-name" id="viewName">Yuklanmoqda...</h1>
-                    <div class="badge-row" id="badgeRow"></div>
-                    <div class="pv-id-username" id="viewUsername"></div>
-                    <div class="bm-id-row" id="bmIdRow"></div>
-                    <div class="pv-id-meta" id="viewMeta"></div>
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+        <defs>
+            <symbol id="i-msg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></symbol>
+            <symbol id="i-userplus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6"/><path d="M22 11h-6"/></symbol>
+            <symbol id="i-usercheck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m16 11 2 2 4-4"/></symbol>
+            <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+            <symbol id="i-cake" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8"/><path d="M4 16s.5-1 2-1 2.5 2 4 2 2.5-2 4-2 2.5 2 4 2 2-1 2-1"/><path d="M2 21h20"/><path d="M7 8v3M12 8v3M17 8v3"/><path d="M7 4h.01M12 4h.01M17 4h.01"/></symbol>
+            <symbol id="i-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></symbol>
+            <symbol id="i-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></symbol>
+            <symbol id="i-trophy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></symbol>
+            <symbol id="i-star" viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></symbol>
+            <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+            <symbol id="i-userx" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m17 8 5 5"/><path d="m22 8-5 5"/></symbol>
+        </defs>
+    </svg>
+
+    <main class="pv-page" id="profileRoot">
+        <section class="pv-hero">
+            <div class="pv-cover" aria-hidden="true"></div>
+            <div class="pv-head">
+                <div class="pv-avatar" id="avatarWrap">
+                    <img id="avatarPhoto" alt="">
+                    <span id="avatarInitial"></span>
                 </div>
                 <div class="pv-actions">
-                    <button class="pv-follow-btn state-none" id="followBtn"><i class="fas fa-user-plus" id="followBtnIcon"></i> <span class="pv-follow-label" id="followBtnLabel">Kuzatish</span></button>
-                    <a href="#" class="pv-icon-btn" id="messageBtn" aria-label="Xabar yuborish"><i class="fas fa-paper-plane"></i></a>
-                    <button class="pv-icon-btn" id="reportBtn" aria-label="Shikoyat"><i class="fas fa-flag"></i></button>
+                    <a class="pv-btn primary" id="messageBtn" href="/messages"><svg class="pv-i" aria-hidden="true"><use href="#i-msg"/></svg><span>Xabar yozish</span></a>
+                    <button type="button" class="pv-btn state-none" id="followBtn"><svg class="pv-i" aria-hidden="true"><use id="followBtnIcon" href="#i-userplus"/></svg><span id="followBtnLabel">Kuzatish</span></button>
+                </div>
+                <div class="pv-ident">
+                    <h1 id="viewName"></h1>
+                    <div class="pv-handle"><span id="viewUsername"></span><div class="bm-id-row" id="bmIdRow"></div></div>
+                    <div class="pv-meta" id="viewMeta"></div>
+                    <div class="pv-badges" id="badgeRow"></div>
                 </div>
             </div>
             <div class="pv-stats">
-                <button type="button" class="pv-stat" id="statFollowers"><strong id="followerCountNum">0</strong><span>Kuzatuvchi</span></button>
-                <button type="button" class="pv-stat" id="statFollowing"><strong id="followingCountNum">0</strong><span>Kuzatilmoqda</span></button>
-                <div class="pv-stat" style="cursor:default;"><strong id="achCountNum">0</strong><span>Yutuq</span></div>
+                <button type="button" class="pv-stat" id="statFollowers"><b id="followerCountNum">0</b><span>Kuzatuvchilar</span></button>
+                <button type="button" class="pv-stat" id="statFollowing"><b id="followingCountNum">0</b><span>Kuzatilmoqda</span></button>
+                <a class="pv-stat" href="#achievements"><b id="achCountNum">0</b><span>Yutuqlar</span></a>
             </div>
-        </div>
-    </div>
+        </section>
 
-    <div class="pv-grid">
-        <div class="pv-card card">
-            <div class="pv-card-head"><i class="fas fa-user"></i> Haqida</div>
-            <p class="profile-bio" id="viewBio"></p>
-            <div id="viewLookingForRow" style="display:none; margin-bottom:1rem; padding:0.7rem 0.9rem; border-radius:var(--radius-sm); background:var(--color-bg); border:1px solid var(--color-border);">
-                <span style="font-size:0.75rem; font-weight:700; color:var(--color-primary); text-transform:uppercase; letter-spacing:0.3px;"><i class="fas fa-magnifying-glass"></i> Qidiryapti</span>
-                <div id="viewLookingForText" style="font-size:0.9rem; margin-top:0.2rem;"></div>
+        <div class="pv-grid">
+            <div class="pv-col">
+                <section class="pv-card">
+                    <h2>Haqida</h2>
+                    <p id="viewBio"></p>
+                </section>
+                <section class="pv-looking" id="viewLookingForRow" hidden>
+                    <span class="ico"><svg class="pv-i" aria-hidden="true"><use href="#i-target"/></svg></span>
+                    <div>
+                        <h2>Nima izlayapti</h2>
+                        <p id="viewLookingForText"></p>
+                    </div>
+                </section>
+                <section class="pv-card">
+                    <h2>Qiziqishlar</h2>
+                    <div class="pv-chips" id="viewInterests"></div>
+                </section>
             </div>
-            <div class="pv-interests-panel">
-                <div class="pv-card-head" style="margin-bottom:0.7rem; font-size:0.82rem; text-transform:uppercase; letter-spacing:0.4px; color:var(--color-text-muted);"><i class="fas fa-bolt"></i> Qiziqishlar</div>
-                <div id="viewInterests"></div>
-            </div>
+            <section class="pv-card" id="achievements">
+                <h2>Yutuqlar <span class="pv-count" id="achCountBadge">0</span></h2>
+                <div class="pv-ach-grid" id="achievementsGrid"></div>
+            </section>
         </div>
+    </main>
 
-        <div class="pv-card card">
-            <div class="pv-card-head"><i class="fas fa-trophy"></i> Yutuqlari</div>
-            <div class="pv-ach-grid" id="achievementsGrid"></div>
-        </div>
-    </div>
-</div>
-
-<div class="follow-list-modal" id="followListModal">
-    <div class="follow-list-card card">
-        <h3><span id="followListTitle">Kuzatuvchilar</span> <button type="button" id="followListClose"><i class="fas fa-xmark"></i></button></h3>
-        <div id="followListBody"></div>
-    </div>
-</div>
-
-<div class="ach-modal" id="achModal">
-        <div class="ach-modal-card">
-            <img id="achModalImage" src="" alt="">
-            <div class="ach-modal-body">
+    <div class="pv-modal" id="achModal" role="dialog" aria-modal="true" aria-labelledby="achModalTitle">
+        <div class="pv-dialog">
+            <button type="button" class="pv-close" id="achModalClose" aria-label="Yopish"><svg class="pv-i" aria-hidden="true"><use href="#i-x"/></svg></button>
+            <img id="achModalImage" alt="">
+            <div class="pv-ach-body">
                 <h3 id="achModalTitle"></h3>
-                <div class="ach-date" id="achModalDate"></div>
+                <div id="achModalDate"></div>
                 <p id="achModalDesc"></p>
-                <button class="ach-modal-close" id="achModalClose">Yopish</button>
             </div>
         </div>
     </div>
 
-    <footer>BirMillat – qiziqishlar asosida do'stlar toping. · <a href="/privacy" style="color:inherit;">Maxfiylik siyosati</a><br><span style="opacity:0.8;">Founder — Bekhruz Ravshanov</span></footer>
-
-    <div id="reportModal" class="report-modal">
-        <div class="card report-modal-card">
-            <h2 style="margin-bottom:1rem;"><i class="fas fa-flag" style="color:var(--color-accent);"></i> Shikoyat qilish</h2>
-            <form id="reportForm">
-                <div class="report-field">
-                    <label>Sabab</label>
-                    <select id="reportReason" required>
-                        <option value="">Tanlang...</option>
-                        <option value="Spam">Spam</option>
-                        <option value="Haqorat / tahdid">Haqorat / tahdid</option>
-                        <option value="Nomaqul kontent">Nomaqul kontent</option>
-                        <option value="Soxta profil">Soxta profil</option>
-                        <option value="Boshqa">Boshqa</option>
-                    </select>
-                </div>
-                <div class="report-field">
-                    <label>Tafsilotlar (ixtiyoriy)</label>
-                    <textarea id="reportDetails" rows="3" placeholder="Nima bo'lganini qisqacha tushuntiring"></textarea>
-                </div>
-                <div class="report-field">
-                    <label>Skrinshot (ixtiyoriy)</label>
-                    <input type="file" id="reportScreenshot" accept="image/*" style="font-size:0.88rem;">
-                </div>
-                <div style="display:flex; gap:0.8rem;">
-                    <button type="submit" class="btn btn-primary btn-zoom" style="flex:1; justify-content:center;">Yuborish</button>
-                    <button type="button" class="btn btn-cancel" id="closeReportModal" style="border:1px solid var(--color-border); background:transparent; color:var(--color-text-muted);">Bekor qilish</button>
-                </div>
-                <div class="save-status" id="reportStatus" style="font-size:0.85rem; margin-top:0.6rem; min-height:1.2em;"></div>
-            </form>
+    <div class="pv-modal" id="followListModal" role="dialog" aria-modal="true" aria-labelledby="followListTitle">
+        <div class="pv-dialog plain">
+            <button type="button" class="pv-close" id="followListClose" aria-label="Yopish"><svg class="pv-i" aria-hidden="true"><use href="#i-x"/></svg></button>
+            <div class="pv-list-head"><h3 id="followListTitle"></h3></div>
+            <div id="followListBody"></div>
         </div>
     </div>
 
     <script>
-        const reportedUsername = decodeURIComponent(window.location.pathname.split('/').filter(Boolean).pop() || '');
+        const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const safeUrl = (u) => (typeof u === 'string' && /^(https?:\/\/|\/(?!\/))/i.test(u) ? u : '');
+        const icon = (name) => `<svg class="pv-i" aria-hidden="true"><use href="#i-${name}"/></svg>`;
+        const HUES = [255, 278, 305, 335, 8, 28, 172, 200];
+        function hueOf(s) { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return HUES[h % HUES.length]; }
 
-        document.getElementById('reportBtn').addEventListener('click', () => {
-            document.getElementById('reportModal').style.display = 'flex';
-        });
-        document.getElementById('closeReportModal').addEventListener('click', () => {
-            document.getElementById('reportModal').style.display = 'none';
-        });
-
-        document.getElementById('reportForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const statusEl = document.getElementById('reportStatus');
-            const reason = document.getElementById('reportReason').value;
-            const details = document.getElementById('reportDetails').value.trim();
-            const fileInput = document.getElementById('reportScreenshot');
-
-            if (!reason) return;
-
-            statusEl.textContent = 'Yuborilmoqda...';
-            statusEl.style.color = 'var(--color-text-muted)';
-
-            try {
-                const formData = new FormData();
-                formData.append('reportedUsername', reportedUsername);
-                formData.append('reason', reason);
-                formData.append('details', details);
-                if (fileInput.files[0]) {
-                    formData.append('screenshot', fileInput.files[0]);
-                }
-
-                const res = await fetch('/api/report', { method: 'POST', body: formData });
-                if (!res.ok) throw new Error('Server error');
-
-                statusEl.textContent = 'Shikoyat yuborildi. Rahmat!';
-                statusEl.style.color = 'var(--color-success)';
-                setTimeout(() => {
-                    document.getElementById('reportModal').style.display = 'none';
-                    document.getElementById('reportForm').reset();
-                    statusEl.textContent = '';
-                }, 1500);
-            } catch (err) {
-                console.error('Report submit failed:', err);
-                statusEl.textContent = "Xatolik yuz berdi. Qaytadan urinib ko'ring.";
-                statusEl.style.color = 'var(--color-error)';
-            }
-        });
-    </script>
-
-    <script>
         function initials(name) {
             if (!name) return '?';
             const parts = name.trim().split(/\s+/);
@@ -405,6 +357,7 @@ body { font-family: 'Inter', sans-serif; }
             return decodeURIComponent(parts[parts.length - 1] || '');
         }
 
+        const $ = (id) => document.getElementById(id);
         let viewedUsername = '';
 
         async function loadMe() {
@@ -412,7 +365,7 @@ body { font-family: 'Inter', sans-serif; }
                 const res = await fetch('/api/me');
                 if (!res.ok) { window.location.href = '/login'; return null; }
                 const me = await res.json();
-                document.getElementById('userBadge').innerHTML = '<img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ' + me.username;
+                $('userBadge').innerHTML = '<img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ' + esc(me.username);
                 return me;
             } catch (e) {
                 console.error('Failed to load own profile:', e);
@@ -421,41 +374,27 @@ body { font-family: 'Inter', sans-serif; }
         }
 
         function renderFollowButton(status) {
-            const btn = document.getElementById('followBtn');
-            const icon = document.getElementById('followBtnIcon');
-            const label = document.getElementById('followBtnLabel');
-            btn.className = 'pv-follow-btn';
+            const btn = $('followBtn');
+            btn.className = 'pv-btn';
             btn.disabled = false;
-            if (status === 'accepted') {
-                btn.classList.add('state-following');
-                icon.className = 'fas fa-user-check';
-                label.textContent = 'Kuzatilmoqda';
-            } else if (status === 'pending') {
-                btn.classList.add('state-pending');
-                icon.className = 'fas fa-clock';
-                label.textContent = "So'rov yuborildi";
-            } else {
-                btn.classList.add('state-none');
-                icon.className = 'fas fa-user-plus';
-                label.textContent = 'Kuzatish';
-            }
+            let ico = 'userplus', label = 'Kuzatish';
+            if (status === 'accepted') { btn.classList.add('state-following'); ico = 'usercheck'; label = 'Kuzatilmoqda'; }
+            else if (status === 'pending') { btn.classList.add('state-pending'); ico = 'clock'; label = "So'rov yuborildi"; }
+            else { btn.classList.add('state-none'); }
+            $('followBtnIcon').setAttribute('href', '#i-' + ico);
+            $('followBtnLabel').textContent = label;
         }
 
-        document.getElementById('followBtn').addEventListener('click', async () => {
-            const btn = document.getElementById('followBtn');
+        $('followBtn').addEventListener('click', async () => {
+            const btn = $('followBtn');
             if (btn.disabled) return;
             btn.disabled = true;
             const isActive = btn.classList.contains('state-following') || btn.classList.contains('state-pending');
             try {
-                if (isActive) {
-                    const res = await fetch(`/api/follow/${encodeURIComponent(viewedUsername)}/cancel`, { method: 'POST' });
-                    const data = await res.json();
-                    renderFollowButton(data.status);
-                } else {
-                    const res = await fetch(`/api/follow/${encodeURIComponent(viewedUsername)}`, { method: 'POST' });
-                    const data = await res.json();
-                    renderFollowButton(data.status);
-                }
+                const url = `/api/follow/${encodeURIComponent(viewedUsername)}` + (isActive ? '/cancel' : '');
+                const res = await fetch(url, { method: 'POST' });
+                const data = await res.json();
+                renderFollowButton(data.status);
                 loadFollowCounts();
             } catch (e) {
                 console.error('Follow action failed:', e);
@@ -468,123 +407,104 @@ body { font-family: 'Inter', sans-serif; }
                 const res = await fetch(`/api/users/${encodeURIComponent(viewedUsername)}`);
                 if (!res.ok) return;
                 const user = await res.json();
-                document.getElementById('followerCountNum').textContent = user.followerCount || 0;
-                document.getElementById('followingCountNum').textContent = user.followingCount || 0;
+                $('followerCountNum').textContent = user.followerCount || 0;
+                $('followingCountNum').textContent = user.followingCount || 0;
             } catch (e) { /* non-fatal */ }
         }
 
         async function loadProfile() {
             const username = getUsernameFromPath();
             viewedUsername = username;
+            const root = $('profileRoot');
             const me = await loadMe();
 
             // Visiting your own public profile link — send to the editable version instead
-            if (me && me.username === username) {
-                window.location.href = '/profile';
-                return;
-            }
+            if (me && me.username === username) { window.location.href = '/profile'; return; }
 
             try {
                 const res = await fetch(`/api/users/${encodeURIComponent(username)}`);
                 if (!res.ok) {
-                    document.getElementById('profileRoot').innerHTML = `
-                        <div class="not-found">
-                            <i class="fas fa-user-slash"></i>
-                            <p>Bu foydalanuvchi topilmadi.</p>
-                        </div>`;
+                    root.innerHTML = `<div class="not-found">${icon('userx')}<p>Bu foydalanuvchi topilmadi.</p><a class="pv-btn" href="/search">Odamlarni qidirish</a></div>`;
+                    root.classList.add('ready');
                     return;
                 }
                 const user = await res.json();
+                const name = user.name || user.username;
+                document.title = name + ' – BirMillat';
 
-                if (user.photoUrl) {
-                    document.getElementById('avatarPhoto').src = user.photoUrl;
-                    document.getElementById('avatarPhoto').style.display = 'block';
-                    document.getElementById('avatarInitial').style.display = 'none';
-                } else {
-                    document.getElementById('avatarInitial').textContent = initials(user.name || user.username);
+                $('avatarWrap').style.setProperty('--h', hueOf(user.username));
+                const photo = safeUrl(user.photoUrl);
+                $('avatarInitial').textContent = initials(name);
+                if (photo) {
+                    const img = $('avatarPhoto');
+                    img.addEventListener('error', () => { img.style.display = 'none'; });
+                    img.src = photo; img.style.display = 'block';
                 }
-                document.getElementById('viewName').textContent = user.name || user.username;
-                document.getElementById('viewUsername').textContent = '@' + user.username;
-                document.getElementById('bmIdRow').innerHTML = bmIdChipHtml(user.bmId);
+                $('viewName').textContent = name;
+                $('viewUsername').textContent = '@' + user.username;
+                $('bmIdRow').innerHTML = bmIdChipHtml(user.bmId);
 
-                const bioEl = document.getElementById('viewBio');
-                if (user.bio && user.bio.trim()) {
-                    bioEl.textContent = user.bio;
-                    bioEl.classList.remove('empty');
-                } else {
-                    bioEl.textContent = "Bio qo'shilmagan.";
-                    bioEl.classList.add('empty');
-                }
+                const bioEl = $('viewBio');
+                if (user.bio && user.bio.trim()) { bioEl.textContent = user.bio; bioEl.classList.remove('empty'); }
+                else { bioEl.textContent = "Bio qo'shilmagan."; bioEl.classList.add('empty'); }
 
-                const metaParts = [];
-                if (user.age) metaParts.push(`<span><i class="fas fa-cake-candles"></i> ${user.age} yosh</span>`);
-                if (user.region) metaParts.push(`<span><i class="fas fa-location-dot"></i> ${user.region}</span>`);
-                document.getElementById('viewMeta').innerHTML = metaParts.join('');
+                const meta = [];
+                if (user.age) meta.push(`<span>${icon('cake')}${esc(user.age)} yosh</span>`);
+                if (user.region) meta.push(`<span>${icon('pin')}${esc(user.region)}</span>`);
+                $('viewMeta').innerHTML = meta.join('');
 
-                const interestsEl = document.getElementById('viewInterests');
                 const interests = user.interests || [];
-                interestsEl.innerHTML = interests.length
-                    ? interests.map(t => `<span class="pv-interest-chip"><span class="pv-dot"></span>${t}</span>`).join('')
-                    : `<span class="pv-interest-chip" style="opacity:0.7"><span class="pv-dot"></span>Qiziqish ko'rsatilmagan</span>`;
+                $('viewInterests').innerHTML = interests.length
+                    ? interests.map((t) => `<span class="pv-chip">#${esc(t)}</span>`).join('')
+                    : `<span class="pv-chip muted">Qiziqish ko'rsatilmagan</span>`;
 
-                document.getElementById('badgeRow').innerHTML = (user.badges || []).map(b =>
-                    `<span class="badge-chip" title="${b.label}"><span class="badge-icon">${b.icon}</span>${b.label}</span>`
-                ).join('');
+                $('badgeRow').innerHTML = (user.badges || []).map((b) =>
+                    `<span class="badge-chip" title="${esc(b.label)}"><span class="badge-icon">${esc(b.icon)}</span>${esc(b.label)}</span>`).join('');
 
-                const lookingForRow = document.getElementById('viewLookingForRow');
-                if (user.lookingFor) {
-                    lookingForRow.style.display = 'block';
-                    document.getElementById('viewLookingForText').textContent = user.lookingFor;
-                } else {
-                    lookingForRow.style.display = 'none';
-                }
+                const lf = $('viewLookingForRow');
+                if (user.lookingFor) { lf.hidden = false; $('viewLookingForText').textContent = user.lookingFor; }
+                else lf.hidden = true;
 
-                document.getElementById('followerCountNum').textContent = user.followerCount || 0;
-                document.getElementById('followingCountNum').textContent = user.followingCount || 0;
+                $('followerCountNum').textContent = user.followerCount || 0;
+                $('followingCountNum').textContent = user.followingCount || 0;
                 renderFollowButton(user.followStatus);
-
-                document.getElementById('messageBtn').href = `/messages?with=${encodeURIComponent(user.username)}`;
+                $('messageBtn').href = `/messages?with=${encodeURIComponent(user.username)}`;
+                root.classList.add('ready');
                 loadAchievements(user.username);
             } catch (e) {
                 console.error('Failed to load profile:', e);
+                root.classList.add('ready');
             }
         }
 
+        /* ---------- Achievements ---------- */
+        function closeModal(id) { $(id).classList.remove('open'); }
         function openAchievementModal(ach) {
-            document.getElementById('achModalImage').src = ach.imageUrl;
-            document.getElementById('achModalTitle').textContent = ach.title;
-            document.getElementById('achModalDate').textContent = ach.achievedDate
-                ? formatUzDate(ach.achievedDate)
-                : '';
-            document.getElementById('achModalDesc').textContent = ach.description || '';
-            document.getElementById('achModal').classList.add('open');
+            $('achModalImage').src = safeUrl(ach.imageUrl);
+            $('achModalTitle').textContent = ach.title;
+            $('achModalDate').textContent = ach.achievedDate ? formatUzDate(ach.achievedDate) : '';
+            $('achModalDesc').textContent = ach.description || '';
+            $('achModal').classList.add('open');
+            $('achModalClose').focus();
         }
 
-        document.getElementById('achModalClose').addEventListener('click', () => {
-            document.getElementById('achModal').classList.remove('open');
-        });
-        document.getElementById('achModal').addEventListener('click', (e) => {
-            if (e.target.id === 'achModal') document.getElementById('achModal').classList.remove('open');
-        });
-
         async function loadAchievements(username) {
-            const grid = document.getElementById('achievementsGrid');
+            const grid = $('achievementsGrid');
             try {
                 const res = await fetch(`/api/users/${encodeURIComponent(username)}/achievements`);
                 if (!res.ok) return;
-                const achievements = await res.json();
-                document.getElementById('achCountNum').textContent = achievements.length;
-
-                if (achievements.length === 0) {
-                    grid.innerHTML = `<div class="pv-ach-empty"><i class="fas fa-trophy"></i>Hali yutuqlar qo'shilmagan</div>`;
+                const list = await res.json();
+                $('achCountNum').textContent = list.length;
+                $('achCountBadge').textContent = list.length;
+                if (!list.length) {
+                    grid.innerHTML = `<div class="pv-empty">${icon('trophy')}Hali yutuqlar qo'shilmagan</div>`;
                     return;
                 }
-
                 grid.innerHTML = '';
-                achievements.forEach(ach => {
-                    const card = document.createElement('div');
-                    card.className = 'pv-ach-card';
-                    card.innerHTML = `<div class="pv-ach-ribbon"><i class="fas fa-star"></i></div><img src="${ach.imageUrl}" alt=""><div class="pv-ach-title">${ach.title}</div>`;
+                list.forEach((ach) => {
+                    const card = document.createElement('button');
+                    card.type = 'button'; card.className = 'pv-ach-card';
+                    card.innerHTML = `<span class="pv-ach-star">${icon('star')}</span><img src="${esc(safeUrl(ach.imageUrl))}" alt="" loading="lazy"><div class="pv-ach-title">${esc(ach.title)}</div>`;
                     card.addEventListener('click', () => openAchievementModal(ach));
                     grid.appendChild(card);
                 });
@@ -593,46 +513,44 @@ body { font-family: 'Inter', sans-serif; }
             }
         }
 
-        // ---------- Followers / following list modal ----------
+        /* ---------- Followers / following lists ---------- */
         function flAvatar(u) {
-            return u.photoUrl
-                ? `<img src="${u.photoUrl}" alt="" class="follow-list-avatar">`
-                : `<div class="follow-list-avatar">${initials(u.name || u.username)}</div>`;
+            const photo = safeUrl(u.photoUrl);
+            return `<span class="fl-av" style="--h:${hueOf(u.username)}">${esc(initials(u.name || u.username))}${photo ? `<img src="${esc(photo)}" alt="" loading="lazy">` : ''}</span>`;
         }
         function openFollowListModal(title, items) {
-            document.getElementById('followListTitle').textContent = title;
-            const body = document.getElementById('followListBody');
-            body.innerHTML = items.length
-                ? items.map(u => `
+            $('followListTitle').textContent = title;
+            $('followListBody').innerHTML = items.length
+                ? items.map((u) => `
                     <a href="/u/${encodeURIComponent(u.username)}" class="follow-list-item">
                         ${flAvatar(u)}
-                        <div>
-                            <div class="fl-name">${u.name || u.username}</div>
-                            <div class="fl-username">@${u.username}</div>
-                        </div>
-                    </a>
-                `).join('')
+                        <div><div class="fl-name">${esc(u.name || u.username)}</div><div class="fl-username">@${esc(u.username)}</div></div>
+                    </a>`).join('')
                 : `<div class="fl-empty">Hali hech kim yo'q.</div>`;
-            document.getElementById('followListModal').classList.add('open');
+            $('followListModal').classList.add('open');
+            $('followListClose').focus();
         }
-        document.getElementById('followListClose').addEventListener('click', () => {
-            document.getElementById('followListModal').classList.remove('open');
-        });
-        document.getElementById('followListModal').addEventListener('click', (e) => {
-            if (e.target.id === 'followListModal') document.getElementById('followListModal').classList.remove('open');
-        });
-        document.getElementById('statFollowers').addEventListener('click', async () => {
+        // Broken photos disappear, revealing the initials underneath
+        document.addEventListener('error', (e) => {
+            if (e.target && e.target.tagName === 'IMG' && e.target.closest('.fl-av')) e.target.remove();
+        }, true);
+
+        $('achModalClose').addEventListener('click', () => closeModal('achModal'));
+        $('followListClose').addEventListener('click', () => closeModal('followListModal'));
+        ['achModal', 'followListModal'].forEach((id) => $(id).addEventListener('click', (e) => { if (e.target.id === id) closeModal(id); }));
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeModal('achModal'); closeModal('followListModal'); } });
+
+        $('statFollowers').addEventListener('click', async () => {
             const res = await fetch(`/api/users/${encodeURIComponent(viewedUsername)}/followers`);
             openFollowListModal('Kuzatuvchilar', res.ok ? await res.json() : []);
         });
-        document.getElementById('statFollowing').addEventListener('click', async () => {
+        $('statFollowing').addEventListener('click', async () => {
             const res = await fetch(`/api/users/${encodeURIComponent(viewedUsername)}/following`);
             openFollowListModal('Kuzatilmoqda', res.ok ? await res.json() : []);
         });
 
         loadProfile();
     </script>
-
 <script>
 /* BM ID chip: render + one-tap copy (works inside links/cards, desktop and mobile) */
 (function () {
