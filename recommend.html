@@ -3,7 +3,7 @@
 <head>
 <script src="/theme.js"></script>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>BirMillat – Tavsiyalar</title>
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="manifest" href="/manifest.json">
@@ -19,55 +19,60 @@
 <script src="/interactions.js" defer></script>
 <style>
 body { font-family: 'Inter', sans-serif; }
-.page-container { max-width: 1100px; margin: 0 auto; padding: 1.8rem 1.5rem 3rem; }
-.page-head { margin-bottom: 1.4rem; }
-.page-head h1 { font-family: 'Sora', sans-serif; font-size: clamp(1.4rem, 3vw, 1.75rem); margin-bottom: 0.3rem; display: flex; align-items: center; gap: .5rem; }
-.page-head h1 i { color: var(--color-accent); }
-.page-head p { color: var(--color-text-muted); margin: 0; }
+.rc-page { max-width: 1040px; margin: 0 auto; padding: 24px 16px 72px; }
+.rc-head h1 { display: flex; align-items: center; gap: 10px; font: 800 clamp(1.5rem, 4vw, 1.9rem)/1.2 'Sora', sans-serif; color: var(--color-text); }
+.rc-head h1 svg { width: 0.85em; height: 0.85em; flex: none; color: var(--color-primary); }
+.rc-head p { margin-top: 6px; color: var(--color-text-muted); }
 
-.filter-bar { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 2rem; }
-.filter-chip {
-    background: var(--color-surface); border: 1px solid var(--color-border); color: var(--color-text);
-    padding: 0.5rem 1.1rem; border-radius: var(--radius-pill); font-size: 0.85rem; font-weight: 600;
-    cursor: pointer; transition: transform .18s cubic-bezier(.34,1.56,.64,1), border-color .15s ease, background .15s ease, color .15s ease;
-}
-.filter-chip:hover { border-color: var(--color-primary); transform: scale(1.04); }
-.filter-chip:active { transform: scale(.94); }
-.filter-chip.active { background: var(--color-primary-solid); border-color: var(--color-primary-solid); color: white; }
+/* category chips: one scrollable row, never wraps off-screen */
+.rc-filters { display: flex; gap: 8px; margin: 18px -16px 20px; padding: 2px 16px 6px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
+.rc-filters::-webkit-scrollbar { display: none; }
+.rc-chip { flex: none; min-height: 40px; padding: 0 16px; border-radius: 20px; border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-text); font: 600 0.9rem 'Inter', sans-serif; white-space: nowrap; cursor: pointer; transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease; }
+.rc-chip:hover { border-color: var(--color-primary); }
+.rc-chip[aria-pressed="true"] { background: var(--color-primary-solid); border-color: transparent; color: #fff; }
+.rc-chip:focus-visible, .rc-card:focus-visible, .rc-btn:focus-visible { outline: 2px solid var(--color-primary-light); outline-offset: 2px; }
 
-.users-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 1.4rem; }
-.user-card { transition: transform 0.2s cubic-bezier(.16,1,.3,1), box-shadow .2s ease; text-decoration: none; display: block; color: inherit; padding: 1.25rem; }
-.user-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-hover); }
-.card-top { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 0.8rem; }
-.avatar {
-    width: 48px; height: 48px; background: var(--color-bg); border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-family: 'Sora', sans-serif; font-weight: 700; font-size: 1.05rem;
-    color: var(--color-primary); flex-shrink: 0; overflow: hidden;
-}
-.user-info h3 { font-size: 1rem; color: var(--color-text); margin: 0; }
-.user-info .username { font-size: 0.75rem; color: var(--color-text-muted); }
-.common-interests { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.6rem 0; }
-.interest-badge {
-    background: var(--color-bg); font-size: 0.7rem; padding: 0.25rem 0.7rem;
-    border-radius: var(--radius-pill); color: var(--color-primary); font-weight: 600;
-}
-.match-pill {
-    display: inline-flex; align-items: center; gap: 0.3rem;
-    background: #FFEAE6; color: var(--color-accent);
-    font-size: 0.72rem; font-weight: 700; padding: 0.25rem 0.65rem;
-    border-radius: var(--radius-pill); margin-top: 0.5rem;
-}
-.empty-state { text-align: center; padding: 3rem 1rem; color: var(--color-text-muted); grid-column: 1 / -1; }
+/* people grid */
+.rc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+.rc-card { display: flex; flex-direction: column; gap: 12px; min-width: 0; padding: 16px; border: 1px solid var(--color-border); border-radius: 20px; background: var(--color-surface); color: inherit; text-decoration: none; content-visibility: auto; contain-intrinsic-size: auto 150px; transition: border-color 0.15s ease; }
+.rc-card:hover { border-color: var(--color-primary); }
+.rc-top { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.rc-av { --h: 255; position: relative; width: 56px; height: 56px; flex: none; border-radius: 50%; overflow: hidden; display: grid; place-items: center; font: 700 1.05rem 'Sora', sans-serif; background: hsl(var(--h) 70% 91%); color: hsl(var(--h) 55% 30%); }
+@media (prefers-color-scheme: dark) { .rc-av { background: hsl(var(--h) 34% 26%); color: hsl(var(--h) 90% 88%); } }
+:root[data-theme="dark"] .rc-av { background: hsl(var(--h) 34% 26%); color: hsl(var(--h) 90% 88%); }
+:root[data-theme="light"] .rc-av { background: hsl(var(--h) 70% 91%); color: hsl(var(--h) 55% 30%); }
+.rc-av img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.rc-who { flex: 1; min-width: 0; }
+.rc-name { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; font: 700 1rem/1.3 'Sora', sans-serif; color: var(--color-text); }
+.rc-user { margin-top: 2px; font-size: 0.88rem; color: var(--color-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rc-tags { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.rc-tag { max-width: 100%; padding: 5px 11px; border-radius: 999px; background: var(--color-bg); color: var(--color-text-muted); font: 500 0.8rem/1.3 'Inter', sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rc-tag.is-match { background: rgba(77, 208, 141, 0.14); color: var(--color-success); font-weight: 600; }
+.rc-tag.none { font-style: italic; }
+.rc-match { display: flex; align-items: center; gap: 6px; font: 600 0.82rem/1.3 'Inter', sans-serif; color: var(--color-success); }
+.rc-match svg { width: 16px; height: 16px; flex: none; }
 
-@media (max-width: 560px) {
-    .page-container { padding: 1.3rem 1rem 2.5rem; }
-    .users-grid { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 1rem; }
+/* loading / empty / error */
+.rc-skel { pointer-events: none; }
+.rc-skel i { display: block; background: var(--color-border); border-radius: 8px; animation: rc-soft 1.4s ease-in-out infinite; }
+.rc-skel .c { width: 56px; height: 56px; border-radius: 50%; flex: none; }
+@keyframes rc-soft { 0%, 100% { opacity: 0.6; } 50% { opacity: 0.3; } }
+.rc-state { grid-column: 1 / -1; display: grid; justify-items: center; gap: 14px; padding: 48px 16px; text-align: center; color: var(--color-text-muted); }
+.rc-btn { min-height: 44px; padding: 0 22px; border-radius: 22px; border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-text); font: 600 0.95rem 'Inter', sans-serif; cursor: pointer; transition: border-color 0.15s ease; }
+.rc-btn:hover { border-color: var(--color-primary); }
+
+@media (max-width: 640px) {
+  .rc-page { padding: 16px 12px 56px; }
+  .rc-filters { margin: 14px -12px 16px; padding: 2px 12px 6px; }
+  .rc-grid { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .rc-card { padding: 14px; border-radius: 18px; }
 }
+@media (prefers-reduced-motion: reduce) { .rc-skel i { animation: none; } }
 </style>
 </head>
 <body>
-    <nav class="navbar">
+
+<nav class="navbar">
         <a href="/home" class="logo"><svg width="160" height="45" viewBox="0 0 320 90" xmlns="http://www.w3.org/2000/svg" style="display:block;">
       <g transform="translate(45,45)">
         <g transform="rotate(-18)">
@@ -117,120 +122,147 @@ body { font-family: 'Inter', sans-serif; }
 </nav>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-    <div class="page-container">
-        <div class="page-head reveal">
-            <h1><i class="fas fa-wand-magic-sparkles"></i> <span data-i18n="home.recommended_title">Sizga tavsiya etiladi</span></h1>
+    <main class="rc-page">
+        <div class="rc-head">
+            <h1><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg><span data-i18n="home.recommended_title">Sizga tavsiya etiladi</span></h1>
             <p data-i18n="home.recommended_sub">Qiziqishlari siznikiga mos keladigan foydalanuvchilar</p>
         </div>
 
-        <div class="filter-bar reveal" id="filterBar">
-            <button class="filter-chip active" data-category="" data-i18n="search.filter_all">Hammasi</button>
-            <button class="filter-chip" data-category="IELTS" data-i18n="search.cat_ielts">IELTS</button>
-            <button class="filter-chip" data-category="IT" data-i18n="search.cat_it">IT / Dasturlash</button>
-            <button class="filter-chip" data-category="Sun'iy intellekt" data-i18n="search.cat_ai">Sun'iy intellekt</button>
-            <button class="filter-chip" data-category="O'yinlar" data-i18n="search.cat_games">O'yinlar</button>
-            <button class="filter-chip" data-category="Sport" data-i18n="search.cat_sport">Sport</button>
-            <button class="filter-chip" data-category="Sayohat" data-i18n="search.cat_travel">Sayohat</button>
-            <button class="filter-chip" data-category="Startup" data-i18n="search.cat_startup">Startup</button>
-            <button class="filter-chip" data-category="Dizayn" data-i18n="search.cat_design">Dizayn</button>
+        <div class="rc-filters" id="filterBar" role="group" aria-label="Kategoriya">
+            <button type="button" class="rc-chip" data-category="" aria-pressed="true" data-i18n="search.filter_all">Hammasi</button>
+            <button type="button" class="rc-chip" data-category="IELTS" aria-pressed="false" data-i18n="search.cat_ielts">IELTS</button>
+            <button type="button" class="rc-chip" data-category="IT" aria-pressed="false" data-i18n="search.cat_it">IT / Dasturlash</button>
+            <button type="button" class="rc-chip" data-category="Sun'iy intellekt" aria-pressed="false" data-i18n="search.cat_ai">Sun'iy intellekt</button>
+            <button type="button" class="rc-chip" data-category="O'yinlar" aria-pressed="false" data-i18n="search.cat_games">O'yinlar</button>
+            <button type="button" class="rc-chip" data-category="Sport" aria-pressed="false" data-i18n="search.cat_sport">Sport</button>
+            <button type="button" class="rc-chip" data-category="Sayohat" aria-pressed="false" data-i18n="search.cat_travel">Sayohat</button>
+            <button type="button" class="rc-chip" data-category="Startup" aria-pressed="false" data-i18n="search.cat_startup">Startup</button>
+            <button type="button" class="rc-chip" data-category="Dizayn" aria-pressed="false" data-i18n="search.cat_design">Dizayn</button>
         </div>
 
-        <div class="users-grid reveal-stagger reveal" id="usersGrid">
-            <p style="color:var(--color-text-muted)" data-i18n="vol.loading">Yuklanmoqda...</p>
-        </div>
-    </div>
+        <div class="rc-grid" id="usersGrid" aria-live="polite"></div>
+    </main>
 
     <footer><span data-i18n="footer.tagline">BirMillat – qiziqishlar asosida do'stlar toping.</span> · <a href="/privacy" style="color:inherit;" data-i18n="foot.privacy">Maxfiylik siyosati</a><br><span style="opacity:0.8;" data-i18n-html="foot.founder">Founder — Bekhruz Ravshanov</span></footer>
 
     <script>
+    (function () {
+        'use strict';
+        const $ = (id) => document.getElementById(id);
+        const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const safeUrl = (u) => (typeof u === 'string' && /^(https?:\/\/|\/(?!\/))/i.test(u) ? u : '');
+        const HUES = [255, 278, 305, 335, 8, 28, 172, 200];
+        const hueOf = (s) => { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return HUES[h % HUES.length]; };
+        const initials = (n) => { if (!n) return '?'; const p = n.trim().split(/\s+/); return (p.length > 1 ? p[0][0] + p[1][0] : p[0].slice(0, 2)).toUpperCase(); };
+
+        // Language: saved preference on load, then follows the navbar switcher (<html lang>)
+        let LANG = 'uz'; const DICTS = {};
+        const loadDict = (l) => (l === 'uz' ? Promise.resolve({}) : DICTS[l] ? Promise.resolve(DICTS[l])
+            : fetch('/i18n/' + l + '.json').then((r) => (r.ok ? r.json() : {})).catch(() => ({})).then((d) => (DICTS[l] = d)));
+        const T = (key, fb) => (DICTS[LANG] && DICTS[LANG][key]) || fb;
+
         let myInterests = [];
         let activeCategory = '';
+        let token = 0;
+        const cache = new Map();      // category → Promise<users[]>  (switching back is instant)
+        const grid = $('usersGrid');
 
-        function initials(name) {
-            if (!name) return '?';
-            const parts = name.trim().split(/\s+/);
-            return parts.length > 1 ? (parts[0][0] + parts[1][0]).toUpperCase() : parts[0].slice(0, 2).toUpperCase();
+        const matches = (tag) => { const t = String(tag).toLowerCase(); return myInterests.some((i) => t.includes(i) || i.includes(t)); };
+        const score = (tags) => { const th = (tags || []).map((t) => String(t).toLowerCase()); return myInterests.filter((i) => th.some((t) => t.includes(i) || i.includes(t))).length; };
+
+        function cardHtml(u) {
+            const name = u.name || u.username;
+            const photo = safeUrl(u.photoUrl);
+            const all = (u.interests || []).map((t) => ({ t, m: matches(t) }));
+            all.sort((a, b) => b.m - a.m);                       // shared interests first
+            const shown = all.slice(0, 3), extra = all.length - shown.length;
+            const tags = all.length
+                ? shown.map((x) => `<span class="rc-tag${x.m ? ' is-match' : ''}">#${esc(x.t)}</span>`).join('') + (extra > 0 ? `<span class="rc-tag">+${extra}</span>` : '')
+                : `<span class="rc-tag none">${esc(T('common.no_interests', "Qiziqish ko'rsatilmagan"))}</span>`;
+            const match = u.score > 0
+                ? `<div class="rc-match"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8.5 12.5 2.5 2.5 4.5-5"/></svg>${u.score} ${esc(T('recommend.matches', 'mos qiziqish'))}</div>` : '';
+            return `<a class="rc-card" href="/u/${encodeURIComponent(u.username)}">
+                <div class="rc-top">
+                    <span class="rc-av" style="--h:${hueOf(u.username)}">${esc(initials(name))}${photo ? `<img src="${esc(photo)}" alt="" width="56" height="56" loading="lazy" decoding="async">` : ''}</span>
+                    <div class="rc-who"><div class="rc-name">${esc(name)}</div><div class="rc-user">@${esc(u.username)}</div></div>
+                </div>
+                <div class="rc-tags">${tags}</div>${match}</a>`;
         }
+
+        function skeleton() {
+            const card = '<div class="rc-card rc-skel"><div class="rc-top"><i class="c"></i><div class="rc-who"><i style="height:14px;width:60%"></i><i style="height:11px;width:35%;margin-top:8px"></i></div></div><div class="rc-tags"><i style="height:24px;width:70px;border-radius:12px"></i><i style="height:24px;width:90px;border-radius:12px"></i></div></div>';
+            grid.innerHTML = card.repeat(6);
+        }
+
+        function stateHtml(msg, retry) {
+            grid.innerHTML = `<div class="rc-state"><div>${esc(msg)}</div>${retry ? `<button type="button" class="rc-btn" id="rcRetry">${esc(T('mx.retry_load', 'Qayta urinish'))}</button>` : ''}</div>`;
+            const b = $('rcRetry'); if (b) b.addEventListener('click', () => { cache.delete(activeCategory); show(activeCategory); });
+        }
+
+        function getUsers(cat) {
+            if (!cache.has(cat)) {
+                const p = fetch(cat ? `/api/search?category=${encodeURIComponent(cat)}` : '/api/search')
+                    .then((r) => { if (!r.ok) throw new Error('bad status'); return r.json(); })
+                    .catch((e) => { cache.delete(cat); throw e; });
+                cache.set(cat, p);
+            }
+            return cache.get(cat);
+        }
+
+        function render(list) {
+            if (!list.length) { stateHtml(T('recommend.empty', "Hozircha bu toifada foydalanuvchilar yo'q.")); return; }
+            const users = list.map((u) => ({ ...u, score: score(u.interests) })).sort((a, b) => b.score - a.score);   // best matches first
+            grid.innerHTML = users.map(cardHtml).join('');
+        }
+
+        async function show(cat) {
+            const mine = ++token;                                  // a slower, older request can never overwrite a newer one
+            const pending = getUsers(cat);
+            const t = setTimeout(() => { if (mine === token) skeleton(); }, 120);   // no flash of skeleton on instant (cached) loads
+            try {
+                const list = await pending;
+                if (mine !== token) return;
+                clearTimeout(t); render(list); last = list;
+            } catch (e) {
+                clearTimeout(t);
+                if (mine === token) stateHtml(T('vol.load_error', "Yuklab bo'lmadi. Sahifani qaytadan yuklang."), true);
+            }
+        }
+        let last = null;
+
+        $('filterBar').addEventListener('click', (e) => {
+            const chip = e.target.closest('.rc-chip'); if (!chip) return;
+            document.querySelectorAll('.rc-chip').forEach((c) => c.setAttribute('aria-pressed', c === chip ? 'true' : 'false'));
+            activeCategory = chip.getAttribute('data-category');
+            show(activeCategory);
+        });
+
+        new MutationObserver(async () => {
+            const attr = document.documentElement.getAttribute('lang') || 'uz';
+            const next = attr === 'kaa' ? 'qq' : attr;
+            if (next === LANG) return;
+            await loadDict(next); LANG = next;
+            if (last) render(last);
+        }).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
 
         async function loadMe() {
             try {
                 const res = await fetch('/api/me');
                 if (!res.ok) { window.location.href = '/login'; return; }
                 const me = await res.json();
-                document.getElementById('userBadge').innerHTML = '<img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ' + me.username;
-                myInterests = (me.interests || []).map(i => i.toLowerCase());
-            } catch (e) {
-                console.error('Failed to load profile:', e);
-            }
+                $('userBadge').innerHTML = '<img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ' + esc(me.username);
+                myInterests = (me.interests || []).map((i) => String(i).toLowerCase());
+            } catch (e) { console.error('Failed to load profile:', e); }
         }
 
-        function matchScore(theirInterests) {
-            const theirs = (theirInterests || []).map(i => i.toLowerCase());
-            return myInterests.filter(i => theirs.some(t => t.includes(i) || i.includes(t))).length;
-        }
-
-        async function loadUsers(category = '') {
-            const grid = document.getElementById('usersGrid');
-            grid.innerHTML = `<p style="color:var(--color-text-muted)" data-i18n="vol.loading">Yuklanmoqda...</p>`; if (window.BirMillatI18n) window.BirMillatI18n.refresh();
-            try {
-                const url = category ? `/api/search?category=${encodeURIComponent(category)}` : '/api/search';
-                const res = await fetch(url);
-                if (!res.ok) { grid.innerHTML = ''; return; }
-                let users = await res.json();
-
-                users = users.map(u => ({ ...u, score: matchScore(u.interests) }))
-                             .sort((a, b) => b.score - a.score);
-
-                if (users.length === 0) {
-                    grid.innerHTML = `<div class="empty-state" data-i18n="recommend.empty">Hozircha bu toifada foydalanuvchilar yo'q.</div>`;
-                    if (window.BirMillatI18n) window.BirMillatI18n.refresh();
-                    return;
-                }
-
-                grid.innerHTML = '';
-                users.forEach(user => {
-                    const interests = user.interests || [];
-                    const card = document.createElement('a');
-                    card.className = 'user-card card';
-                    card.href = `/u/${encodeURIComponent(user.username)}`;
-                    card.innerHTML = `
-                        <div class="card-top">
-                            <div class="avatar">${user.photoUrl ? `<img src="${user.photoUrl}" alt="" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">` : initials(user.name || user.username)}</div>
-                            <div class="user-info">
-                                <h3>${user.name || user.username}</h3>
-                                <div class="username">@${user.username}</div>
-                            </div>
-                        </div>
-                        <div class="common-interests">
-                            ${interests.slice(0, 3).map(t => `<span class="interest-badge">#${t}</span>`).join('')}
-                            ${interests.length > 3 ? `<span class="interest-badge">+${interests.length - 3}</span>` : ''}
-                            ${interests.length === 0 ? `<span class="interest-badge" style="opacity:0.6" data-i18n="common.no_interests">Qiziqish ko'rsatilmagan</span>` : ''}
-                        </div>
-                        ${user.score > 0 ? `<div class="match-pill"><i class="fas fa-bolt"></i> ${user.score} ${window.BirMillatI18n ? window.BirMillatI18n.t('recommend.matches', {}, 'mos qiziqish') : 'mos qiziqish'}</div>` : ''}
-                    `;
-                    grid.appendChild(card);
-                });
-                if (window.BirMillatI18n) window.BirMillatI18n.refresh();
-            } catch (e) {
-                console.error('Failed to load users:', e);
-                grid.innerHTML = `<div class="empty-state" data-i18n="vol.load_error">Yuklab bo'lmadi. Sahifani qaytadan yuklang.</div>`;
-                if (window.BirMillatI18n) window.BirMillatI18n.refresh();
-            }
-        }
-
-        document.getElementById('filterBar').addEventListener('click', (e) => {
-            const chip = e.target.closest('.filter-chip');
-            if (!chip) return;
-            document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-            chip.classList.add('active');
-            activeCategory = chip.getAttribute('data-category');
-            loadUsers(activeCategory);
-        });
-
-        (async () => {
-            await loadMe();
-            loadUsers();
+        (async function boot() {
+            skeleton();
+            LANG = (window.BirMillatI18n && window.BirMillatI18n.currentLang()) || 'uz';
+            getUsers('').catch(() => {});                          // start the list request right away, in parallel with the profile + dictionary
+            await Promise.all([loadMe(), loadDict(LANG)]);
+            show('');
         })();
+    })();
     </script>
 </body>
 </html>
