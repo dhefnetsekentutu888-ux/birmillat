@@ -1050,3 +1050,29 @@ footer {
   :root:not([data-theme="light"]) .user-badge img { filter: brightness(0) invert(1); opacity: 0.85; }
 }
 :root[data-theme="dark"] .user-badge img { filter: brightness(0) invert(1); opacity: 0.85; }
+
+/* ==========================================================
+   Calmer interactions
+   The global micro-interaction engine (interactions.js + the keyframes above) made every
+   button bounce, shake, spin or ripple, and some buttons grow on hover. These later rules
+   keep a barely-there press feedback (a ~1-2% dip, no overshoot) and remove the rest.
+   Delete this block to bring the old behaviour back.
+   ========================================================== */
+@keyframes bm-press-low  { 0%, 100% { transform: none; } 50% { transform: scale(0.99); } }
+@keyframes bm-press-mid  { 0%, 100% { transform: none; } 50% { transform: scale(0.985); } }
+@keyframes bm-press-high { 0%, 100% { transform: none; } 50% { transform: scale(0.98); } }
+@keyframes bm-shake { 0%, 100% { transform: none; } }
+@keyframes bm-toggle-spin { 0%, 100% { transform: none; } }
+.bm-anim-low, .bm-anim-mid, .bm-anim-high { animation-duration: 0.14s; animation-timing-function: ease-out; }
+.bm-anim-caution { animation: none; }
+.bm-anim-toggle i, .bm-anim-toggle svg, .bm-anim-toggle img { animation: none; }
+.bm-ripple { display: none !important; }
+.btn-glow { animation: none; box-shadow: none; }
+.btn:active, .btn-zoom:active, .navbar .nav-links a:active { transform: none; }
+.btn-zoom:hover, .btn-primary:hover, .user-badge:hover { transform: none; }
+.btn-primary:hover { box-shadow: 0 4px 12px rgba(255, 107, 91, 0.25); }
+.auth-card button[type="submit"]:hover, .auth-card .auth-submit-btn:hover,
+.auth-card button[type="submit"]:active, .auth-card .auth-submit-btn:active { transform: none; }
+.reveal { transform: translateY(8px); transition: opacity 0.35s ease, transform 0.35s ease; }
+.reveal.in-view { transform: none; }
+.reveal-stagger.in-view > * { animation: none; }
