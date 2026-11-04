@@ -30,7 +30,6 @@
   transition: background 0.15s ease, border-color 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
 }
 .pv-btn:hover { border-color: var(--color-primary); }
-.pv-btn:active { transform: scale(0.97); }
 .pv-btn:disabled { opacity: 0.6; cursor: default; }
 .pv-btn:focus-visible, .pv-stat:focus-visible, .pv-ach-card:focus-visible { outline: 2px solid var(--color-primary-light); outline-offset: 2px; }
 .pv-btn.primary { background: var(--color-accent); color: var(--color-on-accent); border-color: transparent; box-shadow: 0 6px 18px rgba(255, 107, 91, 0.28); }
@@ -120,7 +119,7 @@
 /* ---------- Achievements ---------- */
 .pv-ach-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
 .pv-ach-card { position: relative; padding: 0; border: 1px solid var(--color-border); border-radius: 16px; overflow: hidden; background: var(--color-bg); cursor: pointer; text-align: left; font-family: inherit; color: var(--color-text); transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease; }
-.pv-ach-card:hover { transform: translateY(-3px); border-color: var(--color-primary); box-shadow: 0 10px 24px rgba(20, 12, 40, 0.18); }
+.pv-ach-card:hover { border-color: var(--color-primary); box-shadow: 0 10px 24px rgba(20, 12, 40, 0.18); }
 .pv-ach-card img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; background: var(--color-border); }
 .pv-ach-title { padding: 10px 12px 12px; font: 600 0.88rem/1.35 'Inter', sans-serif; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .pv-ach-star { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; background: var(--color-accent); color: var(--color-on-accent); box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25); }
@@ -172,7 +171,6 @@
   -webkit-tap-highlight-color: transparent; transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
 }
 .bm-id:hover { border-color: var(--color-primary); background: var(--color-surface); }
-.bm-id:active { transform: scale(0.97); }
 .bm-id:focus-visible { outline: 2px solid var(--color-primary-light); outline-offset: 2px; }
 .bm-id.is-copied { border-color: var(--color-success); color: var(--color-success); }
 .bm-id.is-match { border-color: var(--color-accent); background: rgba(255, 107, 91, 0.10); }
