@@ -1076,3 +1076,72 @@ footer {
 .reveal { transform: translateY(8px); transition: opacity 0.35s ease, transform 0.35s ease; }
 .reveal.in-view { transform: none; }
 .reveal-stagger.in-view > * { animation: none; }
+
+/* ==========================================================
+   Navigation — YouTube-style
+   Desktop: a slim icon-over-label rail; the hamburger expands it.
+   Phones/tablets: a bottom tab bar + a clean list drawer.
+   Applies only to pages that have the shared menu (body:has(.nav-links)).
+   ========================================================== */
+:root { --bm-rail-w: 84px; --bm-nav-h: 78px; --bm-bottom-h: 60px; --bm-nav-tint: rgba(109, 79, 214, 0.10); --bm-nav-tint-strong: rgba(109, 79, 214, 0.16); }
+html.bm-rail-open { --bm-rail-w: 244px; }
+.bm-bottomnav { display: none; }
+/* 'clip' (unlike 'hidden') doesn't turn the body into a scroll container, which would stop the top bar sticking */
+body:has(.nav-links) { overflow-x: clip; }
+body:has(.nav-links) .navbar .nav-toggle { order: -2; margin-right: 0; }
+body:has(.nav-links) .navbar .logo { order: -1; margin-right: auto; }   /* hamburger | logo ........ user / bell / language / theme */
+
+/* the list itself (shared by rail + drawer): flat rows, no boxes */
+body:has(.nav-links) .navbar .nav-links a {
+  display: flex; align-items: center; gap: 18px; margin: 0; padding: 11px 14px;
+  background: none; border: 0; box-shadow: none; border-radius: 12px;
+  font-size: 0.95rem; font-weight: 500; color: var(--color-text);
+}
+body:has(.nav-links) .navbar .nav-links a i { width: 24px; text-align: center; font-size: 1.1rem; color: var(--color-text-muted); }
+body:has(.nav-links) .navbar .nav-links a:hover { background: var(--bm-nav-tint); transform: none; border-color: transparent; }
+body:has(.nav-links) .navbar .nav-links a.active { background: var(--bm-nav-tint-strong); color: var(--color-primary); font-weight: 700; }
+body:has(.nav-links) .navbar .nav-links a.active i { color: var(--color-primary); opacity: 1; }
+body:has(.nav-links) .navbar .nav-links a:focus-visible { outline: 2px solid var(--color-primary-light); outline-offset: -2px; }
+
+/* ---------- Desktop: rail ---------- */
+@media (min-width: 1024px) {
+  body:has(.nav-links) { padding-left: var(--bm-rail-w); transition: padding-left 0.2s ease; }
+  body:has(.nav-links) .navbar { position: sticky; top: 0; z-index: 210; margin-left: calc(-1 * var(--bm-rail-w)); transition: margin-left 0.2s ease; }
+  body:has(.nav-links) .navbar .nav-links {
+    top: var(--bm-nav-h); left: 0; height: calc(100vh - var(--bm-nav-h)); height: calc(100dvh - var(--bm-nav-h));
+    width: var(--bm-rail-w); max-width: none; padding: 8px 6px 12px; gap: 2px; z-index: 205;
+    transform: none; box-shadow: none; border-right: 1px solid var(--color-border);
+    transition: width 0.2s ease; scrollbar-width: none;
+  }
+  body:has(.nav-links) .navbar .nav-links::-webkit-scrollbar { display: none; }
+  body:has(.nav-links) .navbar .nav-links .sidebar-close { display: none; }
+  body:has(.nav-links) .navbar .nav-links a:last-child { margin-top: auto; }
+
+  /* collapsed: icon above a small label */
+  html:not(.bm-rail-open) body:has(.nav-links) .navbar .nav-links a { flex-direction: column; justify-content: center; gap: 5px; padding: 12px 2px 9px; font-size: 0.68rem; line-height: 1.15; text-align: center; }
+  html:not(.bm-rail-open) body:has(.nav-links) .navbar .nav-links a i { width: auto; font-size: 1.2rem; }
+  html:not(.bm-rail-open) body:has(.nav-links) .navbar .nav-links a span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
+
+/* ---------- Phones & tablets: drawer + bottom bar ---------- */
+@media (max-width: 1023px) {
+  body:has(.nav-links) .navbar .nav-links { width: 280px; padding: 8px 12px 20px; gap: 2px; }
+  body:has(.nav-links) { padding-bottom: calc(var(--bm-bottom-h) + env(safe-area-inset-bottom, 0px)); }
+  body:has(.nav-links) .bm-bottomnav {
+    display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 190;
+    height: calc(var(--bm-bottom-h) + env(safe-area-inset-bottom, 0px)); padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: var(--color-surface); border-top: 1px solid var(--color-border);
+  }
+  .bm-bottomnav a {
+    flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+    color: var(--color-text-muted); text-decoration: none; font-size: 0.66rem; font-weight: 500; line-height: 1.1;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .bm-bottomnav a i { font-size: 1.2rem; }
+  .bm-bottomnav a span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 2px; }
+  .bm-bottomnav a.active { color: var(--color-primary); font-weight: 700; }
+}
+@media (max-width: 860px) {
+  body.mx-in-chat .bm-bottomnav { display: none; }      /* full-screen conversations keep the whole screen */
+  body.mx-in-chat:has(.nav-links) { padding-bottom: 0; }
+}
