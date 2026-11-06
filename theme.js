@@ -1,3 +1,5 @@
+// Remember whether the navigation rail was left expanded (applied before first paint, so there is no jump)
+try { if (localStorage.getItem('bm_rail') === '1') document.documentElement.classList.add('bm-rail-open'); } catch (e) {}
 (function () {
     var STORAGE_KEY = 'birmillat-theme';
 
@@ -95,7 +97,48 @@
             if (overlay) overlay.classList.remove('open');
         }
 
-        if (toggle) toggle.addEventListener('click', openSidebar);
+        // Desktop (>=1024px): a slim icon rail that the hamburger expands/collapses (like YouTube).
+        // Phones/tablets: the hamburger opens the drawer, and a bottom tab bar holds the main places.
+        var railMQ = window.matchMedia('(min-width: 1024px)');
+        function toggleNav() {
+            if (railMQ.matches) {
+                var open = !document.documentElement.classList.contains('bm-rail-open');
+                document.documentElement.classList.toggle('bm-rail-open', open);
+                try { localStorage.setItem('bm_rail', open ? '1' : '0'); } catch (e) {}
+                if (toggle) toggle.setAttribute('aria-expanded', String(open));
+            } else {
+                openSidebar();
+            }
+        }
+        if (toggle) {
+            toggle.addEventListener('click', toggleNav);
+            toggle.setAttribute('aria-expanded', String(railMQ.matches && document.documentElement.classList.contains('bm-rail-open')));
+        }
+        if (railMQ.addEventListener) railMQ.addEventListener('change', closeSidebar);
+
+        if (sidebar) {
+            // The rail sits right under the top bar, so tell the CSS how tall the top bar really is
+            var topBar = document.querySelector('.navbar');
+            var setNavH = function () { if (topBar) document.documentElement.style.setProperty('--bm-nav-h', topBar.offsetHeight + 'px'); };
+            setNavH();
+            window.addEventListener('resize', setNavH);
+            if (window.ResizeObserver && topBar) new ResizeObserver(setNavH).observe(topBar);
+
+            // Bottom tab bar for phones (built from the same links, so labels stay translated)
+            var tabs = document.createElement('nav');
+            tabs.className = 'bm-bottomnav';
+            tabs.setAttribute('aria-label', 'Asosiy');
+            ['/home', '/search', '/messages', '/communities', '/profile'].forEach(function (href) {
+                var src = sidebar.querySelector('a[href="' + href + '"]');
+                if (!src) return;
+                var a = document.createElement('a');
+                a.href = href;
+                a.innerHTML = src.innerHTML;
+                if (src.classList.contains('active')) { a.className = 'active'; a.setAttribute('aria-current', 'page'); }
+                tabs.appendChild(a);
+            });
+            if (tabs.children.length) document.body.appendChild(tabs);
+        }
         if (closeBtn) closeBtn.addEventListener('click', closeSidebar);
         if (overlay) overlay.addEventListener('click', closeSidebar);
 
