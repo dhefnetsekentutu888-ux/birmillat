@@ -328,5 +328,20 @@
   "gc.del_text": "Xabar hamma uchun o'chiriladi.",
   "gc.empty_title": "Hali xabarlar yo'q",
   "gc.empty_text": "Jamoaga birinchi xabarni yozing.",
-  "bm.copy_id": "ID ni nusxalash"
+  "bm.copy_id": "ID ni nusxalash",
+  "hp.edit": "Tahrirlash",
+  "hp.add": "Qo'shish",
+  "hp.no_interests_yet": "Hali qiziqish qo'shilmagan",
+  "hp.follow": "Kuzatish",
+  "hp.following": "Kuzatilmoqda",
+  "hp.requested": "So'rov yuborildi",
+  "hp.no_people": "Hozircha boshqa foydalanuvchilar yo'q. Tez orada bu yerda tavsiyalar paydo bo'ladi!",
+  "hp.view_all": "Hammasini ko'rish",
+  "hp.no_articles": "Hozircha maqolalar yo'q.",
+  "hp.write_first": "Birinchi maqolani siz yozing!",
+  "hp.no_events": "Hozircha tadbirlar yo'q.",
+  "hp.add_first_event": "Birinchi tadbirni siz qo'shing!",
+  "hp.no_comms": "Hozircha jamoalar yo'q.",
+  "hp.create_first": "Birinchi jamoani siz yarating!",
+  "hp.no_desc": "Tavsif qo'shilmagan"
 }
