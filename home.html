@@ -3,7 +3,7 @@
 <head>
 <script src="/theme.js"></script>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>BirMillat – Bosh sahifa</title>
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="manifest" href="/manifest.json">
@@ -18,160 +18,109 @@
 <link rel="stylesheet" href="/style.css">
 <script src="/interactions.js" defer></script>
 <style>
-/* ==========================================================
-   Home / dashboard — own visual layer (hm- prefixed), sharing
-   only the persistent .navbar shell + design tokens with the
-   rest of the app. Data logic below is unchanged from before;
-   only presentation is new.
-   ========================================================== */
-.hm-page { font-family: 'Inter', sans-serif; }
-.hm-display { font-family: 'Sora', sans-serif; }
-.hm-container { max-width: 1120px; margin: 0 auto; padding: 1.8rem 1.5rem 3rem; }
+body { font-family: 'Inter', sans-serif; }
+.hp-page { max-width: 1040px; margin: 0 auto; padding: 24px 16px 72px; display: grid; gap: 28px; }
+.hp-sec { min-width: 0; }
+.hp-below { content-visibility: auto; contain-intrinsic-size: auto 340px; }
+.hp-i { width: 18px; height: 18px; flex: none; }
 
-/* ---------- Greeting hero ---------- */
-.hm-hero {
-  position: relative; overflow: hidden;
-  background: linear-gradient(135deg, #2D1B69, #4A2F9E 60%, #3a2380);
-  border-radius: 24px;
-  padding: 2.2rem 2rem;
-  margin-bottom: 1.6rem;
-  display: flex; justify-content: space-between; align-items: center; gap: 1.5rem; flex-wrap: wrap;
-  color: #FAF7F2;
-}
-.hm-hero::before { content:''; position:absolute; width:220px; height:220px; background:#FF6B5B; opacity:.28; filter:blur(70px); border-radius:50%; top:-70px; right:-40px; }
-.hm-hero-copy { position: relative; max-width: 520px; }
-.hm-hero h1 { font-family: 'Sora', sans-serif; font-size: clamp(1.4rem, 3vw, 1.85rem); margin: 0 0 .5rem; color: #FAF7F2; }
-.hm-hero h1 span { color: #FF9C8F; }
-.hm-hero p { color: #D9D2EE; line-height: 1.6; margin: 0; font-size: .93rem; }
-.hm-hero .btn { position: relative; flex-shrink: 0; }
+/* ---------- announcement ---------- */
+.hp-announce { display: none; align-items: center; gap: 14px; padding: 16px 18px; border-radius: 20px; background: var(--color-surface); border: 1px solid var(--color-border); }
+.hp-announce .ico { flex: none; width: 42px; height: 42px; display: grid; place-items: center; border-radius: 50%; background: rgba(109, 79, 214, 0.14); color: var(--color-primary); }
+.hp-announce .txt { flex: 1; min-width: 0; }
+.hp-kicker { font: 700 0.78rem/1.3 'Inter', sans-serif; color: var(--color-primary); }
+.hp-announce-content { margin-top: 2px; color: var(--color-text); line-height: 1.5; overflow-wrap: anywhere; white-space: pre-wrap; }
+.hp-thumb { flex: none; width: 72px; height: 72px; border-radius: 14px; object-fit: cover; }
 
-/* ---------- Admin announcement — deliberately compact so it (plus the
-   greeting hero) still fits above the fold on a typical screen. ---------- */
-.hm-announce {
-    display: none; /* JS reveals this only if an active post exists */
-    align-items: center; gap: 1rem;
-    background: linear-gradient(120deg, #FFF4E5, #FFEAE6);
-    border: 1px solid #FFD9A8; border-radius: 16px;
-    padding: 0.9rem 1.2rem; margin-bottom: 1rem;
+/* ---------- hero ---------- */
+.hp-hero {
+  display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 32px 36px; border-radius: 26px; color: #fff;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120' fill='none' stroke='%23fff' stroke-opacity='.13' stroke-width='2.6'%3E%3Cg transform='translate(30 30)'%3E%3Cellipse cx='-5' rx='9' ry='16' transform='rotate(-18)'/%3E%3Cellipse cx='5' rx='9' ry='16' transform='rotate(18)'/%3E%3C/g%3E%3Cg transform='translate(90 90)'%3E%3Cellipse cx='-5' rx='9' ry='16' transform='rotate(-18)'/%3E%3Cellipse cx='5' rx='9' ry='16' transform='rotate(18)'/%3E%3C/g%3E%3C/svg%3E") 0 0 / 120px 120px,
+    linear-gradient(118deg, #2D1B69 0%, #5B3FC0 62%, #FF6B5B 170%);
 }
-:root[data-theme="dark"] .hm-announce { background: linear-gradient(120deg, rgba(255,193,99,0.08), rgba(255,138,115,0.08)); border-color: rgba(255,193,99,0.25); }
-.hm-announce-badge {
-    flex-shrink: 0; width: 38px; height: 38px; border-radius: 10px;
-    background: var(--color-accent); color: #fff;
-    display: flex; align-items: center; justify-content: center; font-size: 0.95rem;
-}
-.hm-announce-body { flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.9rem; }
-.hm-announce-text { flex: 1; min-width: 0; }
-.hm-announce-kicker { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #B7791F; margin-bottom: 0.15rem; }
-.hm-announce-content { font-size: 0.88rem; color: var(--color-text); line-height: 1.5; }
-.hm-announce-thumb { flex-shrink: 0; width: 52px; height: 52px; border-radius: 10px; object-fit: cover; }
+.hp-hero h1 { font: 800 clamp(1.5rem, 4vw, 2.1rem)/1.2 'Sora', sans-serif; color: #fff; overflow-wrap: anywhere; letter-spacing: -0.01em; }
+.hp-hero p { margin-top: 10px; max-width: 52ch; color: rgba(255, 255, 255, 0.88); line-height: 1.6; }
+.hp-hero p strong { color: #fff; }
+.hp-btn-light { flex: none; min-height: 46px; padding: 0 24px; display: inline-flex; align-items: center; justify-content: center; border-radius: 23px; background: #fff; color: #2D1B69; font: 600 0.95rem 'Inter', sans-serif; text-decoration: none; white-space: nowrap; transition: background 0.15s ease; }
+.hp-btn-light:hover { background: #EFE9FB; }
 
-@media (max-width: 560px) {
-  .hm-announce { padding: 0.8rem 1rem; }
-  .hm-announce-thumb { width: 42px; height: 42px; }
-}
+/* ---------- interests ---------- */
+.hp-interests { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; padding: 14px 20px; border-radius: 20px; background: var(--color-surface); border: 1px solid var(--color-border); }
+.hp-interests h2 { font: 700 0.95rem/1.3 'Sora', sans-serif; color: var(--color-text); margin-right: 4px; }
+.hp-chips { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.hp-chip { max-width: 100%; padding: 6px 13px; border-radius: 999px; background: rgba(109, 79, 214, 0.12); color: var(--color-primary); font: 600 0.84rem/1.3 'Inter', sans-serif; overflow-wrap: anywhere; }
+.hp-chip.muted { background: var(--color-bg); color: var(--color-text-muted); font-weight: 500; }
+.hp-link { margin-left: auto; min-height: 44px; display: inline-flex; align-items: center; color: var(--color-primary); font: 600 0.92rem 'Inter', sans-serif; text-decoration: none; }
+.hp-link:hover { text-decoration: underline; }
 
+/* ---------- section headings ---------- */
+.hp-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.hp-head h2 { font: 800 1.2rem/1.25 'Sora', sans-serif; color: var(--color-text); }
+.hp-head p { margin-top: 2px; color: var(--color-text-muted); font-size: 0.9rem; }
 
-/* ---------- Events ticker ---------- */
-.hm-ticker-wrap { margin: 0 0 1.8rem; }
-.hm-chip {
-  display: inline-flex; align-items: center; gap: .5rem;
-  background: var(--color-surface); border: 1px solid var(--color-border);
-  padding: .55rem 1.05rem; border-radius: 999px; font-size: .82rem; font-weight: 600;
-  color: var(--color-primary); text-decoration: none; white-space: nowrap;
-  transition: transform .15s ease, box-shadow .15s ease;
-}
-.hm-chip:hover { transform: translateY(-2px); box-shadow: var(--shadow-card); }
-.hm-chip i { color: var(--color-accent); }
+/* ---------- recommended people (swipeable row) ---------- */
+.hp-people-wrap { position: relative; }
+.hp-people { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x proximity; padding: 2px 2px 8px; margin: 0 -2px; scrollbar-width: none; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
+.hp-people::-webkit-scrollbar { display: none; }
+.hp-person { flex: 0 0 264px; scroll-snap-align: start; display: flex; flex-direction: column; gap: 12px; min-width: 0; padding: 16px; border-radius: 20px; background: var(--color-surface); border: 1px solid var(--color-border); transition: border-color 0.15s ease; }
+.hp-person:hover { border-color: var(--color-primary); }
+.hp-person-link { flex: 1; display: flex; flex-direction: column; gap: 12px; min-width: 0; color: inherit; text-decoration: none; }
+.hp-top { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.hp-av { --h: 255; position: relative; width: 52px; height: 52px; flex: none; border-radius: 50%; overflow: hidden; display: grid; place-items: center; font: 700 1rem 'Sora', sans-serif; background: hsl(var(--h) 70% 91%); color: hsl(var(--h) 55% 30%); }
+@media (prefers-color-scheme: dark) { .hp-av { background: hsl(var(--h) 34% 26%); color: hsl(var(--h) 90% 88%); } }
+:root[data-theme="dark"] .hp-av { background: hsl(var(--h) 34% 26%); color: hsl(var(--h) 90% 88%); }
+:root[data-theme="light"] .hp-av { background: hsl(var(--h) 70% 91%); color: hsl(var(--h) 55% 30%); }
+.hp-av img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.hp-who { flex: 1; min-width: 0; }
+.hp-name { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; font: 700 1rem/1.3 'Sora', sans-serif; color: var(--color-text); }
+.hp-user { margin-top: 2px; font-size: 0.86rem; color: var(--color-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hp-tags { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.hp-tag { max-width: 100%; padding: 5px 11px; border-radius: 999px; background: var(--color-bg); color: var(--color-text-muted); font: 500 0.8rem/1.3 'Inter', sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hp-tag.is-match { background: rgba(77, 208, 141, 0.14); color: var(--color-success); font-weight: 600; }
+.hp-match { display: flex; align-items: center; gap: 6px; font: 600 0.82rem/1.3 'Inter', sans-serif; color: var(--color-success); }
+.hp-follow { min-height: 44px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 22px; border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-text); font: 600 0.92rem 'Inter', sans-serif; cursor: pointer; transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease; }
+.hp-follow:hover { border-color: var(--color-primary); }
+.hp-follow.is-following { background: rgba(77, 208, 141, 0.12); border-color: var(--color-success); color: var(--color-success); }
+.hp-follow.is-pending { color: var(--color-text-muted); }
+.hp-follow:disabled { cursor: default; }
+.hp-more { flex: 0 0 180px; scroll-snap-align: start; display: grid; place-content: center; justify-items: center; gap: 8px; padding: 16px; border: 1.5px dashed var(--color-border); border-radius: 20px; color: var(--color-primary); font: 600 0.95rem 'Inter', sans-serif; text-decoration: none; text-align: center; }
+.hp-more:hover { border-color: var(--color-primary); }
+.hp-arrow { display: none; position: absolute; top: 50%; translate: 0 -50%; width: 40px; height: 40px; place-items: center; border-radius: 50%; border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-text); cursor: pointer; box-shadow: 0 4px 14px rgba(20, 12, 40, 0.18); z-index: 2; }
+.hp-arrow:hover { border-color: var(--color-primary); }
+.hp-arrow.prev { left: -14px; } .hp-arrow.next { right: -14px; }
+@media (hover: hover) { .hp-arrow.show { display: grid; } }
 
-/* ---------- Interests ---------- */
-.hm-interests { margin-bottom: 2rem; }
-.hm-kicker { display: flex; align-items: center; gap: .4rem; font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--color-text-muted); margin-bottom: .6rem; }
-.hm-kicker img { width: 13px; height: 13px; }
+/* ---------- feed cards ---------- */
+.hp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.hp-card { display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 16px 18px; border-radius: 20px; background: var(--color-surface); border: 1px solid var(--color-border); color: inherit; text-decoration: none; transition: border-color 0.15s ease; }
+.hp-card:hover { border-color: var(--color-primary); }
+.hp-card h3 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; font: 700 1rem/1.35 'Sora', sans-serif; color: var(--color-text); }
+.hp-card p { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; color: var(--color-text-muted); font-size: 0.9rem; line-height: 1.5; }
+.hp-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; margin-top: auto; padding-top: 4px; color: var(--color-text-muted); font-size: 0.82rem; }
+.hp-meta span { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.hp-meta .hp-i { width: 15px; height: 15px; }
+.hp-empty { grid-column: 1 / -1; padding: 22px 18px; border: 1.5px dashed var(--color-border); border-radius: 18px; color: var(--color-text-muted); text-align: center; }
+.hp-empty a { color: var(--color-primary); font-weight: 600; }
+.hp-skel { pointer-events: none; }
+.hp-skel i { display: block; background: var(--color-border); border-radius: 8px; animation: hp-soft 1.4s ease-in-out infinite; }
+@keyframes hp-soft { 0%, 100% { opacity: 0.6; } 50% { opacity: 0.3; } }
 
-/* ---------- Section headers ---------- */
-.hm-section-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 1.1rem; flex-wrap: wrap; gap: .5rem; }
-.hm-section-head h2 { font-family: 'Sora', sans-serif; font-size: 1.22rem; display: flex; align-items: center; gap: .5rem; margin: 0; }
-.hm-section-head h2 i { color: var(--color-accent); font-size: 1rem; }
-.hm-section-head p { color: var(--color-text-muted); font-size: .85rem; margin: .2rem 0 0; }
-.hm-see-all { font-size: .85rem; font-weight: 700; color: var(--color-primary); text-decoration: none; }
-.hm-see-all:hover { text-decoration: underline; }
-
-/* ---------- Recommended users rail ---------- */
-.hm-users-scroll-wrap { position: relative; }
-.hm-users-grid {
-  display: flex; gap: 1.1rem; overflow-x: auto; scroll-snap-type: x mandatory;
-  padding: .2rem 2.4rem .7rem; -webkit-overflow-scrolling: touch;
+@media (max-width: 640px) {
+  .hp-page { padding: 16px 12px 56px; gap: 22px; }
+  .hp-hero { flex-direction: column; align-items: stretch; gap: 18px; padding: 24px 22px; border-radius: 22px; }
+  .hp-btn-light { width: 100%; }
+  .hp-interests { padding: 14px 16px; }
+  .hp-person { flex-basis: min(78%, 280px); }
+  .hp-grid { grid-template-columns: minmax(0, 1fr); }
+  .hp-announce { padding: 14px; }
 }
-@media (max-width: 640px) { .hm-users-grid { padding: .2rem .1rem .7rem; } }
-.hm-users-grid::-webkit-scrollbar { height: 6px; }
-.hm-users-grid::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
-.hm-user-card {
-  flex: 0 0 232px; scroll-snap-align: start; display: flex; flex-direction: column;
-  min-height: 208px; text-decoration: none; color: inherit; padding: 1.15rem;
-  transition: transform .2s cubic-bezier(.16,1,.3,1), box-shadow .2s ease;
-}
-.hm-user-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-hover); }
-.hm-more-card {
-  flex: 0 0 130px; min-height: 208px; scroll-snap-align: start; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; text-align: center; text-decoration: none;
-  gap: .5rem; color: var(--color-primary); font-weight: 700; font-size: .88rem;
-  transition: transform .2s ease;
-}
-.hm-more-card:hover { transform: translateY(-4px); }
-.hm-more-card i { font-size: 1.25rem; }
-.hm-card-top { display: flex; align-items: center; gap: .8rem; margin-bottom: .8rem; text-decoration: none; color: inherit; }
-.hm-avatar { width: 46px; height: 46px; background: linear-gradient(135deg,#EFEAF8,#E4DBF7); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.15rem; color: var(--color-primary); flex-shrink: 0; overflow: hidden; }
-.hm-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
-.hm-user-info h3 { font-size: .98rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0; }
-.hm-user-info .hm-username { font-size: .74rem; color: var(--color-text-muted); }
-.hm-common-interests { display: flex; flex-wrap: nowrap; align-items: flex-start; gap: .35rem; margin: .5rem 0; overflow: hidden; min-height: 1.6rem; flex: 1 1 auto; }
-.hm-interest-badge { white-space: nowrap; flex-shrink: 0; background: var(--color-bg); font-size: .68rem; padding: .25rem .65rem; border-radius: 999px; color: var(--color-primary); font-weight: 600; }
-.hm-follow-btn {
-  width: 100%; background: transparent; border: 1px solid var(--color-primary); padding: .5rem;
-  border-radius: var(--radius-btn); font-weight: 700; font-size: .78rem; color: var(--color-primary); cursor: pointer;
-  display: flex; align-items: center; justify-content: center; gap: .4rem; margin-top: auto; flex-shrink: 0;
-  transition: transform .18s cubic-bezier(.34,1.56,.64,1), background .18s ease, color .18s ease;
-}
-.hm-follow-btn:hover { background: var(--color-primary-solid); color: #fff; border-color: var(--color-primary-solid); transform: scale(1.03); }
-.hm-follow-btn:active { transform: scale(.94); }
-.hm-scroll-arrow {
-  position: absolute; top: 40%; transform: translateY(-50%); width: 36px; height: 36px; border-radius: 50%;
-  background: var(--color-surface); border: 1px solid var(--color-border); box-shadow: var(--shadow-card);
-  display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--color-primary);
-  z-index: 5; transition: background .15s ease, transform .15s ease;
-}
-.hm-scroll-arrow:hover { background: var(--color-bg); transform: translateY(-50%) scale(1.08); }
-.hm-scroll-arrow-left { left: 4px; } .hm-scroll-arrow-right { right: 4px; }
-.hm-scroll-arrow[hidden] { display: none; }
-@media (max-width: 640px) { .hm-scroll-arrow { display: none; } }
-
-.hm-empty { text-align: center; padding: 2.6rem 1rem; color: var(--color-text-muted); grid-column: 1/-1; }
-
-/* ---------- Dashboard mini sections ---------- */
-.hm-dash-section { margin-top: 2.3rem; }
-.hm-mini-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 1.1rem; }
-.hm-mini-card {
-  text-decoration: none; color: inherit; display: block; padding: 1.25rem;
-  transition: transform .2s cubic-bezier(.16,1,.3,1), box-shadow .2s ease;
-}
-.hm-mini-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-hover); }
-.hm-mini-card h3 { font-size: .96rem; margin: 0 0 .4rem; line-height: 1.35; font-family: 'Sora', sans-serif; }
-.hm-mini-card p { font-size: .82rem; color: var(--color-text-muted); line-height: 1.5; margin: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.hm-mini-meta { display: flex; align-items: center; gap: .5rem; font-size: .76rem; color: var(--color-text-muted); margin-top: .65rem; }
-.hm-mini-meta i { color: var(--color-accent); }
-.hm-empty-mini { grid-column: 1/-1; text-align: center; padding: 1.8rem 1.5rem; color: var(--color-text-muted); font-size: .88rem; }
-.hm-empty-mini a { color: var(--color-accent); font-weight: 700; text-decoration: none; }
-.hm-empty-mini a:hover { text-decoration: underline; }
-
-@media (max-width: 620px) {
-  .hm-hero { padding: 1.7rem 1.4rem; }
-  .hm-hero .btn { width: 100%; justify-content: center; }
-}
+@media (prefers-reduced-motion: reduce) { .hp-skel i { animation: none; } }
 </style>
 </head>
-<body class="hm-page">
-    <nav class="navbar">
+<body>
+
+<nav class="navbar">
         <a href="/home" class="logo"><svg width="160" height="45" viewBox="0 0 320 90" xmlns="http://www.w3.org/2000/svg" style="display:block;">
       <g transform="translate(45,45)">
         <g transform="rotate(-18)">
@@ -221,376 +170,236 @@
 </nav>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-    <div class="hm-container">
-        <div class="hm-announce reveal" id="homePostCard">
-            <div class="hm-announce-badge"><i class="fas fa-bullhorn"></i></div>
-            <div class="hm-announce-body">
-                <div class="hm-announce-text">
-                    <div class="hm-announce-kicker" data-i18n="home.announce_kicker">Yangilik</div>
-                    <div class="hm-announce-content" id="homePostContent"></div>
-                </div>
-                <img class="hm-announce-thumb" id="homePostThumb" style="display:none;" alt="">
-            </div>
+    <main class="hp-page">
+        <div class="hp-announce" id="homePostCard">
+            <span class="ico"><svg class="hp-i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg></span>
+            <div class="txt"><div class="hp-kicker" data-i18n="home.announce_kicker">Yangilik</div><div class="hp-announce-content" id="homePostContent"></div></div>
+            <img class="hp-thumb" id="homePostThumb" style="display:none;" alt="">
         </div>
 
-        <div class="hm-hero reveal">
-            <div class="hm-hero-copy">
-                <h1><span data-i18n="home.welcome">Xush kelibsiz</span>, <span id="welcomeName">...</span></h1>
+        <section class="hp-hero">
+            <div>
+                <h1><span data-i18n="home.welcome">Xush kelibsiz</span>, <span id="welcomeName">…</span></h1>
                 <p data-i18n-html="home.hero_sub">BirMillat'da siz <strong>qiziqishlaringiz asosida</strong> haqiqiy do'stlar va jamoa topasiz. Suhbatlashing, g'oyalar almashing, birga o'sing.</p>
             </div>
-            <a href="/profile" class="btn btn-primary btn-zoom" data-i18n="home.edit_profile">Profilni tahrirlash</a>
-        </div>
+            <a href="/profile" class="hp-btn-light" data-i18n="home.edit_profile">Profilni tahrirlash</a>
+        </section>
 
-        <div class="hm-ticker-wrap" id="eventsTickerWrap" style="display:none;">
-            <div class="marquee">
-                <div class="marquee-track" id="eventsTickerTrack"></div>
-            </div>
-        </div>
+        <section class="hp-interests" aria-label="Qiziqishlar">
+            <h2 data-i18n="home.your_interests">Sizning qiziqishlaringiz</h2>
+            <div class="hp-chips" id="myInterests"></div>
+            <a class="hp-link" href="/profile" id="editInterestsLink" data-i18n="hp.edit">Tahrirlash</a>
+        </section>
 
-        <div class="hm-interests card reveal">
-            <div class="hm-kicker"><img src="/icons/icon-bolt.svg" alt=""> <span data-i18n="home.your_interests">Sizning qiziqishlaringiz</span></div>
-            <div class="tag-list" id="myInterestsTags">
-                <span class="tag" style="opacity:0.5">Yuklanmoqda...</span>
+        <section class="hp-sec">
+            <div class="hp-head">
+                <div><h2 data-i18n="home.recommended_title">Sizga tavsiya etiladi</h2><p data-i18n="home.recommended_sub">Qiziqishlari siznikiga mos keladigan foydalanuvchilar</p></div>
+                <a class="hp-all hp-link" href="/recommend" style="margin-left:0"><span data-i18n="home.see_all">Barchasi</span>&nbsp;→</a>
             </div>
-        </div>
+            <div class="hp-people-wrap">
+                <button type="button" class="hp-arrow prev" id="arrowPrev" aria-label="Oldingi"><svg class="hp-i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>
+                <div class="hp-people" id="recommendGrid"></div>
+                <button type="button" class="hp-arrow next" id="arrowNext" aria-label="Keyingi"><svg class="hp-i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
+            </div>
+        </section>
 
-        <div class="hm-section-head reveal">
-            <div>
-                <h2><i class="fas fa-users"></i> <span data-i18n="home.recommended_title">Sizga tavsiya etiladi</span></h2>
-                <p data-i18n="home.recommended_sub">Qiziqishlari siznikiga mos keladigan foydalanuvchilar</p>
+        <section class="hp-sec hp-below">
+            <div class="hp-head">
+                <div><h2 data-i18n="home.articles_title">So'nggi maqolalar</h2><p data-i18n="home.articles_sub">Jamoa a'zolaridan eng yangi maqolalar</p></div>
+                <a class="hp-link" href="/articles" style="margin-left:0"><span data-i18n="home.see_all">Barchasi</span>&nbsp;→</a>
             </div>
-        </div>
+            <div class="hp-grid" id="articlesGrid"></div>
+        </section>
 
-        <div class="hm-users-scroll-wrap reveal">
-            <button class="hm-scroll-arrow hm-scroll-arrow-left" id="usersScrollLeft" aria-label="Chapga"><i class="fas fa-chevron-left"></i></button>
-            <div class="hm-users-grid" id="recommendGrid">
-                <p style="color:var(--color-text-muted)">Yuklanmoqda...</p>
+        <section class="hp-sec hp-below">
+            <div class="hp-head">
+                <div><h2 data-i18n="home.events_title">Yaqin tadbirlar</h2><p data-i18n="home.events_sub">Tez orada bo'ladigan tadbirlar</p></div>
+                <a class="hp-link" href="/events" style="margin-left:0"><span data-i18n="home.see_all">Barchasi</span>&nbsp;→</a>
             </div>
-            <button class="hm-scroll-arrow hm-scroll-arrow-right" id="usersScrollRight" aria-label="O'ngga"><i class="fas fa-chevron-right"></i></button>
-        </div>
+            <div class="hp-grid" id="eventsGrid"></div>
+        </section>
 
-        <div class="hm-dash-section">
-            <div class="hm-section-head reveal">
-                <div>
-                    <h2><i class="fas fa-newspaper"></i> <span data-i18n="home.articles_title">So'nggi maqolalar</span></h2>
-                    <p data-i18n="home.articles_sub">Jamoa a'zolari yozgan eng yangi maqolalar</p>
-                </div>
-                <a href="/articles" class="hm-see-all"><span data-i18n="home.see_all">Barchasi</span> →</a>
+        <section class="hp-sec hp-below">
+            <div class="hp-head">
+                <div><h2 data-i18n="home.communities_title">Mashhur jamoalar</h2><p data-i18n="home.communities_sub">Eng ko'p a'zoga ega jamoalar</p></div>
+                <a class="hp-link" href="/communities" style="margin-left:0"><span data-i18n="home.see_all">Barchasi</span>&nbsp;→</a>
             </div>
-            <div class="hm-mini-grid reveal-stagger reveal" id="articlesMiniGrid">
-                <p style="color:var(--color-text-muted)">Yuklanmoqda...</p>
-            </div>
-        </div>
-
-        <div class="hm-dash-section">
-            <div class="hm-section-head reveal">
-                <div>
-                    <h2><i class="fas fa-calendar-days"></i> <span data-i18n="home.events_title">Yaqinlashib kelayotgan tadbirlar</span></h2>
-                    <p data-i18n="home.events_sub">Yaqin orada bo'lib o'tadigan tadbirlar</p>
-                </div>
-                <a href="/events" class="hm-see-all"><span data-i18n="home.see_all">Barchasi</span> →</a>
-            </div>
-            <div class="hm-mini-grid reveal-stagger reveal" id="eventsMiniGrid">
-                <p style="color:var(--color-text-muted)">Yuklanmoqda...</p>
-            </div>
-        </div>
-
-        <div class="hm-dash-section">
-            <div class="hm-section-head reveal">
-                <div>
-                    <h2><i class="fas fa-people-group"></i> <span data-i18n="home.communities_title">Ommabop jamoalar</span></h2>
-                    <p data-i18n="home.communities_sub">Eng ko'p a'zoli jamoalar</p>
-                </div>
-                <a href="/communities" class="hm-see-all"><span data-i18n="home.see_all">Barchasi</span> →</a>
-            </div>
-            <div class="hm-mini-grid reveal-stagger reveal" id="communitiesMiniGrid">
-                <p style="color:var(--color-text-muted)">Yuklanmoqda...</p>
-            </div>
-        </div>
-    </div>
+            <div class="hp-grid" id="communitiesGrid"></div>
+        </section>
+    </main>
 
     <footer>BirMillat – qiziqishlar asosida do'stlar toping. · <a href="/support" style="color:inherit;">Yordam</a> · <a href="/about" style="color:inherit;">BirMillat nima?</a> · <a href="/privacy" style="color:inherit;">Maxfiylik siyosati</a><br><span style="opacity:0.8;">Founder — Bekhruz Ravshanov</span></footer>
 
     <script>
-        const avatarIcons = ['fa-robot', 'fa-code', 'fa-cloud', 'fa-gamepad', 'fa-brain', 'fa-server', 'fa-star', 'fa-book'];
+    (function () {
+        'use strict';
+        const $ = (id) => document.getElementById(id);
+        const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const safeUrl = (u) => (typeof u === 'string' && /^(https?:\/\/|\/(?!\/))/i.test(u) ? u : '');
+        const HUES = [255, 278, 305, 335, 8, 28, 172, 200];
+        const hueOf = (s) => { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return HUES[h % HUES.length]; };
+        const initials = (n) => { if (!n) return '?'; const p = n.trim().split(/\s+/); return (p.length > 1 ? p[0][0] + p[1][0] : p[0].slice(0, 2)).toUpperCase(); };
+        const svg = (p) => `<svg class="hp-i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
+        const ICON = {
+            check: '<circle cx="12" cy="12" r="9"/><path d="m8.5 12.5 2.5 2.5 4.5-5"/>',
+            userplus: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6"/><path d="M22 11h-6"/>',
+            usercheck: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m16 11 2 2 4-4"/>',
+            clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+            heart: '<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>',
+            cal: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+            users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+            tag: '<path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L2 12V2h10l8.6 8.6a2 2 0 0 1 0 2.8Z"/><path d="M7 7h.01"/>',
+            arrow: '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>'
+        };
 
-        function pickIcon(seed) {
-            let hash = 0;
-            for (let i = 0; i < seed.length; i++) hash = (hash + seed.charCodeAt(i)) % avatarIcons.length;
-            return avatarIcons[hash];
+        // Language: saved preference on load, then follows the navbar switcher (<html lang>)
+        let LANG = 'uz'; const DICTS = {};
+        const loadDict = (l) => (l === 'uz' ? Promise.resolve({}) : DICTS[l] ? Promise.resolve(DICTS[l])
+            : fetch('/i18n/' + l + '.json').then((r) => (r.ok ? r.json() : {})).catch(() => ({})).then((d) => (DICTS[l] = d)));
+        const T = (key, fb) => (DICTS[LANG] && DICTS[LANG][key]) || fb;
+
+        const jget = (url) => fetch(url).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+        const D = { me: null, recs: null, events: null, articles: null, comms: null };
+        let myInterests = [];
+
+        const matches = (tag) => { const t = String(tag).toLowerCase(); return myInterests.some((i) => t.includes(i) || i.includes(t)); };
+        const score = (tags) => { const th = (tags || []).map((t) => String(t).toLowerCase()); return myInterests.filter((i) => th.some((t) => t.includes(i) || i.includes(t))).length; };
+
+        /* ---------- me / interests ---------- */
+        function renderMe() {
+            const me = D.me; if (!me) return;
+            $('welcomeName').textContent = (me.name || me.username) + '!';
+            const list = me.interests || [];
+            $('myInterests').innerHTML = list.length
+                ? list.map((i) => `<span class="hp-chip">#${esc(i)}</span>`).join('')
+                : `<span class="hp-chip muted">${esc(T('hp.no_interests_yet', "Hali qiziqish qo'shilmagan"))}</span>`;
+            $('editInterestsLink').textContent = list.length ? T('hp.edit', 'Tahrirlash') : T('hp.add', "Qo'shish");
         }
 
-        async function loadMe() {
-            try {
-                const res = await fetch('/api/me');
-                if (!res.ok) { window.location.href = '/login'; return null; }
-                const me = await res.json();
-                document.getElementById('userBadge').innerHTML = '<img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ' + me.username;
-                document.getElementById('welcomeName').textContent = (me.name || me.username) + '!';
-
-                const tagsEl = document.getElementById('myInterestsTags');
-                if (me.interests && me.interests.length > 0) {
-                    tagsEl.innerHTML = me.interests.map(i => `<span class="tag">#${i}</span>`).join('');
-                } else {
-                    tagsEl.innerHTML = `<span class="tag" style="opacity:0.7">Hali qiziqish qo'shilmagan — <a href="/profile">profilga o'tish</a></span>`;
-                }
-                return me;
-            } catch (e) {
-                console.error('Failed to load profile:', e);
-                return null;
-            }
+        /* ---------- recommended people ---------- */
+        function followContent(state) {
+            if (state === 'accepted') return svg(ICON.usercheck) + esc(T('hp.following', 'Kuzatilmoqda'));
+            if (state === 'pending') return svg(ICON.clock) + esc(T('hp.requested', "So'rov yuborildi"));
+            return svg(ICON.userplus) + esc(T('hp.follow', 'Kuzatish'));
         }
-
-        async function loadRecommendations() {
-            const grid = document.getElementById('recommendGrid');
-            try {
-                const res = await fetch('/api/recommendations');
-                if (!res.ok) { grid.innerHTML = ''; return; }
-                const users = await res.json();
-
-                if (users.length === 0) {
-                    grid.innerHTML = `<div class="hm-empty">Hozircha boshqa foydalanuvchilar yo'q. Tez orada bu yerda tavsiyalar paydo bo'ladi!</div>`;
-                    return;
-                }
-
-                grid.innerHTML = '';
-                users.slice(0, 9).forEach(user => {
-                    const card = document.createElement('div');
-                    card.className = 'hm-user-card card';
-                    const interests = user.interests || [];
-                    card.innerHTML = `
-                        <a class="hm-card-top" href="/u/${encodeURIComponent(user.username)}">
-                            <div class="hm-avatar">${user.photoUrl ? `<img src="${user.photoUrl}" alt="">` : `<i class="fas ${pickIcon(user.username)}"></i>`}</div>
-                            <div class="hm-user-info">
-                                <h3>${user.name || user.username}</h3>
-                                <div class="hm-username">@${user.username}</div>
-                            </div>
-                        </a>
-                        <div class="hm-common-interests">
-                            ${interests.slice(0, 2).map(t => `<span class="hm-interest-badge">#${t}</span>`).join('')}
-                            ${interests.length > 2 ? `<span class="hm-interest-badge">+${interests.length - 2}</span>` : ''}
-                            ${interests.length === 0 ? `<span class="hm-interest-badge" style="opacity:0.6">Qiziqish ko'rsatilmagan</span>` : ''}
-                        </div>
-                        <button class="hm-follow-btn" data-username="${user.username}" data-name="${user.name || user.username}"><i class="fas fa-user-plus"></i> Kuzatish</button>
-                    `;
-                    grid.appendChild(card);
-                });
-
-                if (users.length > 9) {
-                    const moreCard = document.createElement('a');
-                    moreCard.className = 'hm-more-card card';
-                    moreCard.href = '/recommend';
-                    moreCard.innerHTML = `<i class="fas fa-arrow-right"></i><span>Yana ${users.length - 9}</span>`;
-                    grid.appendChild(moreCard);
-                }
-            } catch (e) {
-                console.error('Failed to load recommendations:', e);
-                grid.innerHTML = `<div class="hm-empty">Tavsiyalarni yuklab bo'lmadi. Sahifani qaytadan yuklang.</div>`;
-            }
+        function personHtml(u) {
+            const name = u.name || u.username, photo = safeUrl(u.photoUrl);
+            const all = (u.interests || []).map((t) => ({ t, m: matches(t) })).sort((a, b) => b.m - a.m);
+            const shown = all.slice(0, 3), extra = all.length - shown.length, sc = score(u.interests);
+            const tags = all.length ? shown.map((x) => `<span class="hp-tag${x.m ? ' is-match' : ''}">#${esc(x.t)}</span>`).join('') + (extra > 0 ? `<span class="hp-tag">+${extra}</span>` : '')
+                : `<span class="hp-tag">${esc(T('common.no_interests', "Qiziqish ko'rsatilmagan"))}</span>`;
+            return `<article class="hp-person">
+                <a class="hp-person-link" href="/u/${encodeURIComponent(u.username)}">
+                    <div class="hp-top"><span class="hp-av" style="--h:${hueOf(u.username)}">${esc(initials(name))}${photo ? `<img src="${esc(photo)}" alt="" width="52" height="52" loading="lazy" decoding="async">` : ''}</span>
+                    <div class="hp-who"><div class="hp-name">${esc(name)}</div><div class="hp-user">@${esc(u.username)}</div></div></div>
+                    <div class="hp-tags">${tags}</div>
+                    ${sc > 0 ? `<div class="hp-match">${svg(ICON.check)}${sc} ${esc(T('recommend.matches', 'mos qiziqish'))}</div>` : ''}
+                </a>
+                <button type="button" class="hp-follow" data-u="${esc(u.username)}">${followContent()}</button>
+            </article>`;
         }
-
-        document.addEventListener('click', (e) => {
-            const btn = e.target.closest('.hm-follow-btn');
-            if (btn) {
-                e.preventDefault();
-                e.stopPropagation();
-                if (btn.disabled) return;
-                const username = btn.getAttribute('data-username');
-                if (!username) return;
-                btn.disabled = true;
-                fetch(`/api/follow/${encodeURIComponent(username)}`, { method: 'POST' })
-                    .then(r => r.json())
-                    .then(data => {
-                        if (data.status === 'accepted') {
-                            btn.innerHTML = '<i class="fas fa-check"></i> Kuzatilmoqda';
-                            btn.style.opacity = '0.6';
-                        } else if (data.status === 'pending') {
-                            btn.innerHTML = '<i class="fas fa-clock"></i> So\'rov yuborildi';
-                            btn.style.opacity = '0.6';
-                        } else {
-                            btn.disabled = false;
-                        }
-                    })
-                    .catch(() => { btn.disabled = false; });
-                return;
-            }
-
-            // Clicking anywhere else on a recommended-user card (but not the
-            // follow button or the name link, which already navigate) opens
-            // their profile too — keeps the whole card feeling clickable.
-            const userCard = e.target.closest('.hm-user-card');
-            if (userCard && !e.target.closest('a')) {
-                const link = userCard.querySelector('.hm-card-top');
-                if (link) window.location.href = link.getAttribute('href');
-            }
-        });
-
-        async function loadEventsTicker() {
-            try {
-                const res = await fetch('/api/events');
-                if (!res.ok) return;
-                const events = await res.json();
-                if (events.length === 0) return;
-
-                const chips = events.slice(0, 8).map(ev => {
-                    const d = new Date(ev.event_date);
-                    const dateStr = formatUzDate(d, { year: false });
-                    return `<a href="/events/${ev.id}" class="hm-chip"><i class="fas fa-calendar"></i> ${ev.title} — ${dateStr}</a>`;
-                });
-                // Duplicate the set so the scroll loop is seamless
-                const track = document.getElementById('eventsTickerTrack');
-                track.innerHTML = chips.join('') + chips.join('');
-                document.getElementById('eventsTickerWrap').style.display = 'block';
-            } catch (e) {
-                console.error('Failed to load events ticker:', e);
-            }
-        }
-
-        async function loadArticlesMini() {
-            const grid = document.getElementById('articlesMiniGrid');
-            try {
-                const res = await fetch('/api/articles');
-                if (!res.ok) { grid.innerHTML = ''; return; }
-                const articles = await res.json();
-
-                if (articles.length === 0) {
-                    grid.innerHTML = `<div class="hm-empty-mini">Hozircha maqolalar yo'q. <a href="/articles/create">Birinchi maqolani siz yozing!</a></div>`;
-                    return;
-                }
-
-                grid.innerHTML = '';
-                articles.slice(0, 3).forEach(a => {
-                    const card = document.createElement('a');
-                    card.className = 'hm-mini-card card';
-                    card.href = `/articles/${a.id}`;
-                    card.innerHTML = `
-                        <h3>${a.title}</h3>
-                        <p>${a.excerpt}</p>
-                        <div class="hm-mini-meta"><i class="fas fa-heart"></i> ${a.likeCount} <span>·</span> @${a.author.username}</div>
-                    `;
-                    grid.appendChild(card);
-                });
-            } catch (e) {
-                console.error('Failed to load articles:', e);
-                grid.innerHTML = '';
-            }
-        }
-
-        async function loadEventsMini() {
-            const grid = document.getElementById('eventsMiniGrid');
-            try {
-                const res = await fetch('/api/events');
-                if (!res.ok) { grid.innerHTML = ''; return; }
-                const events = await res.json();
-
-                if (events.length === 0) {
-                    grid.innerHTML = `<div class="hm-empty-mini">Hozircha tadbirlar yo'q. <a href="/events/create">Birinchi tadbirni siz qo'shing!</a></div>`;
-                    return;
-                }
-
-                grid.innerHTML = '';
-                events.slice(0, 3).forEach(ev => {
-                    const d = new Date(ev.event_date);
-                    const dateStr = formatUzDate(d, { year: false });
-                    const card = document.createElement('a');
-                    card.className = 'hm-mini-card card';
-                    card.href = `/events/${ev.id}`;
-                    card.innerHTML = `
-                        <h3>${ev.title}</h3>
-                        <p>${ev.category || ''}</p>
-                        <div class="hm-mini-meta"><i class="fas fa-calendar"></i> ${dateStr} <span>·</span> <i class="fas fa-users"></i> ${ev.attendee_count}</div>
-                    `;
-                    grid.appendChild(card);
-                });
-            } catch (e) {
-                console.error('Failed to load events:', e);
-                grid.innerHTML = '';
-            }
-        }
-
-        async function loadCommunitiesMini() {
-            const grid = document.getElementById('communitiesMiniGrid');
-            try {
-                const res = await fetch('/api/communities');
-                if (!res.ok) { grid.innerHTML = ''; return; }
-                let communities = await res.json();
-
-                if (communities.length === 0) {
-                    grid.innerHTML = `<div class="hm-empty-mini">Hozircha jamoalar yo'q. <a href="/communities">Birinchi jamoani siz yarating!</a></div>`;
-                    return;
-                }
-
-                communities = communities.sort((a, b) => b.member_count - a.member_count);
-
-                grid.innerHTML = '';
-                communities.slice(0, 3).forEach(c => {
-                    const card = document.createElement('a');
-                    card.className = 'hm-mini-card card';
-                    card.href = `/communities/${c.id}`;
-                    card.innerHTML = `
-                        <h3>${c.name}</h3>
-                        <p>${c.description || "Tavsif qo'shilmagan"}</p>
-                        <div class="hm-mini-meta"><i class="fas fa-tag"></i> ${c.category} <span>·</span> <i class="fas fa-users"></i> ${c.member_count}</div>
-                    `;
-                    grid.appendChild(card);
-                });
-            } catch (e) {
-                console.error('Failed to load communities:', e);
-                grid.innerHTML = '';
-            }
-        }
-
-        document.getElementById('usersScrollLeft').addEventListener('click', () => {
-            document.getElementById('recommendGrid').scrollBy({ left: -520, behavior: 'smooth' });
-        });
-        document.getElementById('usersScrollRight').addEventListener('click', () => {
-            document.getElementById('recommendGrid').scrollBy({ left: 520, behavior: 'smooth' });
-        });
-
-        (function setupRecommendArrowVisibility() {
-            const grid = document.getElementById('recommendGrid');
-            const leftBtn = document.getElementById('usersScrollLeft');
-            const rightBtn = document.getElementById('usersScrollRight');
-
-            function updateArrows() {
-                const maxScroll = grid.scrollWidth - grid.clientWidth;
-                leftBtn.hidden = grid.scrollLeft <= 4;
-                rightBtn.hidden = maxScroll <= 4 || grid.scrollLeft >= maxScroll - 4;
-            }
-
-            grid.addEventListener('scroll', updateArrows);
-            window.addEventListener('resize', updateArrows);
-            // Recheck after the recommendations finish loading (grid width changes).
-            new MutationObserver(updateArrows).observe(grid, { childList: true });
+        function renderRecs() {
+            const grid = $('recommendGrid');
+            const users = D.recs;
+            if (users === null) { grid.innerHTML = `<div class="hp-empty" style="flex:1">${esc(T('vol.load_error', "Yuklab bo'lmadi. Sahifani qaytadan yuklang."))}</div>`; return; }
+            if (!users.length) { grid.innerHTML = `<div class="hp-empty" style="flex:1">${esc(T('hp.no_people', "Hozircha boshqa foydalanuvchilar yo'q. Tez orada bu yerda tavsiyalar paydo bo'ladi!"))}</div>`; return; }
+            grid.innerHTML = users.slice(0, 9).map(personHtml).join('')
+                + `<a class="hp-more" href="/recommend">${esc(T('hp.view_all', "Hammasini ko'rish"))}${svg(ICON.arrow)}</a>`;
             updateArrows();
-        })();
-
-        async function loadHomePost() {
-            try {
-                const res = await fetch('/api/home-post');
-                if (!res.ok) return;
-                const post = await res.json();
-                if (!post) return;
-
-                document.getElementById('homePostContent').textContent = post.content;
-                if (post.imageUrl) {
-                    const thumb = document.getElementById('homePostThumb');
-                    thumb.src = post.imageUrl;
-                    thumb.style.display = 'block';
-                }
-                document.getElementById('homePostCard').style.display = 'flex';
-            } catch (e) {
-                console.error('Failed to load home post:', e);
-            }
+        }
+        function skeletonPeople() {
+            $('recommendGrid').innerHTML = '<div class="hp-person hp-skel"><div class="hp-top"><i style="width:52px;height:52px;border-radius:50%"></i><div class="hp-who"><i style="height:14px;width:60%"></i><i style="height:11px;width:35%;margin-top:8px"></i></div></div><i style="height:24px;width:70%;border-radius:12px"></i><i style="height:44px;border-radius:22px"></i></div>'.repeat(3);
         }
 
-        loadMe();
-        loadHomePost();
-        loadRecommendations();
-        loadEventsTicker();
-        loadArticlesMini();
-        loadEventsMini();
-        loadCommunitiesMini();
+        $('recommendGrid').addEventListener('click', (e) => {
+            const btn = e.target.closest('.hp-follow'); if (!btn || btn.disabled) return;
+            btn.disabled = true;
+            fetch('/api/follow/' + encodeURIComponent(btn.dataset.u), { method: 'POST' }).then((r) => r.json()).then((data) => {
+                if (data.status === 'accepted') { btn.className = 'hp-follow is-following'; btn.innerHTML = followContent('accepted'); }
+                else if (data.status === 'pending') { btn.className = 'hp-follow is-pending'; btn.innerHTML = followContent('pending'); }
+                else btn.disabled = false;
+            }).catch(() => { btn.disabled = false; });
+        });
+
+        const rail = $('recommendGrid');
+        function updateArrows() {
+            const scrollable = rail.scrollWidth > rail.clientWidth + 4;
+            $('arrowPrev').classList.toggle('show', scrollable && rail.scrollLeft > 4);
+            $('arrowNext').classList.toggle('show', scrollable && rail.scrollLeft + rail.clientWidth < rail.scrollWidth - 4);
+        }
+        const step = () => Math.max(280, rail.clientWidth * 0.8);
+        $('arrowPrev').addEventListener('click', () => rail.scrollBy({ left: -step(), behavior: 'smooth' }));
+        $('arrowNext').addEventListener('click', () => rail.scrollBy({ left: step(), behavior: 'smooth' }));
+        rail.addEventListener('scroll', updateArrows, { passive: true });
+        window.addEventListener('resize', updateArrows);
+
+        /* ---------- feed cards ---------- */
+        const dateOf = (ev) => (typeof formatUzDate === 'function' ? formatUzDate(new Date(ev.event_date), { year: false }) : new Date(ev.event_date).toLocaleDateString());
+        function empty(text, href, link) { return `<div class="hp-empty">${esc(text)} <a href="${href}">${esc(link)}</a></div>`; }
+        function failed() { return `<div class="hp-empty">${esc(T('vol.load_error', "Yuklab bo'lmadi. Sahifani qaytadan yuklang."))}</div>`; }
+
+        function renderArticles() {
+            const a = D.articles, g = $('articlesGrid');
+            if (a === null) { g.innerHTML = failed(); return; }
+            if (!a.length) { g.innerHTML = empty(T('hp.no_articles', "Hozircha maqolalar yo'q."), '/articles/create', T('hp.write_first', 'Birinchi maqolani siz yozing!')); return; }
+            g.innerHTML = a.slice(0, 3).map((x) => `<a class="hp-card" href="/articles/${encodeURIComponent(x.id)}"><h3>${esc(x.title)}</h3><p>${esc(x.excerpt)}</p>
+                <div class="hp-meta"><span>${svg(ICON.heart)}${esc(x.likeCount)}</span><span>@${esc(x.author && x.author.username)}</span></div></a>`).join('');
+        }
+        function renderEvents() {
+            const ev = D.events, g = $('eventsGrid');
+            if (ev === null) { g.innerHTML = failed(); return; }
+            if (!ev.length) { g.innerHTML = empty(T('hp.no_events', "Hozircha tadbirlar yo'q."), '/events/create', T('hp.add_first_event', "Birinchi tadbirni siz qo'shing!")); return; }
+            g.innerHTML = ev.slice(0, 3).map((x) => `<a class="hp-card" href="/events/${encodeURIComponent(x.id)}"><h3>${esc(x.title)}</h3>${x.category ? `<p>${esc(x.category)}</p>` : ''}
+                <div class="hp-meta"><span>${svg(ICON.cal)}${esc(dateOf(x))}</span><span>${svg(ICON.users)}${esc(x.attendee_count)}</span></div></a>`).join('');
+        }
+        function renderComms() {
+            const c = D.comms, g = $('communitiesGrid');
+            if (c === null) { g.innerHTML = failed(); return; }
+            if (!c.length) { g.innerHTML = empty(T('hp.no_comms', "Hozircha jamoalar yo'q."), '/communities', T('hp.create_first', 'Birinchi jamoani siz yarating!')); return; }
+            g.innerHTML = c.slice().sort((a, b) => b.member_count - a.member_count).slice(0, 3).map((x) => `<a class="hp-card" href="/communities/${encodeURIComponent(x.id)}"><h3>${esc(x.name)}</h3><p>${esc(x.description || T('hp.no_desc', "Tavsif qo'shilmagan"))}</p>
+                <div class="hp-meta"><span>${svg(ICON.tag)}${esc(x.category)}</span><span>${svg(ICON.users)}${esc(x.member_count)}</span></div></a>`).join('');
+        }
+
+        function renderAll() { renderMe(); renderRecs(); renderArticles(); renderEvents(); renderComms(); }
+
+        new MutationObserver(async () => {
+            const attr = document.documentElement.getAttribute('lang') || 'uz';
+            const next = attr === 'kaa' ? 'qq' : attr;
+            if (next === LANG) return;
+            await loadDict(next); LANG = next;
+            if (D.me) { renderAll(); }
+        }).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
+
+        /* ---------- boot: everything is requested in parallel ---------- */
+        (async function boot() {
+            skeletonPeople();
+            LANG = (window.BirMillatI18n && window.BirMillatI18n.currentLang()) || 'uz';
+            const meP = fetch('/api/me').then((r) => { if (!r.ok) { window.location.href = '/login'; return null; } return r.json(); }).catch(() => null);
+            const recsP = jget('/api/recommendations'), postP = jget('/api/home-post'), eventsP = jget('/api/events'), artsP = jget('/api/articles'), commsP = jget('/api/communities');
+            const dictP = loadDict(LANG);
+
+            postP.then((post) => {
+                if (!post || !post.content) return;
+                $('homePostContent').textContent = post.content;
+                const img = safeUrl(post.imageUrl);
+                if (img) { const t = $('homePostThumb'); t.src = img; t.style.display = 'block'; }
+                $('homePostCard').style.display = 'flex';
+            });
+
+            const [me] = await Promise.all([meP, dictP]);
+            if (!me) return;
+            D.me = me;
+            const badge = $('userBadge');
+            if (badge) badge.innerHTML = '<img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ' + esc(me.username);
+            myInterests = (me.interests || []).map((i) => String(i).toLowerCase());
+            renderMe();
+
+            recsP.then((r) => { D.recs = r; renderRecs(); });
+            artsP.then((r) => { D.articles = r; renderArticles(); });
+            eventsP.then((r) => { D.events = r; renderEvents(); });
+            commsP.then((r) => { D.comms = r; renderComms(); });
+        })();
+    })();
     </script>
 </body>
 </html>
