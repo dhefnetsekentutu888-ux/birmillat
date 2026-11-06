@@ -328,5 +328,20 @@
   "gc.del_text": "It will be deleted for everyone.",
   "gc.empty_title": "No messages yet",
   "gc.empty_text": "Be the first to say something.",
-  "bm.copy_id": "Copy ID"
+  "bm.copy_id": "Copy ID",
+  "hp.edit": "Edit",
+  "hp.add": "Add",
+  "hp.no_interests_yet": "No interests added yet",
+  "hp.follow": "Follow",
+  "hp.following": "Following",
+  "hp.requested": "Request sent",
+  "hp.no_people": "There are no other users yet. Recommendations will show up here soon!",
+  "hp.view_all": "View all",
+  "hp.no_articles": "No articles yet.",
+  "hp.write_first": "Be the first to write one!",
+  "hp.no_events": "No events yet.",
+  "hp.add_first_event": "Be the first to add one!",
+  "hp.no_comms": "No communities yet.",
+  "hp.create_first": "Be the first to create one!",
+  "hp.no_desc": "No description added"
 }
