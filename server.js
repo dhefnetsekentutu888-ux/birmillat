@@ -4391,7 +4391,10 @@ const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 // receives support requests and alerts, and can reply to support threads.
 // Each of them must press "Start" in the bot once, otherwise Telegram will not
 // let the bot message them.
-const TELEGRAM_ADMIN_CHAT_IDS = ['8220562180', '9137897392'];
+// Set TELEGRAM_ADMIN_CHAT_IDS on the host (comma-separated) to change them
+// without editing code. The first ID must be an account that has pressed Start.
+const TELEGRAM_ADMIN_CHAT_IDS = (process.env.TELEGRAM_ADMIN_CHAT_IDS || '9137897392')
+    .split(',').map(id => id.trim()).filter(Boolean);
 const TELEGRAM_ADMIN_CHAT_ID = TELEGRAM_ADMIN_CHAT_IDS[0];
 function isTelegramAdmin(chatId) {
     return TELEGRAM_ADMIN_CHAT_IDS.includes(String(chatId));
@@ -4893,6 +4896,30 @@ function escapeHtmlForTelegram(str) {
 //  3. Even if both of those were somehow bypassed, commands are only honored if they
 //     come from your specific Telegram chat ID — nobody else's /block command does anything.
 const TELEGRAM_WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET || 'change-me-webhook-secret';
+
+// Tells Telegram where to send bot messages. Runs on every server start, so
+// after changing TELEGRAM_BOT_TOKEN (new bot) a restart is all that is needed.
+async function registerTelegramWebhook() {
+    if (!TELEGRAM_BOT_TOKEN) {
+        console.warn('Telegram: TELEGRAM_BOT_TOKEN is not set, bot is disabled');
+        return;
+    }
+    try {
+        const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/setWebhook`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                url: `${SITE_URL}/telegram/webhook/${TELEGRAM_BOT_TOKEN}`,
+                secret_token: TELEGRAM_WEBHOOK_SECRET,
+                allowed_updates: ['message', 'callback_query']
+            })
+        });
+        const data = await res.json();
+        console.log(data.ok ? 'Telegram webhook registered' : 'Telegram webhook NOT registered: ' + data.description);
+    } catch (err) {
+        console.error('Telegram webhook registration failed:', err);
+    }
+}
 
 app.post(`/telegram/webhook/${TELEGRAM_BOT_TOKEN}`, async (req, res) => {
     // Always respond 200 quickly so Telegram doesn't retry — even on auth failures,
@@ -6813,7 +6840,10 @@ app.use((req, res) => {
 // ---------- Start server ----------
 initDb()
     .then(() => {
-        httpServer.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+        httpServer.listen(PORT, () => {
+            console.log(`Server running on http://localhost:${PORT}`);
+            registerTelegramWebhook();
+        });
     })
     .catch(err => {
         console.error('Failed to initialize database:', err);
