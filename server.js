@@ -194,6 +194,15 @@ async function initDb() {
         )
     `);
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_support_admin_msg ON support_messages (admin_message_id)`);
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS support_admin_copies (
+            admin_chat_id TEXT NOT NULL,
+            admin_message_id TEXT NOT NULL,
+            telegram_chat_id TEXT NOT NULL,
+            website_username TEXT
+        )
+    `);
+    await db.execute(`CREATE INDEX IF NOT EXISTS idx_support_admin_copy ON support_admin_copies (admin_chat_id, admin_message_id)`);
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_support_chat ON support_messages (telegram_chat_id)`);
 
     // Profile achievements/certificates — title + image always shown, description/date optional and revealed on click
@@ -1149,6 +1158,25 @@ async function recordSupportMessage({ telegramChatId, websiteUsername, direction
     return Number(result.lastInsertRowid);
 }
 
+// Message ids are only unique per Telegram chat, so copies of a support request
+// sent to the other admin accounts are tracked with their chat id too.
+async function saveSupportAdminCopy(adminChatId, adminMessageId, telegramChatId, websiteUsername) {
+    await db.execute({
+        sql: `INSERT INTO support_admin_copies (admin_chat_id, admin_message_id, telegram_chat_id, website_username)
+              VALUES (?, ?, ?, ?)`,
+        args: [String(adminChatId), String(adminMessageId), String(telegramChatId), websiteUsername || null]
+    });
+}
+async function findSupportThreadForAdminReply(adminChatId, adminMessageId) {
+    if (String(adminChatId) !== TELEGRAM_ADMIN_CHAT_ID) {
+        const copy = await db.execute({
+            sql: `SELECT telegram_chat_id, website_username FROM support_admin_copies WHERE admin_chat_id = ? AND admin_message_id = ? LIMIT 1`,
+            args: [String(adminChatId), String(adminMessageId)]
+        });
+        return copy.rows[0] || null;
+    }
+    return findSupportThreadByAdminMessageId(adminMessageId);
+}
 async function findSupportThreadByAdminMessageId(adminMessageId) {
     const result = await db.execute({
         sql: `SELECT * FROM support_messages WHERE admin_message_id = ? ORDER BY created_at DESC LIMIT 1`,
@@ -1493,11 +1521,14 @@ async function updateEvent(id, { title, description, category, mode, location, e
     });
 }
 
-// Google-Forms-style short-answer questions an organizer can optionally add
-// to their event's registration. Keeps this feature genuinely "recommended,
-// not required" (per the founder's request) by capping it at 10 questions
-// and requiring only a non-empty label per question — everything else about
-// a question is opt-in.
+// Google-Forms-style registration form an organizer can optionally add to
+// their event. Question types: text (short answer), paragraph (long answer),
+// choice (pick one), checkbox (pick several), dropdown (pick one from a list).
+// Capped at 10 questions; choice-type questions need 2-10 options. Questions
+// without a type are treated as short answers, so events created before
+// question types existed keep working.
+const QUESTION_TYPES = ['text', 'paragraph', 'choice', 'checkbox', 'dropdown'];
+const OPTION_TYPES = ['choice', 'checkbox', 'dropdown'];
 function sanitizeRegistrationQuestions(input) {
     if (input === undefined || input === null || input === '') return [];
     let arr = input;
@@ -1507,15 +1538,36 @@ function sanitizeRegistrationQuestions(input) {
     if (!Array.isArray(arr)) return null;
     if (arr.length > 10) return null;
     const cleaned = [];
+    const usedIds = new Set();
     for (const q of arr) {
         const label = typeof q === 'string' ? q : (q && q.label);
         if (typeof label !== 'string' || !label.trim()) return null;
         if (label.trim().length > 120) return null;
-        cleaned.push({
-            id: (q && q.id) || Math.random().toString(36).slice(2, 10),
-            label: label.trim(),
-            required: !!(q && q.required)
-        });
+
+        const type = (q && QUESTION_TYPES.includes(q.type)) ? q.type : 'text';
+        let options;
+        if (OPTION_TYPES.includes(type)) {
+            if (!q || !Array.isArray(q.options)) return null;
+            options = [];
+            for (const o of q.options) {
+                if (typeof o !== 'string') return null;
+                const t = o.trim();
+                if (!t) continue;
+                if (t.length > 80) return null;
+                if (!options.includes(t)) options.push(t);
+            }
+            if (options.length < 2 || options.length > 10) return null;
+        }
+
+        // Keep an existing id (so attendees' saved answers stay attached when
+        // an organizer edits the form), but only if it looks like one of ours.
+        let id = (q && typeof q.id === 'string' && /^[a-z0-9]{3,16}$/i.test(q.id)) ? q.id : null;
+        if (!id || usedIds.has(id)) id = Math.random().toString(36).slice(2, 10);
+        usedIds.add(id);
+
+        const item = { id, label: label.trim(), type, required: !!(q && q.required) };
+        if (options) item.options = options;
+        cleaned.push(item);
     }
     return cleaned;
 }
@@ -4334,7 +4386,16 @@ function verificationEmailHtml(code) {
 
 // ---------- Telegram bot notifications (reports + contact/ads inquiries) ----------
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const TELEGRAM_ADMIN_CHAT_ID = '8220562180';
+// Support/admin team Telegram accounts. The FIRST one is the primary admin;
+// every account listed here can use the admin commands (/block, /post, ...),
+// receives support requests and alerts, and can reply to support threads.
+// Each of them must press "Start" in the bot once, otherwise Telegram will not
+// let the bot message them.
+const TELEGRAM_ADMIN_CHAT_IDS = ['8220562180', '9137897392'];
+const TELEGRAM_ADMIN_CHAT_ID = TELEGRAM_ADMIN_CHAT_IDS[0];
+function isTelegramAdmin(chatId) {
+    return TELEGRAM_ADMIN_CHAT_IDS.includes(String(chatId));
+}
 
 // In-memory only — fine for this, since it's a single-admin, low-stakes flow:
 // worst case if the server restarts mid-draft is the admin just runs /post
@@ -4768,13 +4829,29 @@ async function sendTelegramPhotoTo(chatId, buffer, filename, caption) {
     return res.json();
 }
 
-// Existing callers throughout the file use these two, always targeting you (the admin).
+// Existing callers throughout the file use these two to alert the admin team.
+// They now reach EVERY admin account and still return the primary admin's
+// result, so existing callers keep working unchanged. sendToAllAdmins itself
+// returns every copy too ({ primary, copies }), so support requests can store
+// the other admins' message ids and route their replies back to the right user.
+async function sendToAllAdmins(sendOne) {
+    const results = await Promise.all(TELEGRAM_ADMIN_CHAT_IDS.map(async chatId => {
+        try { return { chatId, result: await sendOne(chatId) }; }
+        catch (err) {
+            console.error('Telegram admin send failed for', chatId, err);
+            return { chatId, result: null };
+        }
+    }));
+    const primary = results.find(r => r.chatId === TELEGRAM_ADMIN_CHAT_ID);
+    return { primary: primary ? primary.result : null, copies: results };
+}
+
 async function sendTelegramMessage(text) {
-    return sendTelegramMessageTo(TELEGRAM_ADMIN_CHAT_ID, text);
+    return (await sendToAllAdmins(chatId => sendTelegramMessageTo(chatId, text))).primary;
 }
 
 async function sendTelegramPhoto(buffer, filename, caption) {
-    return sendTelegramPhotoTo(TELEGRAM_ADMIN_CHAT_ID, buffer, filename, caption);
+    return (await sendToAllAdmins(chatId => sendTelegramPhotoTo(chatId, buffer, filename, caption))).primary;
 }
 
 const UZ_MONTHS_SERVER = ['yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun', 'iyul', 'avgust', 'sentabr', 'oktabr', 'noyabr', 'dekabr'];
@@ -4855,7 +4932,7 @@ app.post(`/telegram/webhook/${TELEGRAM_BOT_TOKEN}`, async (req, res) => {
                 if (faqItem) {
                     await editTelegramMessage(cbChatId, cbMessageId, `<b>${faqItem.q}</b>\n\n${faqItem.a}`, botFaqAnswerKeyboard());
                 }
-            } else if (data.startsWith('cert:') && cbChatId === TELEGRAM_ADMIN_CHAT_ID) {
+            } else if (data.startsWith('cert:') && isTelegramAdmin(cbChatId)) {
                 await handleCertCallback(cbChatId, cbMessageId, data);
             }
 
@@ -4870,7 +4947,7 @@ app.post(`/telegram/webhook/${TELEGRAM_BOT_TOKEN}`, async (req, res) => {
     if (!message || !message.chat) return;
 
     const fromChatId = String(message.chat.id);
-    const isAdmin = fromChatId === TELEGRAM_ADMIN_CHAT_ID;
+    const isAdmin = isTelegramAdmin(fromChatId);
 
     try {
         // ---------- Account linking: /start <token> from ANY sender ----------
@@ -4958,9 +5035,9 @@ app.post(`/telegram/webhook/${TELEGRAM_BOT_TOKEN}`, async (req, res) => {
                 // This is still the only way to target a thread that isn't the
                 // most recent one.
                 const repliedToId = String(message.reply_to_message.message_id);
-                const thread = await findSupportThreadByAdminMessageId(repliedToId);
+                const thread = await findSupportThreadForAdminReply(fromChatId, repliedToId);
                 if (!thread) {
-                    await sendTelegramMessage("⚠️ Bu xabarning kimga tegishli ekanini topa olmadim.");
+                    await sendTelegramMessageTo(fromChatId, "⚠️ Bu xabarning kimga tegishli ekanini topa olmadim.");
                     return;
                 }
 
@@ -4974,7 +5051,7 @@ app.post(`/telegram/webhook/${TELEGRAM_BOT_TOKEN}`, async (req, res) => {
                     direction: 'out',
                     content: replyText
                 });
-                await sendTelegramMessage("✅ Javobingiz yuborildi.");
+                await sendTelegramMessageTo(fromChatId, "✅ Javobingiz yuborildi.");
                 return;
             }
 
@@ -4989,27 +5066,27 @@ app.post(`/telegram/webhook/${TELEGRAM_BOT_TOKEN}`, async (req, res) => {
             if (blockMatch) {
                 const username = blockMatch[1];
                 const success = await setUserBlocked(username, true);
-                await sendTelegramMessage(success
+                await sendTelegramMessageTo(fromChatId, success
                     ? `🚫 @${escapeHtmlForTelegram(username)} bloklandi.`
                     : `❌ @${escapeHtmlForTelegram(username)} topilmadi.`);
             } else if (unblockMatch) {
                 const username = unblockMatch[1];
                 const success = await setUserBlocked(username, false);
-                await sendTelegramMessage(success
+                await sendTelegramMessageTo(fromChatId, success
                     ? `✅ @${escapeHtmlForTelegram(username)} blokdan chiqarildi.`
                     : `❌ @${escapeHtmlForTelegram(username)} topilmadi.`);
             } else if (deleteArticleMatch) {
                 const articleId = deleteArticleMatch[1];
                 const result = await deleteArticleAndWarnAuthor(articleId);
                 if (!result.ok) {
-                    await sendTelegramMessage(`❌ Maqola (ID: ${escapeHtmlForTelegram(articleId)}) topilmadi — ehtimol allaqachon o'chirilgan.`);
+                    await sendTelegramMessageTo(fromChatId, `❌ Maqola (ID: ${escapeHtmlForTelegram(articleId)}) topilmadi — ehtimol allaqachon o'chirilgan.`);
                 } else {
                     let msg = `🗑 Maqola o'chirildi: "${escapeHtmlForTelegram(result.article.title)}"\n` +
                         `⚠️ @${escapeHtmlForTelegram(result.article.author_username)} ga ogohlantirish berildi (${result.newWarningCount}/3).`;
                     if (result.banned) {
                         msg += `\n\n🚫 3-ogohlantirishga yetdi — @${escapeHtmlForTelegram(result.article.author_username)} avtomatik bloklandi.`;
                     }
-                    await sendTelegramMessage(msg);
+                    await sendTelegramMessageTo(fromChatId, msg);
                 }
             } else if (text === '/post') {
                 adminPostDrafts.set(fromChatId, { step: 'choose_template' });
@@ -5020,7 +5097,7 @@ app.post(`/telegram/webhook/${TELEGRAM_BOT_TOKEN}`, async (req, res) => {
                 });
             } else if (text === '/post_off') {
                 await deactivateAllHomePosts();
-                await sendTelegramMessage("✅ Joriy e'lon bosh sahifadan olib tashlandi.");
+                await sendTelegramMessageTo(fromChatId, "✅ Joriy e'lon bosh sahifadan olib tashlandi.");
             } else if (text === '/sertifikat_shablon') {
                 adminCertDrafts.set(fromChatId, { step: 'awaiting_name' });
                 await sendTelegramMessageTo(fromChatId, "Yangi sertifikat shabloni. Avval nomini yuboring (masalan: \"Ishtirokchi sertifikati\"):");
@@ -5039,7 +5116,7 @@ app.post(`/telegram/webhook/${TELEGRAM_BOT_TOKEN}`, async (req, res) => {
                     }
                 }
             } else if (text === '/start' || text === '/help' || text === '/menu') {
-                await sendTelegramMessage(
+                await sendTelegramMessageTo(fromChatId, 
                     `<b>BirMillat admin buyruqlari</b>\n\n` +
                     `/block foydalanuvchi_nomi — hisobni bloklash\n` +
                     `/unblock foydalanuvchi_nomi — blokdan chiqarish\n` +
@@ -5058,7 +5135,7 @@ app.post(`/telegram/webhook/${TELEGRAM_BOT_TOKEN}`, async (req, res) => {
                 // never have to prefix a command just to answer someone.
                 const thread = await getMostRecentSupportThread();
                 if (!thread) {
-                    await sendTelegramMessage("ℹ️ Hozircha hech kim yordam so'ramagan — javob berishga hech narsa yo'q.");
+                    await sendTelegramMessageTo(fromChatId, "ℹ️ Hozircha hech kim yordam so'ramagan — javob berishga hech narsa yo'q.");
                     return;
                 }
                 const replyText = message.text || message.caption || '';
@@ -5072,7 +5149,7 @@ app.post(`/telegram/webhook/${TELEGRAM_BOT_TOKEN}`, async (req, res) => {
                     content: replyText
                 });
                 const whoLabel = thread.website_username ? `@${escapeHtmlForTelegram(thread.website_username)}` : "oxirgi murojaatchi";
-                await sendTelegramMessage(`✅ ${whoLabel}ga yuborildi. (Aniq odamga yuborish uchun uning xabariga Reply qiling)`);
+                await sendTelegramMessageTo(fromChatId, `✅ ${whoLabel}ga yuborildi. (Aniq odamga yuborish uchun uning xabariga Reply qiling)`);
             }
             return;
         }
@@ -5104,6 +5181,7 @@ app.post(`/telegram/webhook/${TELEGRAM_BOT_TOKEN}`, async (req, res) => {
               `Hisob: ulanmagan (faqat Telegram orqali yozmoqda)`;
 
         let forwarded;
+        let adminCopies = [];
         const captionHeader = `💬 <b>Yordam so'rovi</b>\n${identityLine}`;
 
         if (message.photo && message.photo.length > 0) {
@@ -5116,11 +5194,15 @@ app.post(`/telegram/webhook/${TELEGRAM_BOT_TOKEN}`, async (req, res) => {
                 const imgRes = await fetch(fileUrl);
                 const buffer = Buffer.from(await imgRes.arrayBuffer());
                 const caption = `${captionHeader}\n${message.caption ? escapeHtmlForTelegram(message.caption) : ''}`;
-                forwarded = await sendTelegramPhoto(buffer, 'support.jpg', caption);
+                const sent = await sendToAllAdmins(chatId => sendTelegramPhotoTo(chatId, buffer, 'support.jpg', caption));
+                forwarded = sent.primary;
+                adminCopies = sent.copies;
             }
         } else if (message.text) {
             const text = `${captionHeader}\n\n${escapeHtmlForTelegram(message.text)}`;
-            forwarded = await sendTelegramMessage(text);
+            const sent = await sendToAllAdmins(chatId => sendTelegramMessageTo(chatId, text));
+            forwarded = sent.primary;
+            adminCopies = sent.copies;
         }
 
         if (forwarded && forwarded.ok && forwarded.result) {
@@ -5131,6 +5213,14 @@ app.post(`/telegram/webhook/${TELEGRAM_BOT_TOKEN}`, async (req, res) => {
                 content: message.text || message.caption || '[rasm]',
                 adminMessageId: forwarded.result.message_id
             });
+            // Copies that went to the other admin accounts, so they can reply too.
+            for (const copy of adminCopies) {
+                if (copy.chatId !== TELEGRAM_ADMIN_CHAT_ID && copy.result && copy.result.ok && copy.result.result) {
+                    try {
+                        await saveSupportAdminCopy(copy.chatId, copy.result.result.message_id, fromChatId, linkedUser ? linkedUser.username : null);
+                    } catch (err) { console.error('saveSupportAdminCopy failed:', err); }
+                }
+            }
             await sendTelegramMessageTo(fromChatId, "Xabaringiz qabul qilindi. Tez orada javob beramiz!");
         }
     } catch (err) {
@@ -5720,11 +5810,28 @@ app.post('/api/events/:id/rsvp', async (req, res) => {
         try { registrationQuestions = event.registration_questions ? JSON.parse(event.registration_questions) : []; } catch (e) {}
         const cleanAnswers = {};
         for (const q of registrationQuestions) {
-            const val = (answers && answers[q.id] ? String(answers[q.id]) : '').trim();
+            const raw = answers ? answers[q.id] : undefined;
+            const type = q.type || 'text';
+            let val = '';
+            if (type === 'checkbox') {
+                // Several options may be ticked; only real options are kept.
+                const picked = (Array.isArray(raw) ? raw : (raw ? [raw] : []))
+                    .map(v => String(v).trim())
+                    .filter(v => (q.options || []).includes(v));
+                val = [...new Set(picked)].join(', ');
+            } else if (type === 'choice' || type === 'dropdown') {
+                const v = (raw ? String(raw) : '').trim();
+                if (v && !(q.options || []).includes(v)) {
+                    return res.status(400).json({ error: `"${q.label}" savoliga noto'g'ri javob tanlandi` });
+                }
+                val = v;
+            } else {
+                val = (raw ? String(raw) : '').trim().slice(0, type === 'paragraph' ? 1000 : 300);
+            }
             if (q.required && !val) {
                 return res.status(400).json({ error: `"${q.label}" savoliga javob berish shart` });
             }
-            if (val) cleanAnswers[q.id] = val.slice(0, 300);
+            if (val) cleanAnswers[q.id] = val;
         }
 
         const alreadyAttending = await isUserAttending(event.id, req.session.userId);
