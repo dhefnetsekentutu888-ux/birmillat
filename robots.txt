@@ -1,5 +1,17 @@
 User-agent: *
 Allow: /
+# Private, account-only or action URLs: nothing useful to index
+Disallow: /api/
+Disallow: /admin/
+Disallow: /checkin/
+Disallow: /messages
+Disallow: /profile
+Disallow: /logout
+Disallow: /verify
+Disallow: /forgot-password
+Disallow: /events/create
+Disallow: /articles/create
+Disallow: /volunteer/create
 
 Sitemap: https://birmillat.uz/sitemap.xml
 
