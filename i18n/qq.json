@@ -343,5 +343,18 @@
   "hp.add_first_event": "Birinchi tadbirni siz qo'shing!",
   "hp.no_comms": "Hozircha jamoalar yo'q.",
   "hp.create_first": "Birinchi jamoani siz yarating!",
-  "hp.no_desc": "Tavsif qo'shilmagan"
+  "hp.no_desc": "Tavsif qo'shilmagan",
+  "lp.chat1": "Salom! Python bo'yicha jamoa izlayapsizmi?",
+  "lp.chat2": "Ha, qo'shilaman! 🙌",
+  "lp.members_count": "{n} a'zo",
+  "lp.join": "Qo'shilish",
+  "lp.no_comms": "Hali jamoalar yo'q.",
+  "lp.create_first": "Birinchi jamoani siz yarating →",
+  "lp.comms_failed": "Jamoalarni yuklab bo'lmadi.",
+  "lp.try_it": "Ro'yxatdan o'tib, o'zingiz ko'ring →",
+  "lp.no_people": "Hozircha namoyish uchun profil yo'q. Ro'yxatdan o'tib, profil sozlamalaridan “Bosh sahifada ko'rsatilsin”ni yoqing va birinchi bo'ling.",
+  "lp.start": "Boshlash →",
+  "lp.people_failed": "A'zolarni yuklab bo'lmadi.",
+  "lp.member_fallback": "A'zo",
+  "lp.comm_desc": "Qiziqarli jamoa — batafsilni ko'rish uchun qo'shiling."
 }
