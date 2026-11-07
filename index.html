@@ -43,7 +43,7 @@ body { font-family: 'Inter', sans-serif; overflow-x: clip; }   /* 'clip' (not 'h
 .lp-nav { position: sticky; top: 0; z-index: 100; background: var(--color-surface); border-bottom: 1px solid var(--color-border); }
 .lp-nav-in { max-width: 1120px; margin: 0 auto; padding: 0 24px; height: 68px; display: flex; align-items: center; gap: 28px; }
 .lp-logo { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; flex: none; }
-.lp-logo svg ellipse:first-child { stroke: var(--color-primary); }
+.lp-logo svg .lp-l1 { stroke: var(--color-primary); }
 .lp-word { font: 700 1.35rem 'Sora', sans-serif; color: var(--color-primary); letter-spacing: -0.01em; }
 .lp-word span { color: #FF6B5B; }
 .lp-links { display: flex; gap: 6px; margin-right: auto; }
@@ -60,8 +60,11 @@ body { font-family: 'Inter', sans-serif; overflow-x: clip; }   /* 'clip' (not 'h
 .lp-theme-btn:hover { background: var(--color-bg); color: var(--color-text); }
 
 /* ---------- hero ---------- */
-.lp-hero { color: #fff; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120' fill='none' stroke='%23fff' stroke-opacity='.10' stroke-width='2.6'%3E%3Cg transform='translate(30 30)'%3E%3Cellipse cx='-5' rx='9' ry='16' transform='rotate(-18)'/%3E%3Cellipse cx='5' rx='9' ry='16' transform='rotate(18)'/%3E%3C/g%3E%3Cg transform='translate(90 90)'%3E%3Cellipse cx='-5' rx='9' ry='16' transform='rotate(-18)'/%3E%3Cellipse cx='5' rx='9' ry='16' transform='rotate(18)'/%3E%3C/g%3E%3C/svg%3E") 0 0 / 120px 120px, linear-gradient(135deg, #1B1040 0%, #2D1B69 45%, #4C33A8 100%); }
-.lp-hero-grid { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr); gap: 56px; align-items: center; padding-top: 80px; padding-bottom: 88px; }
+.lp-hero { position: relative; overflow: hidden; color: #fff; background: radial-gradient(rgba(255, 255, 255, 0.10) 1.2px, transparent 1.7px) 0 0 / 28px 28px, linear-gradient(135deg, #1B1040 0%, #2D1B69 45%, #4C33A8 100%); }
+.lp-hero-grid { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr); gap: 56px; align-items: center; padding-top: 80px; padding-bottom: 170px; }
+/* calm travelling scene: people walk toward each other along dotted routes and meet (strip below the content, never behind text) */
+.lp-scene { position: absolute; left: 0; right: 0; bottom: 0; height: 150px; pointer-events: none; z-index: 0; }
+.lp-scene svg { display: block; width: 100%; height: 100%; }
 .lp-hero h1 { font: 800 clamp(2.1rem, 5vw, 3.5rem)/1.12 'Sora', sans-serif; color: #fff; letter-spacing: -0.02em; overflow-wrap: anywhere; }
 .lp-underline { background: linear-gradient(transparent 82%, rgba(255, 107, 91, 0.85) 82%, rgba(255, 107, 91, 0.85) 94%, transparent 94%); }
 .lp-sub { margin-top: 20px; max-width: 54ch; font-size: clamp(1rem, 2vw, 1.15rem); line-height: 1.65; color: rgba(255, 255, 255, 0.84); }
@@ -147,7 +150,7 @@ body { font-family: 'Inter', sans-serif; overflow-x: clip; }   /* 'clip' (not 'h
 @keyframes lp-soft { 0%, 100% { opacity: 0.55; } 50% { opacity: 0.3; } }
 
 /* ---------- closing call to action ---------- */
-.lp-cta { display: grid; justify-items: center; gap: 16px; padding: 56px 28px; border-radius: 30px; text-align: center; color: #fff; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120' fill='none' stroke='%23fff' stroke-opacity='.10' stroke-width='2.6'%3E%3Cg transform='translate(30 30)'%3E%3Cellipse cx='-5' rx='9' ry='16' transform='rotate(-18)'/%3E%3Cellipse cx='5' rx='9' ry='16' transform='rotate(18)'/%3E%3C/g%3E%3Cg transform='translate(90 90)'%3E%3Cellipse cx='-5' rx='9' ry='16' transform='rotate(-18)'/%3E%3Cellipse cx='5' rx='9' ry='16' transform='rotate(18)'/%3E%3C/g%3E%3C/svg%3E") 0 0 / 120px 120px, linear-gradient(135deg, #1B1040 0%, #2D1B69 45%, #4C33A8 100%); }
+.lp-cta { display: grid; justify-items: center; gap: 16px; padding: 56px 28px; border-radius: 30px; text-align: center; color: #fff; background: radial-gradient(rgba(255, 255, 255, 0.10) 1.2px, transparent 1.7px) 0 0 / 28px 28px, linear-gradient(135deg, #1B1040 0%, #2D1B69 45%, #4C33A8 100%); }
 .lp-cta h2 { font: 800 clamp(1.6rem, 3.4vw, 2.2rem)/1.2 'Sora', sans-serif; color: #fff; }
 .lp-cta p { max-width: 52ch; color: rgba(255, 255, 255, 0.84); line-height: 1.65; }
 .lp-social { display: flex; gap: 10px; margin-top: 8px; }
@@ -174,7 +177,7 @@ footer { background: var(--color-surface); border-top: 1px solid var(--color-bor
 
 /* ---------- tablet / phone ---------- */
 @media (max-width: 960px) {
-  .lp-hero-grid { grid-template-columns: minmax(0, 1fr); gap: 40px; padding-top: 56px; padding-bottom: 64px; }
+  .lp-hero-grid { grid-template-columns: minmax(0, 1fr); gap: 40px; padding-top: 56px; padding-bottom: 150px; }
   .lp-visual { max-width: 420px; }
   .lp-steps { grid-template-columns: minmax(0, 1fr); }
   .lp-cats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -187,7 +190,8 @@ footer { background: var(--color-surface); border-top: 1px solid var(--color-bor
   .lp-nav-in { height: 60px; gap: 8px; }
   .lp-word { font-size: 1.2rem; }
   .lp-nav-cta, .lp-theme-btn { display: none; }                 /* the hero has the big sign-up button; the theme follows the device */
-  .lp-hero-grid { padding-top: 40px; padding-bottom: 48px; gap: 32px; }
+  .lp-hero-grid { padding-top: 40px; padding-bottom: 140px; gap: 32px; }
+  .lp-scene { height: 120px; }
   .lp-cta-row .lp-btn { flex: 1 1 100%; }
   .lp-stats { gap: 12px 28px; margin-top: 32px; }
   .lp-pv { width: 100%; }
@@ -211,7 +215,7 @@ footer { background: var(--color-surface); border-top: 1px solid var(--color-bor
     <a href="/" class="lp-logo" aria-label="BirMillat">
       <svg width="30" height="30" viewBox="0 0 90 90" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <g transform="translate(45,45)">
-          <g transform="rotate(-18)"><ellipse cx="-10" cy="0" rx="20" ry="36" fill="none" stroke="#2D1B69" stroke-width="10"/></g>
+          <g transform="rotate(-18)"><ellipse class="lp-l1" cx="-10" cy="0" rx="20" ry="36" fill="none" stroke="#2D1B69" stroke-width="10"/></g>
           <g transform="rotate(18)"><ellipse cx="10" cy="0" rx="20" ry="36" fill="none" stroke="#FF6B5B" stroke-width="10"/></g>
         </g>
       </svg>
@@ -241,6 +245,30 @@ footer { background: var(--color-surface); border-top: 1px solid var(--color-bor
 
 <main>
 <section class="lp-hero">
+  <div class="lp-scene" aria-hidden="true">
+    <svg id="lpScene" viewBox="0 0 1200 150" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" focusable="false">
+      <defs>
+        <path id="lpR1" d="M -40 128 C 170 146, 400 98, 584 112"/>
+        <path id="lpR2" d="M 1240 128 C 1030 146, 800 98, 616 112"/>
+        <path id="lpR3" d="M 170 176 C 320 150, 470 124, 584 112"/>
+        <path id="lpR4" d="M 1030 176 C 880 150, 730 124, 616 112"/>
+        <g id="lpPerson"><circle cx="0" cy="-12" r="5"/><rect x="-6.5" y="-5" width="13" height="14" rx="5.5"/></g>
+      </defs>
+      <g fill="none" stroke="#fff" stroke-opacity="0.22" stroke-width="2" stroke-linecap="round" stroke-dasharray="1 9">
+        <use href="#lpR1"/><use href="#lpR2"/><use href="#lpR3" stroke-opacity="0.14"/><use href="#lpR4" stroke-opacity="0.14"/>
+      </g>
+      <g fill="#fff" fill-opacity="0.55">
+        <g><use href="#lpPerson" transform="scale(1.5)"/><animateMotion dur="36s" repeatCount="indefinite" calcMode="linear" keyPoints="0;1;1" keyTimes="0;0.78;1"><mpath href="#lpR1"/></animateMotion><animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;0.06;0.78;0.88;1" dur="36s" repeatCount="indefinite"/></g>
+        <g><use href="#lpPerson" transform="scale(1.5)"/><animateMotion dur="36s" repeatCount="indefinite" calcMode="linear" keyPoints="0;1;1" keyTimes="0;0.78;1"><mpath href="#lpR2"/></animateMotion><animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;0.06;0.78;0.88;1" dur="36s" repeatCount="indefinite"/></g>
+        <g fill-opacity="0.38"><use href="#lpPerson" transform="scale(1.25)"/><animateMotion dur="36s" begin="-18s" repeatCount="indefinite" calcMode="linear" keyPoints="0;1;1" keyTimes="0;0.78;1"><mpath href="#lpR3"/></animateMotion><animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;0.06;0.78;0.88;1" dur="36s" begin="-18s" repeatCount="indefinite"/></g>
+        <g fill-opacity="0.38"><use href="#lpPerson" transform="scale(1.25)"/><animateMotion dur="36s" begin="-18s" repeatCount="indefinite" calcMode="linear" keyPoints="0;1;1" keyTimes="0;0.78;1"><mpath href="#lpR4"/></animateMotion><animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;0.06;0.78;0.88;1" dur="36s" begin="-18s" repeatCount="indefinite"/></g>
+      </g>
+      <g fill="none" stroke="#fff">
+        <circle cx="600" cy="106" r="0"><animate attributeName="r" values="0;0;44;44" keyTimes="0;0.78;0.95;1" dur="36s" repeatCount="indefinite"/><animate attributeName="stroke-opacity" values="0;0;0.32;0;0" keyTimes="0;0.78;0.80;0.95;1" dur="36s" repeatCount="indefinite"/></circle>
+        <circle cx="600" cy="106" r="0"><animate attributeName="r" values="0;0;44;44" keyTimes="0;0.78;0.95;1" dur="36s" begin="-18s" repeatCount="indefinite"/><animate attributeName="stroke-opacity" values="0;0;0.22;0;0" keyTimes="0;0.78;0.80;0.95;1" dur="36s" begin="-18s" repeatCount="indefinite"/></circle>
+      </g>
+    </svg>
+  </div>
   <div class="lp-wrap lp-hero-grid">
     <div>
       <h1 data-i18n-html="hero.h1">Qiziqishlaringiz asosida <span class="lp-underline">haqiqiy do'stlar</span> toping</h1>
@@ -426,6 +454,21 @@ footer { background: var(--color-surface); border-top: 1px solid var(--color-bor
     if (next === LANG) return;
     loadDict(next).then(function () { LANG = next; renderAll(); });
   }).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
+
+
+  // Travelling scene: paused while off-screen (saves battery); a still "meeting" frame if the visitor prefers reduced motion
+  var scene = $('lpScene');
+  if (scene && scene.pauseAnimations) {
+    var reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+    var onScreen = true;
+    var syncScene = function () {
+      if (reduce.matches) { scene.pauseAnimations(); try { scene.setCurrentTime(30); } catch (e) {} }
+      else if (onScreen) scene.unpauseAnimations(); else scene.pauseAnimations();
+    };
+    if (window.IntersectionObserver) new IntersectionObserver(function (e) { onScreen = e[0].isIntersecting; syncScene(); }).observe(document.querySelector('.lp-hero'));
+    if (reduce.addEventListener) reduce.addEventListener('change', syncScene);
+    syncScene();
+  }
 
   // Everything is requested at once; each part draws as soon as its data arrives
   LANG = (window.BirMillatI18n && window.BirMillatI18n.currentLang()) || 'uz';
