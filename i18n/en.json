@@ -343,5 +343,18 @@
   "hp.add_first_event": "Be the first to add one!",
   "hp.no_comms": "No communities yet.",
   "hp.create_first": "Be the first to create one!",
-  "hp.no_desc": "No description added"
+  "hp.no_desc": "No description added",
+  "lp.chat1": "Hi! Looking for a Python team?",
+  "lp.chat2": "Yes, I'm in! 🙌",
+  "lp.members_count": "{n} members",
+  "lp.join": "Join",
+  "lp.no_comms": "No communities yet.",
+  "lp.create_first": "Be the first to create one →",
+  "lp.comms_failed": "Couldn't load communities.",
+  "lp.try_it": "Sign up and see for yourself →",
+  "lp.no_people": "No profiles to show yet. Sign up and turn on “Show on the home page” in your profile settings to be the first.",
+  "lp.start": "Get started →",
+  "lp.people_failed": "Couldn't load members.",
+  "lp.member_fallback": "Member",
+  "lp.comm_desc": "An interesting community — join to see more."
 }
