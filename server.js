@@ -2919,30 +2919,54 @@ app.get('/robots.txt', (req, res) => {
     res.type('text/plain').sendFile(path.join(__dirname, 'robots.txt'));
 });
 
+// sitemap.xml — submitted to Google Search Console. Lists only public,
+// indexable pages: login-gated pages (home, communities, profile, messages...)
+// are left out on purpose. Event / volunteer / article detail pages are added
+// dynamically from the database. A failing DB query never takes the sitemap
+// down: the static pages are always served.
 app.get('/sitemap.xml', async (req, res) => {
     try {
+        const xmlEscape = s => String(s)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+        const isoDay = ms => {
+            const d = new Date(Number(ms));
+            return Number.isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
+        };
+        const safe = (promise, label) => promise.catch(err => {
+            console.error(`sitemap.xml: could not load ${label}:`, err);
+            return [];
+        });
+
         const staticPages = [
-            '', 'about', 'events', 'volunteer', 'articles', 'founders.html',
-            'privacy', 'contact', 'support'
+            '', 'about', 'founders.html', 'events', 'volunteer', 'articles',
+            'contact', 'support', 'privacy'
         ];
         const [events, opportunities, articles] = await Promise.all([
-            getApprovedEvents(null),
-            getVolunteerOpportunities({}),
-            listArticles()
+            safe(getApprovedEvents(null), 'events'),
+            safe(getVolunteerOpportunities({}), 'volunteer opportunities'),
+            safe(listArticles(), 'articles')
         ]);
 
+        // lastmod is only written when it is genuinely known (created_at).
+        // Google ignores <priority> and <changefreq>, so they are omitted.
         const urls = [
-            ...staticPages.map(p => ({ loc: `${SITE_URL}/${p}`, priority: p === '' ? '1.0' : '0.8' })),
-            ...events.map(e => ({ loc: `${SITE_URL}/events/${e.id}`, priority: '0.6' })),
-            ...opportunities.map(o => ({ loc: `${SITE_URL}/volunteer/${o.id}`, priority: '0.6' })),
-            ...articles.map(a => ({ loc: `${SITE_URL}/articles/${a.id}`, priority: '0.6' }))
+            ...staticPages.map(p => ({ loc: `${SITE_URL}/${p}` })),
+            ...events.map(e => ({ loc: `${SITE_URL}/events/${e.id}`, lastmod: isoDay(e.created_at) })),
+            ...opportunities.map(o => ({ loc: `${SITE_URL}/volunteer/${o.id}`, lastmod: isoDay(o.created_at) })),
+            ...articles.map(a => ({ loc: `${SITE_URL}/articles/${a.id}`, lastmod: isoDay(a.created_at) }))
         ];
 
         const xml = `<?xml version="1.0" encoding="UTF-8"?>\n` +
             `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
-            urls.map(u => `  <url><loc>${u.loc}</loc><priority>${u.priority}</priority></url>`).join('\n') +
-            `\n</urlset>`;
+            urls.map(u =>
+                `  <url><loc>${xmlEscape(u.loc)}</loc>` +
+                (u.lastmod ? `<lastmod>${u.lastmod}</lastmod>` : '') +
+                `</url>`
+            ).join('\n') +
+            `\n</urlset>\n`;
 
+        res.set('Cache-Control', 'public, max-age=3600');
         res.type('application/xml').send(xml);
     } catch (err) {
         console.error('sitemap.xml error:', err);
