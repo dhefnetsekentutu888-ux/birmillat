@@ -39,6 +39,18 @@
     }
     .policy-contact a { color: var(--color-primary); font-weight: 700; }
 
+    .cookie-table-wrap { overflow-x: auto; margin: 0.9rem 0 1.1rem; border: 1px solid var(--color-border); border-radius: 14px; }
+    .cookie-table { width: 100%; border-collapse: collapse; font-size: 0.86rem; min-width: 560px; }
+    .cookie-table th, .cookie-table td { text-align: left; padding: 0.7rem 0.85rem; border-bottom: 1px solid var(--color-border); vertical-align: top; line-height: 1.5; color: var(--color-text); }
+    .cookie-table th { background: var(--color-bg); font-weight: 700; font-size: 0.8rem; }
+    .cookie-table tr:last-child td { border-bottom: none; }
+    .cookie-table code { font-size: 0.82rem; }
+    .cookie-settings-btn {
+        font: inherit; font-weight: 600; font-size: 0.9rem; cursor: pointer; padding: 0.65rem 1.1rem; border-radius: 10px;
+        background: var(--color-primary-solid); color: #fff; border: 1px solid var(--color-primary-solid);
+    }
+    .cookie-settings-btn:hover { background: var(--color-primary-light); }
+
     @media (max-width: 560px) {
         .policy-shell { margin: 1.4rem auto; padding: 0 1rem 2.5rem; }
         .policy-card { padding: 1.7rem 1.3rem; }
@@ -76,7 +88,7 @@
     <div class="policy-shell reveal">
         <div class="policy-card card">
             <h1><i class="fas fa-shield-halved"></i> Maxfiylik siyosati</h1>
-            <div class="policy-updated">Oxirgi yangilanish: 2026</div>
+            <div class="policy-updated">Oxirgi yangilanish: 2026-yil 7-noyabr</div>
 
             <p>BirMillat ("biz", "bizning", "platforma") foydalanuvchilarning shaxsiy ma'lumotlarini himoya qilishga katta ahamiyat beradi. Ushbu Maxfiylik siyosati BirMillat platformasidan foydalanish jarayonida qanday ma'lumotlar yig'ilishi, qanday maqsadlarda ishlatilishi, saqlanishi va himoya qilinishini tushuntiradi.</p>
             <p>BirMillat.uz'dan foydalanish orqali siz ushbu Maxfiylik siyosati shartlariga rozilik bildirasiz.</p>
@@ -130,16 +142,34 @@
                 <li>Tadbirlardagi ishtirok.</li>
             </ul>
 
-            <h2>3. Cookies (Kuki fayllari)</h2>
-            <p>BirMillat quyidagi maqsadlarda cookies va o'xshash texnologiyalardan foydalanishi mumkin:</p>
+            <p><strong>2.5. Ixtiyoriy ulanishlar</strong> — quyidagilar faqat siz o'zingiz yoqqaningizdagina ishlaydi:</p>
             <ul>
-                <li>Hisobga kirilgan holatni saqlash;</li>
-                <li>Foydalanuvchi sozlamalarini eslab qolish;</li>
-                <li>Sayt ishlashini yaxshilash;</li>
-                <li>Xavfsizlikni ta'minlash;</li>
-                <li>Statistika va tahlil ma'lumotlarini yig'ish.</li>
+                <li><strong>Brauzer bildirishnomalari (push):</strong> bildirishnoma yuborish uchun brauzeringiz bergan obuna manzili saqlanadi. Uni profil sozlamalaridan istalgan vaqtda o'chirishingiz mumkin;</li>
+                <li><strong>Telegram hisobini ulash:</strong> bildirishnomalar olish uchun Telegram hisobingiz identifikatori (chat ID) hisobingizga bog'lanadi. Qo'llab-quvvatlash botiga yozsangiz, xabaringiz va chat ID'ingiz murojaatni ko'rib chiqish uchun saqlanadi;</li>
+                <li><strong>Tadbirlarga qatnashish:</strong> tadbirga ro'yxatdan o'tsangiz, tashkilotchi savollariga bergan javoblaringiz va kirish (check-in) holatingiz tashkilotchiga ko'rinadi.</li>
             </ul>
-            <p>Brauzeringiz orqali cookies fayllarini o'chirishingiz yoki cheklashingiz mumkin.</p>
+
+            <h2 id="cookies">3. Cookies (Kuki fayllari) va brauzer xotirasi</h2>
+            <p>Cookies — saytga kirganingizda brauzeringizda saqlanadigan kichik matnli fayllar. BirMillat <strong>reklama yoki kuzatuv (tracking) cookie'laridan foydalanmaydi</strong>. Hozirda faqat quyidagilar ishlatiladi:</p>
+            <div class="cookie-table-wrap">
+                <table class="cookie-table">
+                    <thead>
+                        <tr><th>Nomi</th><th>Nima uchun</th><th>Turi</th><th>Muddati</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><code>connect.sid</code></td><td>Tizimga kirgan holatingizni (sessiya) saqlash va xavfsizlik</td><td>Zarur</td><td>30 kun (faol bo'lsangiz yangilanib turadi)</td></tr>
+                        <tr><td><code>bm_consent</code></td><td>Cookie bo'yicha tanlovingizni eslab qolish</td><td>Zarur</td><td>1 yil</td></tr>
+                        <tr><td><code>bm_lang</code></td><td>Tanlagan tilingizni (O'zbek, Qaraqalpaqsha, Русский, English) eslab qolish</td><td>Sozlama</td><td>1 yil</td></tr>
+                        <tr><td><code>birmillat-theme</code>, <code>bm_rail</code> (brauzer xotirasi — localStorage)</td><td>Yorug'/qorong'i mavzu va yon menyu holatini eslab qolish</td><td>Sozlama</td><td>Siz o'chirmaguningizcha</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <p><strong>Zarur</strong> cookie'larsiz sayt ishlamaydi (masalan, tizimga kirib bo'lmaydi), shuning uchun ular rozilik so'ramasdan o'rnatiladi. <strong>Sozlama</strong> fayllari qulaylik uchun xizmat qiladi va hech qayerga yuborilmaydi.</p>
+            <p>Ro'yxatdan o'tish va kirish sahifalarida bot (avtomatik) so'rovlardan himoya qilish uchun Cloudflare Turnstile ishlatiladi; u o'z xavfsizlik ma'lumotlarini Cloudflare siyosatiga muvofiq qayta ishlashi mumkin.</p>
+            <p>Saytga birinchi marta kirganingizda pastda cookie xabari ko'rinadi: <strong>«Qabul qilaman»</strong> yoki <strong>«Faqat zarur»</strong> tugmasini tanlashingiz mumkin. Tanlovingiz 1 yil saqlanadi. Kelajakda tahlil (statistika) kabi ixtiyoriy cookie'lar qo'shilsa, ular faqat siz «Qabul qilaman» deganingizdan keyingina yoqiladi va bu siyosat yangilanadi.</p>
+            <p>Tanlovingizni istalgan vaqtda o'zgartirishingiz mumkin:</p>
+            <p><button type="button" class="cookie-settings-btn" data-cookie-settings>Cookie sozlamalarini ochish</button></p>
+            <p>Shuningdek, cookies fayllarini brauzer sozlamalari orqali o'chirishingiz yoki cheklashingiz mumkin. Lekin zarur cookie'lar o'chirilsa, tizimga kirish ishlamay qolishi mumkin.</p>
 
             <h2>4. Ma'lumotlardan qanday foydalanamiz?</h2>
             <p>Biz foydalanuvchi ma'lumotlaridan quyidagi maqsadlarda foydalanamiz:</p>
@@ -167,14 +197,17 @@
 
             <h2>8. Ma'lumotlarni kim bilan ulashamiz?</h2>
             <p>Biz foydalanuvchilarning shaxsiy ma'lumotlarini sotmaymiz.</p>
-            <p>Ma'lumotlar quyidagi hollarda uchinchi tomonlarga taqdim etilishi mumkin:</p>
-            <p><strong>Texnik xizmat ko'rsatuvchilar:</strong></p>
+            <p>Platforma ishlashi uchun quyidagi texnik xizmat ko'rsatuvchilardan foydalanamiz. Ular ma'lumotlarni faqat bizning nomimizdan, xizmatni ko'rsatish maqsadida qayta ishlaydi:</p>
             <ul>
-                <li>Hosting provayderlari;</li>
-                <li>Analitika xizmatlari;</li>
-                <li>Elektron pochta xizmatlari;</li>
-                <li>Bulutli xizmatlar.</li>
+                <li><strong>Ma'lumotlar bazasi va hosting</strong> (Turso va server hosting provayderi) — hisob va kontent ma'lumotlarini saqlash;</li>
+                <li><strong>Elektron pochta xizmati</strong> (Resend) — tasdiqlash va xabarnoma xatlarini yuborish;</li>
+                <li><strong>Cloudflare Turnstile</strong> — bot va spamdan himoya;</li>
+                <li><strong>Telegram</strong> — siz ulagan bo'lsangiz, bildirishnomalar va qo'llab-quvvatlash boti;</li>
+                <li><strong>Brauzer push xizmatlari</strong> (Google, Apple, Mozilla) — siz yoqqan bildirishnomalarni yetkazish;</li>
+                <li><strong>Rasm saqlash xizmati</strong> (FreeImage.host) — yuklangan rasmlar (masalan, profil rasmi) uchinchi tomon rasm xostingida saqlanishi mumkin;</li>
+                <li><strong>Google Fonts va Cloudflare (cdnjs)</strong> — shrift va ikonkalarni yuklash. Sahifa ochilganda brauzeringiz IP manzilingizni shu xizmatlarga yuboradi.</li>
             </ul>
+            <p>Ma'lumotlar quyidagi hollarda ham taqdim etilishi mumkin:</p>
             <p><strong>Qonuniy talablar:</strong></p>
             <ul>
                 <li>Sud qarori;</li>
