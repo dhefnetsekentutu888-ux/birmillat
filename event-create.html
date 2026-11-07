@@ -225,7 +225,7 @@
 
             <div class="form-section card">
                 <div class="form-section-title"><i class="fas fa-list-check"></i> <span data-i18n="evform.sec_questions">Ro'yxatdan o'tish savollari</span> <span style="font-weight:400; color:var(--color-text-muted); font-size:0.82rem;" data-i18n="evform.questions_hint">(ixtiyoriy, tavsiya etiladi)</span></div>
-                <p style="color:var(--color-text-muted); font-size:0.85rem; margin-bottom:0.8rem;" data-i18n="evform.questions_desc">Ko'pchilik faqat taxallus qoldiradi — masalan "To'liq ism sharifingiz" yoki "Maktabingiz" kabi savol qo'shsangiz, kim kelishini aniq bilasiz.</p>
+                <p style="color:var(--color-text-muted); font-size:0.85rem; margin-bottom:0.8rem;" >Google Form kabi o'z ro'yxatdan o'tish formangizni yarating: qisqa/uzun javob, variant tanlash, ro'yxat. Pastdagi tugmalar bilan tayyor savollarni tez qo'shing.</p>
                 <div id="questionsList"></div>
                 <button type="button" class="btn btn-outline btn-zoom" id="addQuestionBtn" style="margin-top:0.5rem;"><i class="fas fa-plus"></i> <span data-i18n="evform.add_question">Savol qo'shish</span></button>
             </div>
@@ -239,6 +239,7 @@
 
     <footer><span data-i18n="footer.tagline">BirMillat – qiziqishlar asosida do'stlar toping.</span> · <a href="/privacy" style="color:inherit;" data-i18n="foot.privacy">Maxfiylik siyosati</a><br><span style="opacity:0.8;" data-i18n-html="foot.founder">Founder — Bekhruz Ravshanov</span></footer>
 
+    <script src="/event-form-builder.js"></script>
     <script>
         const tr = (k, fb) => window.BirMillatI18n ? window.BirMillatI18n.t(k, {}, fb) : fb;
         const rf = () => { if (window.BirMillatI18n) window.BirMillatI18n.refresh(); };
@@ -290,43 +291,13 @@
         });
 
         // ---------- Registration questions builder ----------
-        let questionRowId = 0;
-        function addQuestionRow(label = '', required = false) {
-            const list = document.getElementById('questionsList');
-            const rowId = 'q' + (questionRowId++);
-            const row = document.createElement('div');
-            row.className = 'question-row';
-            row.dataset.rowId = rowId;
-            row.innerHTML = `
-                <input type="text" maxlength="120" placeholder="Masalan: To'liq ism sharifingiz" data-i18n-placeholder="evform.q_placeholder" value="${label.replace(/"/g, '&quot;')}">
-                <label><input type="checkbox" ${required ? 'checked' : ''}> <span data-i18n="evform.required">Majburiy</span></label>
-                <button type="button" class="question-remove-btn" aria-label="O'chirish"><i class="fas fa-xmark"></i></button>
-            `;
-            row.querySelector('.question-remove-btn').addEventListener('click', () => row.remove());
-            list.appendChild(row);
-            rf();
-        }
-
         document.getElementById('addQuestionBtn').addEventListener('click', () => {
-            if (document.querySelectorAll('.question-row').length >= 10) {
+            if (document.querySelectorAll('.qb-card').length >= 10) {
                 alert(tr('evform.max_questions', "Ko'pi bilan 10 ta savol qo'shishingiz mumkin"));
                 return;
             }
             addQuestionRow();
         });
-
-        // Returns null (invalid — some question is left blank) or an array
-        // ready to send to the server; empty rows are just skipped.
-        function collectQuestions() {
-            const rows = document.querySelectorAll('.question-row');
-            const questions = [];
-            for (const row of rows) {
-                const label = row.querySelector('input[type="text"]').value.trim();
-                if (!label) continue;
-                questions.push({ label, required: row.querySelector('input[type="checkbox"]').checked });
-            }
-            return questions;
-        }
 
         document.getElementById('eventForm').addEventListener('submit', async (e) => {
             e.preventDefault();
