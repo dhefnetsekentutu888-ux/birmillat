@@ -133,6 +133,60 @@ body { font-family: 'Inter', sans-serif; }
     .date-block { width: 48px; height: 48px; border-radius: 13px; }
     .date-block .day { font-size: 1.1rem; }
 }
+
+/* ---------- Toolbar: search + quick filters ---------- */
+.ev-toolbar { display: flex; flex-direction: column; gap: 0.8rem; margin: -0.8rem 0 1.6rem; }
+.ev-search { position: relative; }
+.ev-search i.fa-magnifying-glass { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--color-text-muted); pointer-events: none; }
+.ev-search input {
+    width: 100%; box-sizing: border-box; padding: 0.85rem 2.6rem 0.85rem 2.6rem; border-radius: 14px;
+    border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-text);
+    font-family: 'Inter', sans-serif; font-size: 0.95rem; box-shadow: var(--shadow-card, none);
+}
+.ev-search input:focus { outline: 2px solid var(--color-accent); outline-offset: 1px; }
+.ev-search .ev-search-clear {
+    position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); display: none;
+    background: none; border: none; color: var(--color-text-muted); cursor: pointer; padding: 0.5rem 0.65rem; border-radius: 8px;
+}
+.ev-search .ev-search-clear:hover { color: var(--color-text); }
+.ev-quick { display: flex; flex-wrap: wrap; gap: 0.5rem 1.2rem; align-items: center; }
+.ev-quick-group { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+.ev-quick-label { font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: var(--color-text-muted); margin-right: 0.15rem; }
+.ev-quick .filter-chip { padding: 0.35rem 0.85rem; font-size: 0.78rem; }
+.ev-count { font-size: 0.82rem; color: var(--color-text-muted); margin: 0 0 1rem; min-height: 1.2em; }
+.ev-clear-btn {
+    font: inherit; font-weight: 700; font-size: 0.85rem; cursor: pointer; margin-top: 0.8rem; padding: 0.55rem 1.1rem;
+    border-radius: 999px; border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-primary);
+}
+.ev-clear-btn:hover { border-color: var(--color-primary); }
+
+/* ---------- Richer cards ---------- */
+.date-card.is-full { opacity: 0.72; }
+.date-time-big { font-family: 'Sora', sans-serif; font-weight: 800; font-size: 1.05rem; color: var(--color-text); }
+.date-card-desc {
+    font-size: 0.84rem; color: var(--color-text-muted); line-height: 1.5; margin: 0 0 0.55rem;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.mode-pill { font-size: 0.68rem; font-weight: 700; padding: 0.15rem 0.55rem; border-radius: 999px; background: var(--color-bg); border: 1px solid var(--color-border); color: var(--color-text-muted); }
+.spots { font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.55rem; border-radius: 999px; }
+.spots.ok { background: var(--color-success-bg); color: var(--color-success); }
+.spots.few { background: var(--color-warning-bg); color: var(--color-warning); }
+.spots.full { background: var(--color-error-bg); color: var(--color-error); }
+.cap-bar { height: 4px; border-radius: 999px; background: var(--color-border); overflow: hidden; margin-top: 0.6rem; max-width: 220px; }
+.cap-bar > span { display: block; height: 100%; background: var(--color-accent); border-radius: 999px; }
+
+/* ---------- Loading skeletons ---------- */
+.skel-card { display: flex; gap: 1.1rem; padding: 1.1rem; margin-bottom: 0.9rem; }
+.skel { background: linear-gradient(90deg, var(--color-border) 25%, var(--color-bg) 50%, var(--color-border) 75%); background-size: 200% 100%; animation: skel-shimmer 1.3s infinite linear; border-radius: 10px; }
+.skel-block { width: 56px; height: 56px; border-radius: 16px; flex-shrink: 0; }
+.skel-lines { flex: 1; display: flex; flex-direction: column; gap: 0.55rem; }
+.skel-line { height: 12px; }
+@keyframes skel-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .skel { animation: none; } }
+
+@media (max-width: 560px) {
+    .ev-quick { flex-direction: column; align-items: flex-start; }
+}
 </style>
 </head>
 <body>
@@ -206,6 +260,29 @@ body { font-family: 'Inter', sans-serif; }
             <button class="filter-chip" data-category="Boshqa" data-i18n="events.cat_other">Boshqa</button>
         </div>
 
+        <div class="ev-toolbar reveal">
+            <div class="ev-search">
+                <i class="fas fa-magnifying-glass"></i>
+                <input type="search" id="evSearch" placeholder="Tadbir nomi, joy yoki mavzu bo'yicha qidirish..." aria-label="Tadbirlarni qidirish" autocomplete="off">
+                <button type="button" class="ev-search-clear" id="evSearchClear" aria-label="Tozalash"><i class="fas fa-xmark"></i></button>
+            </div>
+            <div class="ev-quick" id="quickFilters">
+                <div class="ev-quick-group" id="dateFilters">
+                    <span class="ev-quick-label">Sana</span>
+                    <button class="filter-chip active" data-date="">Hammasi</button>
+                    <button class="filter-chip" data-date="today">Bugun</button>
+                    <button class="filter-chip" data-date="week">7 kun ichida</button>
+                    <button class="filter-chip" data-date="month">30 kun ichida</button>
+                </div>
+                <div class="ev-quick-group" id="modeFilters">
+                    <span class="ev-quick-label">Format</span>
+                    <button class="filter-chip active" data-mode="">Hammasi</button>
+                    <button class="filter-chip" data-mode="online"><i class="fas fa-video"></i> Onlayn</button>
+                    <button class="filter-chip" data-mode="in_person"><i class="fas fa-location-dot"></i> Yuzma-yuz</button>
+                </div>
+            </div>
+        </div>
+        <div class="ev-count" id="evCount" aria-live="polite"></div>
         <div id="upcomingView">
             <div class="timeline reveal" id="timelineList"><p style="color:var(--color-text-muted)" data-i18n="vol.loading">Yuklanmoqda...</p></div>
         </div>
@@ -284,80 +361,138 @@ body { font-family: 'Inter', sans-serif; }
         }
         loadTurnstileScript(); // warm it up for the detail page / RSVP flow
 
-        function renderTimeline(events) {
+        // ---------- State ----------
+        let allUpcoming = [];
+        let allPast = [];
+        let searchText = '';
+        let dateFilter = '';
+        let modeFilter = '';
+
+        function esc(v) {
+            return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+        function plural(n) { return n + ' ta'; }
+
+        function matchesSearch(ev) {
+            if (!searchText) return true;
+            const hay = [ev.title, ev.location, ev.category, ev.description].join(' ').toLowerCase();
+            return hay.indexOf(searchText) !== -1;
+        }
+        function matchesDate(ev) {
+            if (!dateFilter) return true;
+            const d = new Date(ev.event_date);
+            const now = new Date();
+            if (dateFilter === 'today') return isSameDay(d, now);
+            const days = dateFilter === 'week' ? 7 : 30;
+            return d.getTime() - now.getTime() <= days * 24 * 60 * 60 * 1000;
+        }
+        function matchesMode(ev) {
+            if (!modeFilter) return true;
+            return modeFilter === 'online' ? ev.mode === 'online' : ev.mode !== 'online';
+        }
+        function filtersActive() { return !!(searchText || dateFilter || modeFilter); }
+
+        function skeletons(n) {
+            return Array.from({ length: n }, () => `
+                <div class="skel-card card" aria-hidden="true">
+                    <div class="skel skel-block"></div>
+                    <div class="skel-lines"><div class="skel skel-line" style="width:30%"></div><div class="skel skel-line" style="width:75%"></div><div class="skel skel-line" style="width:55%"></div></div>
+                </div>`).join('');
+        }
+
+        function emptyState(msg) {
+            return `<div class="ev-empty"><div style="font-size:2rem;margin-bottom:.6rem;">🗓️</div><div>${msg}</div>
+                ${filtersActive() ? `<button type="button" class="ev-clear-btn" onclick="clearAllFilters()">Filtrlarni tozalash</button>`
+                : `<div style="margin-top:.6rem;"><a href="/events/create">Birinchi bo'lib o'zingiz qo'shing →</a></div>`}</div>`;
+        }
+
+        function spotsInfo(ev) {
+            if (!ev.capacity) return { html: '', pct: 0, full: false };
+            const left = ev.capacity - ev.attendee_count;
+            const pct = Math.min(100, Math.round((ev.attendee_count / ev.capacity) * 100));
+            if (left <= 0) return { html: `<span class="spots full">Joylar tugadi</span>`, pct, full: true };
+            if (left <= 5) return { html: `<span class="spots few">Oxirgi ${left} ta joy</span>`, pct, full: false };
+            return { html: `<span class="spots ok">${left} ta joy bor</span>`, pct, full: false };
+        }
+
+        function renderTimeline() {
             const list = document.getElementById('timelineList');
+            const events = allUpcoming.filter(ev => matchesSearch(ev) && matchesDate(ev) && matchesMode(ev));
+            document.getElementById('evCount').textContent = events.length ? `${events.length} ta tadbir topildi` : '';
             if (events.length === 0) {
-                list.innerHTML = `<div class="ev-empty"><span data-i18n="events.empty">Hozircha bu toifada tadbirlar yo'q.</span> <a href="/events/create" data-i18n="events.empty_cta">Birinchi bo'lib o'zingiz qo'shing →</a></div>`;
-                if (window.BirMillatI18n) window.BirMillatI18n.refresh();
+                list.innerHTML = emptyState(filtersActive() ? "Bu filtrlar bo'yicha tadbir topilmadi." : "Hozircha bu toifada tadbirlar yo'q.");
                 return;
             }
-
             const groups = [];
             let lastKey = null;
             events.forEach(ev => {
                 const d = new Date(ev.event_date);
                 const key = d.toDateString();
-                if (key !== lastKey) {
-                    groups.push({ date: d, items: [] });
-                    lastKey = key;
-                }
+                if (key !== lastKey) { groups.push({ date: d, items: [] }); lastKey = key; }
                 groups[groups.length - 1].items.push(ev);
             });
-
+            const t = (k, fb) => window.BirMillatI18n ? window.BirMillatI18n.t(k, {}, fb) : fb;
             list.innerHTML = groups.map(group => {
                 const d = group.date;
                 const dateLabel = `${d.getDate()} ${UZ_MONTHS_SHORT_FN()[d.getMonth()]}, ${d.getFullYear()}`;
                 const cards = group.items.map(ev => {
-                    const hh = String(d.getHours()).padStart(2, '0');
-                    const mm = String(new Date(ev.event_date).getMinutes()).padStart(2, '0');
                     const evTime = new Date(ev.event_date);
-                    const evHH = String(evTime.getHours()).padStart(2, '0');
-                    const evMM = String(evTime.getMinutes()).padStart(2, '0');
+                    const hhmm = String(evTime.getHours()).padStart(2, '0') + ':' + String(evTime.getMinutes()).padStart(2, '0');
+                    const online = ev.mode === 'online';
+                    const spots = spotsInfo(ev);
+                    const desc = (ev.description || '').replace(/\s+/g, ' ').trim();
                     return `
-                        <a class="date-card card" href="/events/${ev.id}">
+                        <a class="date-card card${spots.full ? ' is-full' : ''}" href="/events/${esc(ev.id)}">
                             <div class="date-block">
                                 <div class="day">${evTime.getDate()}</div>
                                 <div class="time">${UZ_MONTHS_SHORT_FN()[evTime.getMonth()]}</div>
                             </div>
                             <div class="date-card-body">
-                                <div class="date-card-top"><span class="cat-pill">${ev.category || (window.BirMillatI18n ? window.BirMillatI18n.t('events.default_cat', {}, 'Tadbir') : 'Tadbir')}</span></div>
-                                <h3>${ev.title}</h3>
-                                <div class="date-card-meta">
-                                    <span><i class="fas fa-clock"></i> ${evHH}:${evMM}</span>
-                                    <span><i class="fas ${ev.mode === 'online' ? 'fa-video' : 'fa-location-dot'}"></i> ${ev.mode === 'online' ? (window.BirMillatI18n ? window.BirMillatI18n.t('vol.online', {}, 'Onlayn') : 'Onlayn') : (ev.location || (window.BirMillatI18n ? window.BirMillatI18n.t('events.no_location', {}, "Joy ko'rsatilmagan") : "Joy ko'rsatilmagan"))}</span>
-                                    <span><i class="fas fa-users"></i> ${ev.attendee_count}${ev.capacity ? '/' + ev.capacity : ''}</span>
+                                <div class="date-card-top">
+                                    <span class="cat-pill">${esc(ev.category || t('events.default_cat', 'Tadbir'))}</span>
+                                    <span class="mode-pill"><i class="fas ${online ? 'fa-video' : 'fa-location-dot'}"></i> ${online ? t('vol.online', 'Onlayn') : 'Yuzma-yuz'}</span>
+                                    ${spots.html}
                                 </div>
+                                <h3>${esc(ev.title)}</h3>
+                                ${desc ? `<p class="date-card-desc">${esc(desc)}</p>` : ''}
+                                <div class="date-card-meta">
+                                    <span><i class="fas fa-clock"></i> <span class="date-time-big">${hhmm}</span></span>
+                                    ${!online && ev.location ? `<span><i class="fas fa-location-dot"></i> ${esc(ev.location)}</span>` : ''}
+                                    <span><i class="fas fa-users"></i> ${ev.attendee_count}${ev.capacity ? '/' + ev.capacity : ''} ta qatnashchi</span>
+                                </div>
+                                ${ev.capacity ? `<div class="cap-bar" aria-hidden="true"><span style="width:${spots.pct}%"></span></div>` : ''}
                             </div>
                             <i class="fas fa-chevron-right date-card-arrow"></i>
                         </a>`;
                 }).join('');
                 return `
                     <div class="date-group">
-                        <div class="date-group-head"><span class="rel">${relativeDayLabel(d)}</span> · ${dateLabel}</div>
+                        <div class="date-group-head"><span class="rel">${esc(relativeDayLabel(d))}</span> · ${dateLabel}</div>
                         ${cards}
                     </div>`;
             }).join('');
             if (window.BirMillatI18n) window.BirMillatI18n.refresh();
         }
 
-        function renderGallery(events) {
+        function renderGallery() {
             const grid = document.getElementById('galleryGrid');
+            const events = allPast.filter(matchesSearch);
+            document.getElementById('evCount').textContent = events.length ? `${events.length} ta tadbir topildi` : '';
             if (events.length === 0) {
-                grid.innerHTML = `<div class="ev-empty" data-i18n="events.empty_past">Hozircha o'tgan tadbirlar yo'q.</div>`;
-                if (window.BirMillatI18n) window.BirMillatI18n.refresh();
+                grid.innerHTML = emptyState(filtersActive() ? "Qidiruv bo'yicha tadbir topilmadi." : "Hozircha o'tgan tadbirlar yo'q.");
                 return;
             }
             grid.innerHTML = events.map(ev => {
                 const d = new Date(ev.event_date);
                 const dateLabel = `${d.getDate()} ${UZ_MONTHS_SHORT_FN()[d.getMonth()]}`;
                 const media = ev.coverImageUrl
-                    ? `<img src="${ev.coverImageUrl}" alt="" loading="lazy">`
+                    ? `<img src="${esc(ev.coverImageUrl)}" alt="" loading="lazy">`
                     : `<div class="fallback"><i class="fas fa-calendar-check"></i></div>`;
                 return `
-                    <a class="gallery-card card" href="/events/${ev.id}">
+                    <a class="gallery-card card" href="/events/${esc(ev.id)}">
                         <div class="gallery-media">${media}<span class="gallery-date-badge">${dateLabel}</span></div>
                         <div class="gallery-body">
-                            <h3>${ev.title}</h3>
+                            <h3>${esc(ev.title)}</h3>
                             <div class="gallery-foot">
                                 <span><i class="fas fa-users"></i> ${ev.attendee_count}</span>
                                 <span><i class="fas fa-camera"></i> ${ev.teamPostCount} ${window.BirMillatI18n ? window.BirMillatI18n.t('events.photos', {}, 'rasm') : 'rasm'}</span>
@@ -370,30 +505,30 @@ body { font-family: 'Inter', sans-serif; }
 
         async function loadUpcoming(category) {
             const list = document.getElementById('timelineList');
-            list.innerHTML = `<p style="color:var(--color-text-muted)" data-i18n="vol.loading">Yuklanmoqda...</p>`; if (window.BirMillatI18n) window.BirMillatI18n.refresh();
+            list.innerHTML = skeletons(3);
+            document.getElementById('evCount').textContent = '';
             try {
                 const url = category ? `/api/events?category=${encodeURIComponent(category)}` : '/api/events';
                 const res = await fetch(url);
                 if (!res.ok) { list.innerHTML = ''; return; }
-                const events = await res.json();
-                renderTimeline(events);
+                allUpcoming = await res.json();
+                renderTimeline();
             } catch (e) {
                 console.error('Failed to load upcoming events:', e);
-                list.innerHTML = `<div class="ev-empty" data-i18n="vol.load_error">Yuklab bo'lmadi. Sahifani qaytadan yuklang.</div>`; if (window.BirMillatI18n) window.BirMillatI18n.refresh();
+                list.innerHTML = `<div class="ev-empty">Yuklab bo'lmadi. Sahifani qaytadan yuklang.</div>`;
             }
         }
-
         async function loadPast(category) {
             const grid = document.getElementById('galleryGrid');
-            grid.innerHTML = `<p style="color:var(--color-text-muted)" data-i18n="vol.loading">Yuklanmoqda...</p>`; if (window.BirMillatI18n) window.BirMillatI18n.refresh();
+            grid.innerHTML = skeletons(2);
+            document.getElementById('evCount').textContent = '';
             try {
                 const url = category ? `/api/events/past?category=${encodeURIComponent(category)}` : '/api/events/past';
                 const res = await fetch(url);
                 if (!res.ok) { grid.innerHTML = ''; return; }
                 const events = await res.json();
-
                 // Cover image + photo count come from each event's team gallery.
-                const withCovers = await Promise.all(events.map(async ev => {
+                allPast = await Promise.all(events.map(async ev => {
                     try {
                         const postsRes = await fetch(`/api/events/${ev.id}/team-posts`);
                         const posts = postsRes.ok ? await postsRes.json() : [];
@@ -403,27 +538,68 @@ body { font-family: 'Inter', sans-serif; }
                         return { ...ev, coverImageUrl: null, teamPostCount: 0 };
                     }
                 }));
-                renderGallery(withCovers);
+                renderGallery();
             } catch (e) {
                 console.error('Failed to load past events:', e);
-                grid.innerHTML = `<div class="ev-empty" data-i18n="vol.load_error">Yuklab bo'lmadi. Sahifani qaytadan yuklang.</div>`; if (window.BirMillatI18n) window.BirMillatI18n.refresh();
+                grid.innerHTML = `<div class="ev-empty">Yuklab bo'lmadi. Sahifani qaytadan yuklang.</div>`;
             }
         }
-
         function loadCurrentTab() {
             if (activeTab === 'upcoming') loadUpcoming(activeCategory);
             else loadPast(activeCategory);
         }
+        function rerender() { if (activeTab === 'upcoming') renderTimeline(); else renderGallery(); }
 
+        function clearAllFilters() {
+            searchText = ''; dateFilter = ''; modeFilter = '';
+            const input = document.getElementById('evSearch');
+            input.value = '';
+            document.getElementById('evSearchClear').style.display = 'none';
+            document.querySelectorAll('#dateFilters .filter-chip, #modeFilters .filter-chip').forEach(c => {
+                c.classList.toggle('active', !c.getAttribute('data-date') && !c.getAttribute('data-mode'));
+            });
+            rerender();
+        }
+
+        // Category chips reload from the server (as before); search, date and
+        // format filter the already-loaded list instantly.
         document.getElementById('filterBar').addEventListener('click', (e) => {
             const chip = e.target.closest('.filter-chip');
             if (!chip) return;
-            document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('#filterBar .filter-chip').forEach(c => c.classList.remove('active'));
             chip.classList.add('active');
             activeCategory = chip.getAttribute('data-category');
             loadCurrentTab();
         });
-
+        document.getElementById('dateFilters').addEventListener('click', (e) => {
+            const chip = e.target.closest('.filter-chip');
+            if (!chip) return;
+            document.querySelectorAll('#dateFilters .filter-chip').forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+            dateFilter = chip.getAttribute('data-date') || '';
+            rerender();
+        });
+        document.getElementById('modeFilters').addEventListener('click', (e) => {
+            const chip = e.target.closest('.filter-chip');
+            if (!chip) return;
+            document.querySelectorAll('#modeFilters .filter-chip').forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+            modeFilter = chip.getAttribute('data-mode') || '';
+            rerender();
+        });
+        let searchTimer = null;
+        document.getElementById('evSearch').addEventListener('input', (e) => {
+            document.getElementById('evSearchClear').style.display = e.target.value ? 'block' : 'none';
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(() => { searchText = e.target.value.trim().toLowerCase(); rerender(); }, 180);
+        });
+        document.getElementById('evSearchClear').addEventListener('click', () => {
+            const input = document.getElementById('evSearch');
+            input.value = ''; searchText = '';
+            document.getElementById('evSearchClear').style.display = 'none';
+            input.focus();
+            rerender();
+        });
         document.querySelectorAll('.ev-tab').forEach(tabBtn => {
             tabBtn.addEventListener('click', () => {
                 document.querySelectorAll('.ev-tab').forEach(t => t.classList.remove('active'));
@@ -431,10 +607,11 @@ body { font-family: 'Inter', sans-serif; }
                 activeTab = tabBtn.getAttribute('data-tab');
                 document.getElementById('upcomingView').style.display = activeTab === 'upcoming' ? 'block' : 'none';
                 document.getElementById('pastView').style.display = activeTab === 'past' ? 'block' : 'none';
+                // Date and format only make sense for upcoming events.
+                document.getElementById('quickFilters').style.display = activeTab === 'upcoming' ? 'flex' : 'none';
                 loadCurrentTab();
             });
         });
-
         (async () => {
             await loadMe();
             loadUpcoming('');
