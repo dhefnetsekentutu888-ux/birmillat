@@ -481,3 +481,14 @@ window.formatUzDate = function (ts, opts) {
         mo.observe(document.body, { childList: true, subtree: true });
     });
 })();
+
+// Cookie consent banner (cookie-consent.js). theme.js is already on every page,
+// so loading it from here puts the banner everywhere without touching each page.
+(function () {
+    if (window.BMConsent || document.querySelector('script[data-bm-consent]')) return;
+    var s = document.createElement('script');
+    s.src = '/cookie-consent.js';
+    s.defer = true;
+    s.setAttribute('data-bm-consent', '1');
+    (document.head || document.documentElement).appendChild(s);
+})();
