@@ -285,6 +285,24 @@ body { font-family: 'Inter', sans-serif; }
     .ev-hero-card, .section-card { padding: 1.3rem; border-radius: 18px; }
     .rsvp-choice-row { flex-direction: column; }
 }
+
+/* registration form: textarea, dropdown, radio/checkbox option rows */
+.rsvp-q-field textarea, .rsvp-q-field select {
+    width: 100%; box-sizing: border-box; padding: 0.7rem 0.85rem; border-radius: var(--radius-sm, 10px);
+    border: 1px solid var(--color-border); font-family: 'Inter', sans-serif; font-size: 0.92rem;
+    background: var(--color-bg); color: var(--color-text);
+}
+.rsvp-q-field textarea { min-height: 84px; resize: vertical; }
+.rsvp-q-field textarea:focus, .rsvp-q-field select:focus { outline: 2px solid var(--color-accent); outline-offset: 1px; }
+.rsvp-q-field .rsvp-opts { display: flex; flex-direction: column; gap: 0.45rem; }
+.rsvp-q-field .rsvp-opt {
+    display: flex; align-items: center; gap: 0.6rem; margin: 0; padding: 0.6rem 0.8rem; cursor: pointer;
+    border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-bg);
+    font-weight: 500; font-size: 0.9rem;
+}
+.rsvp-q-field .rsvp-opt:hover { border-color: var(--color-primary); }
+.rsvp-q-field .rsvp-opt input { width: auto; margin: 0; accent-color: var(--color-primary-solid, #2D1B69); }
+.export-answers-btn { width: 100%; margin-top: 0.6rem; }
 </style>
 </head>
 <body>
@@ -565,6 +583,8 @@ body { font-family: 'Inter', sans-serif; }
                     ${scanBtn}
                     <div class="section-title"><i class="fas fa-users"></i> Ro'yxatdan o'tganlar (${attendees.length})</div>
                     <div class="coord-list" style="max-height:280px; overflow-y:auto;">${attendeeRows}</div>
+                    ${attendees.some(a => a.answers) ? `
+                    <button class="btn btn-outline btn-zoom export-answers-btn" type="button" onclick="downloadAnswersCsv()"><i class="fas fa-file-csv"></i> Javoblarni yuklab olish (CSV)</button>` : ''}
                     ${!isPastEvent && attendees.length > 0 ? `
                     <button class="btn btn-outline btn-zoom" id="remindAllBtn" style="width:100%; margin-top:0.8rem;"><i class="fas fa-bell"></i> Hammaga eslatma yuborish</button>
                     <div class="submit-status" id="remindStatus"></div>` : ''}
@@ -872,12 +892,53 @@ body { font-family: 'Inter', sans-serif; }
         function renderQuestionsStep() {
             const container = document.getElementById('rsvpQuestionsForm');
             const questions = currentEvent.registrationQuestions || [];
-            container.innerHTML = questions.map((q, i) => `
-                <div class="rsvp-q-field">
-                    <label for="rsvpQ${i}">${escapeHtml(q.label)}${q.required ? ' <span class="required-star">*</span>' : ''}</label>
-                    <input type="text" id="rsvpQ${i}" data-qid="${q.id}" maxlength="300" ${q.required ? 'required' : ''}>
-                </div>
-            `).join('');
+            container.innerHTML = questions.map((q, i) => {
+                const type = q.type || 'text';
+                const star = q.required ? ' <span class="required-star">*</span>' : '';
+                const opts = q.options || [];
+                let field;
+                if (type === 'paragraph') {
+                    field = `<textarea id="rsvpQ${i}" data-qid="${q.id}" data-type="paragraph" maxlength="1000" ${q.required ? 'required' : ''}></textarea>`;
+                } else if (type === 'dropdown') {
+                    field = `<select id="rsvpQ${i}" data-qid="${q.id}" data-type="dropdown" ${q.required ? 'required' : ''}>
+                        <option value="">Tanlang...</option>
+                        ${opts.map(o => `<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join('')}
+                    </select>`;
+                } else if (type === 'choice' || type === 'checkbox') {
+                    const kind = type === 'choice' ? 'radio' : 'checkbox';
+                    field = `<div class="rsvp-opts" data-qid="${q.id}" data-type="${type}" ${q.required ? 'data-required="1"' : ''}>
+                        ${opts.map(o => `<label class="rsvp-opt"><input type="${kind}" name="rsvpQ${i}" value="${escapeHtml(o)}"> <span>${escapeHtml(o)}</span></label>`).join('')}
+                    </div>`;
+                } else {
+                    field = `<input type="text" id="rsvpQ${i}" data-qid="${q.id}" data-type="text" maxlength="300" ${q.required ? 'required' : ''}>`;
+                }
+                const labelTag = (type === 'choice' || type === 'checkbox')
+                    ? `<label>${escapeHtml(q.label)}${star}</label>`
+                    : `<label for="rsvpQ${i}">${escapeHtml(q.label)}${star}</label>`;
+                return `<div class="rsvp-q-field">${labelTag}${field}</div>`;
+            }).join('');
+        }
+
+        // Organizer: download everyone's answers as a spreadsheet-friendly CSV
+        // (UTF-8 with BOM so Excel shows Uzbek letters correctly).
+        function downloadAnswersCsv() {
+            const ev = currentEvent;
+            if (!ev) return;
+            const questions = ev.registrationQuestions || [];
+            const cell = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+            const rows = [['Ism', 'Username'].concat(questions.map(q => q.label))];
+            (ev.attendees || []).forEach(a => {
+                rows.push([a.name || '', a.username].concat(questions.map(q => (a.answers && a.answers[q.id]) || '')));
+            });
+            const csv = '\uFEFF' + rows.map(r => r.map(cell).join(',')).join('\r\n');
+            const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'javoblar-' + ev.id + '.csv';
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
         }
 
         function goToCaptchaStep() {
@@ -890,17 +951,29 @@ body { font-family: 'Inter', sans-serif; }
         }
 
         document.getElementById('rsvpQuestionsContinueBtn').addEventListener('click', () => {
-            const inputs = document.querySelectorAll('#rsvpQuestionsForm input');
+            const statusEl = document.getElementById('rsvpQuestionsStatus');
             const answers = {};
-            for (const input of inputs) {
-                const val = input.value.trim();
-                if (input.hasAttribute('required') && !val) {
-                    document.getElementById('rsvpQuestionsStatus').textContent = "Iltimos, barcha majburiy savollarga javob bering";
-                    document.getElementById('rsvpQuestionsStatus').className = 'rsvp-modal-status error';
-                    input.focus();
+            const fields = document.querySelectorAll('#rsvpQuestionsForm [data-qid]');
+            for (const field of fields) {
+                const qid = field.getAttribute('data-qid');
+                const type = field.getAttribute('data-type');
+                let val;
+                if (type === 'choice' || type === 'checkbox') {
+                    const picked = Array.from(field.querySelectorAll('input:checked')).map(i => i.value);
+                    val = type === 'checkbox' ? picked : (picked[0] || '');
+                } else {
+                    val = field.value.trim();
+                }
+                const empty = Array.isArray(val) ? val.length === 0 : !val;
+                const isRequired = field.hasAttribute('required') || field.getAttribute('data-required') === '1';
+                if (isRequired && empty) {
+                    statusEl.textContent = "Iltimos, barcha majburiy savollarga javob bering";
+                    statusEl.className = 'rsvp-modal-status error';
+                    const focusEl = field.matches('input,textarea,select') ? field : field.querySelector('input');
+                    if (focusEl) focusEl.focus();
                     return;
                 }
-                if (val) answers[input.getAttribute('data-qid')] = val;
+                if (!empty) answers[qid] = val;
             }
             window.rsvpAnswers = answers;
             goToCaptchaStep();
