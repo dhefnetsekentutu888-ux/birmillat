@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<script src="/theme.js"></script>
+<meta charset="UTF-8">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/favicon.png">
+<meta name="theme-color" content="#2D1B69">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BirMillater — BirMillat</title>
+<meta name="description" content="BirMillat jamoasi a'zosi.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="/style.css">
+<script src="/interactions.js" defer></script>
+<style>
+.bd-wrap { max-width: 960px; margin: 0 auto; padding: 6.2rem 1.25rem 4.5rem; position: relative; }
+.bd-arc { position: absolute; border-radius: 50%; border: 26px solid transparent; pointer-events: none; z-index: 0; }
+.bd-arc.a1 { width: 360px; height: 360px; top: 20px; right: -170px; border-top-color: var(--color-accent); border-right-color: var(--color-accent); transform: rotate(12deg); opacity: .85; }
+.bd-arc.a2 { width: 280px; height: 280px; top: 60px; right: -130px; border-top-color: var(--color-primary-solid, #2D1B69); border-right-color: var(--color-primary-solid, #2D1B69); transform: rotate(12deg); opacity: .8; }
+.bd-back { position: relative; z-index: 1; display: inline-flex; align-items: center; gap: .5rem; color: var(--color-text-muted); text-decoration: none; font-weight: 600; font-size: .9rem; margin-bottom: 1.4rem; }
+.bd-back:hover { color: var(--color-primary); }
+.bd-head { position: relative; z-index: 1; display: flex; gap: 1.8rem; align-items: center; }
+.bd-photo { position: relative; flex: 0 0 250px; aspect-ratio: 4 / 5; border-radius: 28px; overflow: hidden; background: linear-gradient(145deg, var(--color-primary-light, #4A2F9E), var(--color-accent)); box-shadow: 0 18px 44px rgba(45, 27, 105, .22); }
+.bd-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.bd-initials { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: 'Sora', sans-serif; font-weight: 800; font-size: 4rem; color: rgba(255,255,255,.92); }
+.bd-id h1 { font-family: 'Sora', sans-serif; font-weight: 800; font-size: clamp(1.8rem, 5vw, 2.8rem); line-height: 1.1; margin: 0 0 .6rem; color: var(--color-text); letter-spacing: -.5px; }
+.bd-role { font-family: 'Sora', sans-serif; font-weight: 700; font-size: clamp(1.05rem, 2.6vw, 1.4rem); color: var(--color-accent); margin: 0 0 .7rem; }
+.bd-region { display: inline-flex; align-items: center; gap: .5rem; font-size: 1rem; color: var(--color-text-muted); margin: 0; }
+.bd-region i { color: var(--color-primary); }
+.bd-sections { position: relative; z-index: 1; margin-top: 2.4rem; display: grid; gap: 1.2rem; }
+.bd-section { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 22px; padding: 1.4rem 1.5rem; }
+.bd-section h2 { display: flex; align-items: center; gap: .65rem; font-family: 'Sora', sans-serif; font-size: 1.15rem; margin: 0 0 .7rem; color: var(--color-primary); }
+.bd-section h2 i { color: var(--color-accent); }
+.bd-section p { margin: 0; line-height: 1.75; color: var(--color-text); white-space: pre-line; font-size: 1rem; }
+.bd-cta { position: relative; z-index: 1; margin-top: 2.2rem; padding: 1.8rem 1.5rem 1.5rem; border-radius: 28px; text-align: center; background: linear-gradient(135deg, var(--color-primary-solid, #2D1B69), var(--color-primary-light, #4A2F9E)); box-shadow: 0 18px 44px rgba(45, 27, 105, .25); }
+.bd-write { display: flex; align-items: center; justify-content: center; gap: .9rem; text-decoration: none; background: var(--color-accent); color: #fff; font-family: 'Sora', sans-serif; font-weight: 800; font-size: clamp(1.35rem, 4.5vw, 2rem); padding: 1.1rem 1.4rem; border-radius: 20px; transition: transform .2s ease, box-shadow .2s ease; box-shadow: 0 10px 28px rgba(255, 107, 91, .4); }
+.bd-write:hover, .bd-write:focus-visible { transform: translateY(-3px); box-shadow: 0 16px 34px rgba(255, 107, 91, .5); }
+.bd-write:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+.bd-write-note { margin: .8rem 0 0; color: #D9D2EE; font-size: .88rem; }
+.bd-socials { display: flex; justify-content: center; gap: .8rem; margin-top: 1.3rem; flex-wrap: wrap; }
+.bd-social { width: 52px; height: 52px; border-radius: 50%; display: flex; align-items: center; justify-content: center; text-decoration: none; background: rgba(255,255,255,.14); color: #fff; font-size: 1.3rem; border: 1px solid rgba(255,255,255,.25); transition: transform .2s ease, background .2s ease; }
+.bd-social:hover, .bd-social:focus-visible { transform: translateY(-3px); background: rgba(255,255,255,.28); }
+.bd-social:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.bd-state { position: relative; z-index: 1; text-align: center; padding: 4rem 1rem; color: var(--color-text-muted); }
+.bd-state a { color: var(--color-primary); font-weight: 700; }
+.bd-skel { border-radius: 28px; height: 320px; background: linear-gradient(90deg, var(--color-border) 25%, var(--color-bg) 50%, var(--color-border) 75%); background-size: 200% 100%; animation: bd-shimmer 1.3s infinite linear; }
+@keyframes bd-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .bd-skel { animation: none; } .bd-write, .bd-social { transition: none; } }
+@media (max-width: 620px) {
+    .bd-head { flex-direction: column; align-items: flex-start; gap: 1.2rem; }
+    .bd-photo { flex-basis: auto; width: 100%; max-width: 300px; }
+    .bd-wrap { padding-top: 5.6rem; }
+}
+</style>
+</head>
+<body>
+<nav class="navbar">
+        <a href="/home" class="logo"><svg width="160" height="45" viewBox="0 0 320 90" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+      <g transform="translate(45,45)">
+        <g transform="rotate(-18)"><ellipse cx="-10" cy="0" rx="20" ry="36" fill="none" stroke="#2D1B69" stroke-width="10"/></g>
+        <g transform="rotate(18)"><ellipse cx="10" cy="0" rx="20" ry="36" fill="none" stroke="#FF6B5B" stroke-width="10"/></g>
+        <g transform="rotate(-18)"><path d="M -30 0 A 20 36 0 0 1 11 0" fill="none" stroke="#2D1B69" stroke-width="10" stroke-linecap="round"/></g>
+      </g>
+      <text x="95" y="53" font-size="34" font-weight="700" fill="#2D1B69" font-family="Sora, -apple-system, sans-serif">Bir<tspan fill="#FF6B5B">Millat</tspan></text>
+    </svg></a>
+        <button class="nav-toggle" id="navToggle" aria-label="Menyu"><i class="fas fa-bars"></i></button>
+        <div class="nav-links" id="navLinks">
+            <button class="sidebar-close" id="sidebarClose" aria-label="Yopish"><i class="fas fa-xmark"></i></button>
+            <a href="/home"><i class="fas fa-house"></i> <span data-i18n="nav.home">Bosh sahifa</span></a>
+            <a href="/recommend"><i class="fas fa-wand-magic-sparkles"></i> <span data-i18n="nav.recommend">Tavsiyalar</span></a>
+            <a href="/events"><i class="fas fa-calendar-days"></i> <span data-i18n="nav.events">Tadbirlar</span></a>
+            <a href="/communities"><i class="fas fa-people-group"></i> <span data-i18n="nav.communities">Jamoalar</span></a>
+            <a href="/volunteer"><i class="fas fa-hand-holding-heart"></i> <span data-i18n="nav.volunteer">Volontyorlik</span></a>
+            <a href="/birmillaters" class="active"><i class="fas fa-users"></i> <span>BirMillaters</span></a>
+            <a href="/articles"><i class="fas fa-newspaper"></i> <span data-i18n="nav.articles">Maqolalar</span></a>
+            <a href="/search"><i class="fas fa-magnifying-glass"></i> <span data-i18n="nav.search">Qidiruv</span></a>
+            <a href="/messages"><i class="fas fa-comment-dots"></i> <span data-i18n="nav.messages">Xabarlar</span></a>
+            <a href="/profile"><i class="fas fa-user"></i> <span data-i18n="nav.profile">Profil</span></a>
+            <a href="/logout"><i class="fas fa-right-from-bracket"></i> <span data-i18n="nav.logout">Chiqish</span></a>
+        </div>
+        <a class="user-badge" id="userBadge" href="/profile"><img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ...</a>
+    <div class="notif-bell-wrap">
+        <button class="notif-bell" id="notifBell" aria-label="Bildirishnomalar"><i class="fas fa-bell"></i><span class="notif-dot" id="notifDot"></span></button>
+        <div class="notif-panel" id="notifPanel">
+            <div class="notif-panel-header" data-i18n="nav.notifications">Bildirishnomalar</div>
+            <div id="notifList"></div>
+        </div>
+    </div>
+        <div class="lang-switcher">
+            <button class="lang-switcher-btn" type="button" aria-label="Tilni tanlang"><i class="fas fa-globe lang-globe"></i><span class="lang-switcher-label">UZ</span><i class="fas fa-chevron-down lang-chev"></i></button>
+            <div class="lang-switcher-panel">
+                <button class="lang-option" data-lang="uz" type="button">O'zbek</button>
+                <button class="lang-option" data-lang="qq" type="button">Qaraqalpaqsha</button>
+                <button class="lang-option" data-lang="ru" type="button">Русский</button>
+                <button class="lang-option" data-lang="en" type="button">English</button>
+            </div>
+        </div>
+        <button class="theme-toggle" id="themeToggle" aria-label="Mavzuni almashtirish"><i class="fas fa-moon"></i></button>
+</nav>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+<main class="bd-wrap">
+    <div class="bd-arc a1"></div><div class="bd-arc a2"></div>
+    <a class="bd-back" href="/birmillaters"><i class="fas fa-arrow-left"></i> BirMillaters</a>
+    <div id="bdRoot"><div class="bd-skel"></div></div>
+</main>
+<script>
+
+        function esc(v) {
+            return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+        function initials(name) {
+            return String(name || '?').trim().split(/\s+/).slice(0, 2).map(w => w.charAt(0).toUpperCase()).join('') || '?';
+        }
+        // Works for guests too: this page is public.
+        let currentUser = null;
+        async function loadMe() {
+            try {
+                const res = await fetch('/api/me');
+                if (!res.ok) {
+                    const badge = document.getElementById('userBadge');
+                    if (badge) badge.outerHTML = '<a href="/register" class="btn btn-primary btn-zoom" style="padding:0.45rem 1.1rem; font-size:0.85rem;">Ro\'yxatdan o\'tish</a>';
+                    const bell = document.querySelector('.notif-bell-wrap');
+                    if (bell) bell.style.display = 'none';
+                    return;
+                }
+                currentUser = await res.json();
+                document.getElementById('userBadge').innerHTML = '<img src="/icons/icon-user.svg" alt="" style="width:12px; height:12px; vertical-align:-1px;"> ' + esc(currentUser.username);
+            } catch (e) { console.error(e); }
+        }
+
+        const username = decodeURIComponent(location.pathname.replace(/\/+$/, '').split('/').pop() || '');
+
+        function notFound() {
+            document.title = 'Topilmadi — BirMillat';
+            document.getElementById('bdRoot').innerHTML =
+                `<div class="bd-state"><div style="font-size:2.4rem;margin-bottom:.6rem;">🔎</div>
+                 <p>Bu BirMillater topilmadi yoki sahifasi yashirilgan.</p>
+                 <p><a href="/birmillaters">Barcha BirMillaterlarni ko'rish</a></p></div>`;
+        }
+
+        function render(b) {
+            const isMe = currentUser && currentUser.username && currentUser.username.toLowerCase() === b.username.toLowerCase();
+            document.title = `${b.name}${b.title ? ' — ' + b.title : ''} | BirMillat`;
+            const meta = document.querySelector('meta[name="description"]');
+            if (meta) meta.setAttribute('content', `${b.name}${b.title ? ', ' + b.title : ''}${b.region ? ' (' + b.region + ')' : ''} — BirMillat jamoasi a'zosi. BirMillat'da unga yozing.`);
+
+            const socials = [
+                ['linkedin', 'fa-brands fa-linkedin-in', 'LinkedIn'],
+                ['instagram', 'fa-brands fa-instagram', 'Instagram'],
+                ['telegram', 'fa-brands fa-telegram', 'Telegram']
+            ].filter(s => b[s[0]]).map(s =>
+                `<a class="bd-social" href="${esc(b[s[0]])}" target="_blank" rel="noopener noreferrer" aria-label="${s[2]}"><i class="${s[1]}"></i></a>`
+            ).join('');
+
+            const about = b.about ? `<section class="bd-section"><h2><i class="fas fa-user"></i> Men haqimda</h2><p>${esc(b.about)}</p></section>` : '';
+            const way = b.myWay ? `<section class="bd-section"><h2><i class="fas fa-star"></i> Mening yo'lim</h2><p>${esc(b.myWay)}</p></section>` : '';
+
+            const cta = isMe ? '' : `
+                <a class="bd-write" href="/messages?with=${encodeURIComponent(b.username)}">
+                    <i class="fas fa-comment-dots"></i> BirMillat'da yozing <i class="fas fa-arrow-right"></i>
+                </a>
+                <p class="bd-write-note">${esc(b.name)} bilan BirMillat ichida to'g'ridan-to'g'ri suhbat boshlanadi</p>`;
+            const ctaBox = (cta || socials) ? `<section class="bd-cta">${cta}${socials ? `<div class="bd-socials">${socials}</div>` : ''}</section>` : '';
+
+            document.getElementById('bdRoot').innerHTML = `
+                <section class="bd-head">
+                    <div class="bd-photo">
+                        <div class="bd-initials" aria-hidden="true">${esc(initials(b.name))}</div>
+                        ${b.photo ? `<img src="${esc(b.photo)}" alt="${esc(b.name)}" onerror="this.remove()">` : ''}
+                    </div>
+                    <div class="bd-id">
+                        <h1>${esc(b.name)}</h1>
+                        ${b.title ? `<p class="bd-role">${esc(b.title)}</p>` : ''}
+                        ${b.region ? `<p class="bd-region"><i class="fas fa-location-dot"></i> ${esc(b.region)}</p>` : ''}
+                    </div>
+                </section>
+                ${(about || way) ? `<div class="bd-sections">${about}${way}</div>` : ''}
+                ${ctaBox}`;
+        }
+
+        (async () => {
+            await loadMe();
+            try {
+                const res = await fetch('/api/birmillaters/' + encodeURIComponent(username));
+                if (!res.ok) { notFound(); return; }
+                render(await res.json());
+            } catch (e) { console.error(e); notFound(); }
+        })();
+    </script>
+</body>
+</html>
