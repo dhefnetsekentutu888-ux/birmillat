@@ -1,17 +1,29 @@
 User-agent: *
 Allow: /
-# Private, account-only or action URLs: nothing useful to index
-Disallow: /api/
-Disallow: /admin/
-Disallow: /checkin/
+
+# Pages that need a login (they just redirect to /login) and private profiles
+Disallow: /home
+Disallow: /recommend
+Disallow: /communities
+Disallow: /search
 Disallow: /messages
 Disallow: /profile
+Disallow: /u/
+
+# Forms and one-time action links
+Disallow: /events/create
+Disallow: /events/*/edit
+Disallow: /events/*/scan
+Disallow: /articles/create
+Disallow: /volunteer/create
+Disallow: /checkin/
+Disallow: /admin/
 Disallow: /logout
 Disallow: /verify
 Disallow: /forgot-password
-Disallow: /events/create
-Disallow: /articles/create
-Disallow: /volunteer/create
+
+# /api/ is deliberately NOT blocked: public pages (events, BirMillaters, articles)
+# load their content from it, and Google needs it to see the page content.
 
 Sitemap: https://birmillat.uz/sitemap.xml
 
