@@ -203,6 +203,28 @@ async function initDb() {
         )
     `);
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_support_admin_copy ON support_admin_copies (admin_chat_id, admin_message_id)`);
+
+    // BirMillaters — the volunteers / regional coordinators shown on /birmillaters.
+    // Each one is a real site account (username), so "BirMillat'da yozing" can open
+    // a direct chat. Everything here is managed from the admin Telegram bot (/bm).
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS birmillaters (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            display_name TEXT,
+            title TEXT,
+            region TEXT,
+            about TEXT,
+            my_way TEXT,
+            instagram TEXT,
+            linkedin TEXT,
+            telegram TEXT,
+            photo_url TEXT,
+            sort_order INTEGER NOT NULL DEFAULT 0,
+            is_active INTEGER NOT NULL DEFAULT 1,
+            created_at INTEGER NOT NULL
+        )
+    `);
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_support_chat ON support_messages (telegram_chat_id)`);
 
     // Profile achievements/certificates — title + image always shown, description/date optional and revealed on click
@@ -2971,6 +2993,267 @@ app.get('/robots.txt', (req, res) => {
     res.type('text/plain').sendFile(path.join(__dirname, 'robots.txt'));
 });
 
+// ---------- BirMillaters (volunteers / coordinators) ----------
+const BM_FIELD_LIMITS = { title: 60, region: 60, name: 60, about: 1200, way: 1200 };
+
+// Accepts "@name", "name" or a full link and returns a clean https link, or
+// null if it is not a link to the expected site. "-" is handled by the caller.
+function normalizeBirmillaterSocial(kind, raw) {
+    let v = String(raw || '').trim();
+    if (!v) return null;
+    const hosts = {
+        instagram: ['instagram.com', 'www.instagram.com'],
+        linkedin: ['linkedin.com', 'www.linkedin.com', 'uz.linkedin.com'],
+        telegram: ['t.me', 'telegram.me']
+    }[kind];
+    if (!/^https?:\/\//i.test(v)) {
+        v = v.replace(/^@/, '').replace(/^\/+/, '');
+        if (!v || !/^[\w.\-\/]+$/.test(v)) return null;
+        if (kind === 'instagram') v = 'https://instagram.com/' + v;
+        else if (kind === 'telegram') v = 'https://t.me/' + v;
+        else v = 'https://www.linkedin.com/' + (v.startsWith('in/') ? v : 'in/' + v);
+    }
+    try {
+        const u = new URL(v);
+        if (u.protocol !== 'https:' && u.protocol !== 'http:') return null;
+        if (!hosts.includes(u.hostname.toLowerCase())) return null;
+        u.protocol = 'https:';
+        return u.toString();
+    } catch (e) {
+        return null;
+    }
+}
+
+const BM_SELECT = `
+    SELECT b.*, u.name AS user_name, u.photo_url AS user_photo_url
+    FROM birmillaters b
+    LEFT JOIN users u ON u.username = b.username`;
+
+function birmillaterToPublic(row, full) {
+    const out = {
+        username: row.username,
+        name: row.display_name || row.user_name || row.username,
+        title: row.title || '',
+        region: row.region || '',
+        photo: row.photo_url || row.user_photo_url || null
+    };
+    if (full) {
+        out.about = row.about || '';
+        out.myWay = row.my_way || '';
+        out.instagram = row.instagram || '';
+        out.linkedin = row.linkedin || '';
+        out.telegram = row.telegram || '';
+    }
+    return out;
+}
+
+async function getActiveBirmillaters() {
+    const r = await db.execute(`${BM_SELECT} WHERE b.is_active = 1 ORDER BY b.sort_order ASC, b.id ASC`);
+    return r.rows;
+}
+async function getBirmillaterRow(username) {
+    const r = await db.execute({ sql: `${BM_SELECT} WHERE b.username = ? COLLATE NOCASE LIMIT 1`, args: [username] });
+    return r.rows[0] || null;
+}
+
+app.get('/birmillaters', (req, res) => {
+    res.sendFile(path.join(__dirname, 'birmillaters.html'));
+});
+app.get('/birmillaters/:username', (req, res) => {
+    res.sendFile(path.join(__dirname, 'birmillater-detail.html'));
+});
+app.get('/api/birmillaters', async (req, res) => {
+    try {
+        const rows = await getActiveBirmillaters();
+        res.set('Cache-Control', 'public, max-age=60');
+        res.json(rows.map(r => birmillaterToPublic(r, false)));
+    } catch (err) {
+        console.error('GET /api/birmillaters error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+app.get('/api/birmillaters/:username', async (req, res) => {
+    try {
+        const row = await getBirmillaterRow(req.params.username);
+        if (!row || !row.is_active) return res.status(404).json({ error: 'Topilmadi' });
+        res.set('Cache-Control', 'public, max-age=60');
+        res.json(birmillaterToPublic(row, true));
+    } catch (err) {
+        console.error('GET /api/birmillaters/:username error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// ---- Admin bot: /bm commands ----
+const adminBmPhotoDrafts = new Map(); // admin chat id -> username waiting for a photo
+
+function birmillaterAdminHelp() {
+    return `<b>BirMillaters boshqaruvi</b>\n\n` +
+        `/bm_add @username — saytdagi foydalanuvchini BirMillater qilib qo'shish\n` +
+        `/bm_photo @username — rasm o'rnatish (keyin rasm yuboring, yoki rasmga shu buyruqni izoh qilib yozing)\n` +
+        `/bm_name @username Ism Familiya\n` +
+        `/bm_title @username Hududiy koordinator\n` +
+        `/bm_region @username Jizzax viloyati\n` +
+        `/bm_about @username "Men haqimda" matni\n` +
+        `/bm_way @username "Mening yo'lim" matni\n` +
+        `/bm_instagram @username @nom yoki havola\n` +
+        `/bm_linkedin @username havola\n` +
+        `/bm_telegram @username @nom\n` +
+        `/bm_order @username 1 — tartib raqami (kichigi birinchi)\n` +
+        `/bm_hide @username — vaqtincha yashirish, /bm_show — qaytarish\n` +
+        `/bm_remove @username — ro'yxatdan butunlay olib tashlash\n` +
+        `/birmillaters — hammasini ko'rish\n\n` +
+        `Maydonni tozalash uchun qiymat o'rniga <code>-</code> yozing.`;
+}
+
+async function handleBirmillaterAdminMessage(chatId, message) {
+    const text = (message.text || message.caption || '').trim();
+    const send = (t) => sendTelegramMessageTo(chatId, t);
+    const esc = escapeHtmlForTelegram;
+
+    // A photo sent after "/bm_photo @username" (and no new command in the caption).
+    if (message.photo && adminBmPhotoDrafts.has(chatId) && !text.startsWith('/')) {
+        const username = adminBmPhotoDrafts.get(chatId);
+        adminBmPhotoDrafts.delete(chatId);
+        await saveBirmillaterPhoto(chatId, username, message.photo);
+        return true;
+    }
+
+    if (/^\/birmillaters(@\w+)?$/i.test(text) || /^\/bm(@\w+)?$/i.test(text)) {
+        const r = await db.execute(`${BM_SELECT} ORDER BY b.sort_order ASC, b.id ASC`);
+        let list = r.rows.map(b =>
+            `${b.is_active ? '✅' : '🙈'} @${esc(b.username)} — ${esc(b.display_name || b.user_name || '')}` +
+            `${b.title ? ' · ' + esc(b.title) : ''}${b.region ? ' · ' + esc(b.region) : ''} (tartib: ${b.sort_order})`
+        ).join('\n');
+        if (!list) list = "Hali birorta BirMillater yo'q.";
+        await send(`${birmillaterAdminHelp()}\n\n<b>Hozirgi ro'yxat:</b>\n${list}\n\n${SITE_URL}/birmillaters`);
+        return true;
+    }
+
+    const m = text.match(/^\/bm_([a-z]+)(?:@\w+)?(?:\s+@?(\S+))?(?:\s+([\s\S]+))?$/i);
+    if (!m) return false;
+    const action = m[1].toLowerCase();
+    const username = m[2];
+    const value = (m[3] || '').trim();
+    const known = ['add', 'remove', 'hide', 'show', 'photo', 'name', 'title', 'region', 'about', 'way',
+        'instagram', 'linkedin', 'telegram', 'order'];
+    if (!known.includes(action)) return false;
+    if (!username) {
+        await send(`ℹ️ Foydalanuvchi nomini yozing, masalan: /bm_${action} @username`);
+        return true;
+    }
+
+    if (action === 'add') {
+        const user = await db.execute({ sql: 'SELECT username, name FROM users WHERE username = ? COLLATE NOCASE LIMIT 1', args: [username] });
+        if (!user.rows[0]) {
+            await send(`❌ @${esc(username)} saytda topilmadi. Avval u saytda ro'yxatdan o'tishi kerak.`);
+            return true;
+        }
+        const exact = user.rows[0].username;
+        const exists = await getBirmillaterRow(exact);
+        if (exists) {
+            await send(`ℹ️ @${esc(exact)} allaqachon ro'yxatda.`);
+            return true;
+        }
+        const next = await db.execute(`SELECT COALESCE(MAX(sort_order), 0) + 1 AS n FROM birmillaters`);
+        await db.execute({
+            sql: `INSERT INTO birmillaters (username, sort_order, is_active, created_at) VALUES (?, ?, 1, ?)`,
+            args: [exact, Number(next.rows[0].n), Date.now()]
+        });
+        await send(`✅ @${esc(exact)} BirMillater qilib qo'shildi.\n\nEndi to'ldiring:\n` +
+            `/bm_photo @${esc(exact)}\n/bm_title @${esc(exact)} Hududiy koordinator\n/bm_region @${esc(exact)} Jizzax viloyati\n` +
+            `/bm_about @${esc(exact)} ...\n/bm_way @${esc(exact)} ...\n\nSahifa: ${SITE_URL}/birmillaters/${encodeURIComponent(exact)}`);
+        return true;
+    }
+
+    const row = await getBirmillaterRow(username);
+    if (!row) {
+        await send(`❌ @${esc(username)} BirMillaterlar ro'yxatida yo'q. Avval /bm_add @${esc(username)} yozing.`);
+        return true;
+    }
+    const exact = row.username;
+    const done = (what) => send(`✅ @${esc(exact)}: ${what}\n${SITE_URL}/birmillaters/${encodeURIComponent(exact)}`);
+
+    if (action === 'remove') {
+        await db.execute({ sql: 'DELETE FROM birmillaters WHERE id = ?', args: [row.id] });
+        await send(`🗑 @${esc(exact)} ro'yxatdan olib tashlandi.`);
+        return true;
+    }
+    if (action === 'hide' || action === 'show') {
+        await db.execute({ sql: 'UPDATE birmillaters SET is_active = ? WHERE id = ?', args: [action === 'show' ? 1 : 0, row.id] });
+        await done(action === 'show' ? "sahifada ko'rinadi" : 'yashirildi');
+        return true;
+    }
+    if (action === 'photo') {
+        if (value === '-') {
+            await db.execute({ sql: 'UPDATE birmillaters SET photo_url = NULL WHERE id = ?', args: [row.id] });
+            await done("rasm tozalandi (profil rasmi ishlatiladi)");
+        } else if (message.photo) {
+            await saveBirmillaterPhoto(chatId, exact, message.photo);
+        } else {
+            adminBmPhotoDrafts.set(chatId, exact);
+            await send(`📷 Endi @${esc(exact)} uchun rasmni yuboring (rasm sifatida, fayl emas).`);
+        }
+        return true;
+    }
+    if (action === 'order') {
+        const n = parseInt(value, 10);
+        if (!Number.isInteger(n) || n < 0 || n > 9999) {
+            await send(`ℹ️ Tartib raqamini yozing, masalan: /bm_order @${esc(exact)} 1`);
+            return true;
+        }
+        await db.execute({ sql: 'UPDATE birmillaters SET sort_order = ? WHERE id = ?', args: [n, row.id] });
+        await done(`tartib raqami ${n}`);
+        return true;
+    }
+    if (!value) {
+        await send(`ℹ️ Qiymatni yozing, masalan: /bm_${action} @${esc(exact)} ...  (tozalash uchun: -)`);
+        return true;
+    }
+
+    const clear = value === '-';
+    const textColumns = { name: 'display_name', title: 'title', region: 'region', about: 'about', way: 'my_way' };
+    if (textColumns[action]) {
+        if (!clear && value.length > BM_FIELD_LIMITS[action]) {
+            await send(`❌ Juda uzun: ${value.length} belgi (ko'pi bilan ${BM_FIELD_LIMITS[action]}).`);
+            return true;
+        }
+        await db.execute({ sql: `UPDATE birmillaters SET ${textColumns[action]} = ? WHERE id = ?`, args: [clear ? null : value, row.id] });
+        await done(clear ? 'maydon tozalandi' : 'yangilandi');
+        return true;
+    }
+    // instagram / linkedin / telegram
+    let link = null;
+    if (!clear) {
+        link = normalizeBirmillaterSocial(action, value);
+        if (!link) {
+            await send(`❌ Bu ${action} havolasiga o'xshamaydi. @nom yoki to'liq havolani yuboring.`);
+            return true;
+        }
+    }
+    await db.execute({ sql: `UPDATE birmillaters SET ${action} = ? WHERE id = ?`, args: [link, row.id] });
+    await done(clear ? `${action} tozalandi` : `${action}: ${esc(link)}`);
+    return true;
+}
+
+async function saveBirmillaterPhoto(chatId, username, photoSizes) {
+    const send = (t) => sendTelegramMessageTo(chatId, t);
+    try {
+        const largest = photoSizes[photoSizes.length - 1];
+        const buffer = await downloadTelegramPhotoBuffer(largest.file_id);
+        const uploaded = await uploadImageToFreeimage(buffer);
+        if (!uploaded.ok) {
+            await send(`❌ Rasm yuklanmadi: ${escapeHtmlForTelegram(uploaded.error || 'xatolik')}`);
+            return;
+        }
+        await db.execute({ sql: 'UPDATE birmillaters SET photo_url = ? WHERE username = ? COLLATE NOCASE', args: [uploaded.url, username] });
+        await send(`✅ @${escapeHtmlForTelegram(username)} rasmi yangilandi.\n${SITE_URL}/birmillaters/${encodeURIComponent(username)}`);
+    } catch (err) {
+        console.error('saveBirmillaterPhoto error:', err);
+        await send('❌ Rasmni saqlab bo\'lmadi. Qaytadan urinib ko\'ring.');
+    }
+}
+
 // sitemap.xml — submitted to Google Search Console. Lists only public,
 // indexable pages: login-gated pages (home, communities, profile, messages...)
 // are left out on purpose. Event / volunteer / article detail pages are added
@@ -2991,13 +3274,14 @@ app.get('/sitemap.xml', async (req, res) => {
         });
 
         const staticPages = [
-            '', 'about', 'founders.html', 'events', 'volunteer', 'articles',
+            '', 'about', 'founders.html', 'events', 'volunteer', 'birmillaters', 'articles',
             'contact', 'support', 'privacy'
         ];
-        const [events, opportunities, articles] = await Promise.all([
+        const [events, opportunities, articles, birmillaters] = await Promise.all([
             safe(getApprovedEvents(null), 'events'),
             safe(getVolunteerOpportunities({}), 'volunteer opportunities'),
-            safe(listArticles(), 'articles')
+            safe(listArticles(), 'articles'),
+            safe(getActiveBirmillaters(), 'birmillaters')
         ]);
 
         // lastmod is only written when it is genuinely known (created_at).
@@ -3006,7 +3290,8 @@ app.get('/sitemap.xml', async (req, res) => {
             ...staticPages.map(p => ({ loc: `${SITE_URL}/${p}` })),
             ...events.map(e => ({ loc: `${SITE_URL}/events/${e.id}`, lastmod: isoDay(e.created_at) })),
             ...opportunities.map(o => ({ loc: `${SITE_URL}/volunteer/${o.id}`, lastmod: isoDay(o.created_at) })),
-            ...articles.map(a => ({ loc: `${SITE_URL}/articles/${a.id}`, lastmod: isoDay(a.created_at) }))
+            ...articles.map(a => ({ loc: `${SITE_URL}/articles/${a.id}`, lastmod: isoDay(a.created_at) })),
+            ...birmillaters.map(b => ({ loc: `${SITE_URL}/birmillaters/${encodeURIComponent(b.username)}`, lastmod: isoDay(b.created_at) }))
         ];
 
         const xml = `<?xml version="1.0" encoding="UTF-8"?>\n` +
@@ -5055,6 +5340,8 @@ app.post(`/telegram/webhook/${TELEGRAM_BOT_TOKEN}`, async (req, res) => {
             if (draftConsumed) return;
             const certDraftConsumed = await handleAdminCertDraftMessage(fromChatId, message);
             if (certDraftConsumed) return;
+            const bmConsumed = await handleBirmillaterAdminMessage(fromChatId, message);
+            if (bmConsumed) return;
 
             if (message.reply_to_message) {
                 // You replied (Telegram's native Reply) to a message we forwarded —
@@ -5151,7 +5438,8 @@ app.post(`/telegram/webhook/${TELEGRAM_BOT_TOKEN}`, async (req, res) => {
                     `/post — bosh sahifada ko'rinadigan yangi e'lon yaratish\n` +
                     `/post_off — joriy e'lonni bosh sahifadan olib tashlash\n` +
                     `/sertifikat_shablon — yangi sertifikat shabloni yaratish (fon rasm + ism joyi)\n` +
-                    `/sertifikat — tadbir ishtirokchilariga sertifikat yuborish\n\n` +
+                    `/sertifikat — tadbir ishtirokchilariga sertifikat yuborish\n` +
+                    `/birmillaters — BirMillaters (volontyorlar) sahifasini boshqarish\n\n` +
                     `Foydalanuvchiga javob berish uchun, uning xabariga Telegram'ning "Reply" funksiyasidan foydalaning, ` +
                     `yoki shunchaki yozing — xabaringiz sizga oxirgi murojaat qilgan foydalanuvchiga yuboriladi.\n\n` +
                     `(Foydalanuvchilar uchun tugmali menyu /menu buyrug'i orqali ochiladi.)`
