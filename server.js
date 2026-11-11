@@ -2281,8 +2281,16 @@ class TursoStore extends Store {
 // Session middleware — created once, shared by both Express and Socket.IO below
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+// If a secret is not set in the environment, use a random one for this run
+// instead of a default that is visible in the source code. Set these on the host
+// so logins/links survive restarts.
+function secretFromEnv(name) {
+    if (process.env[name]) return process.env[name];
+    console.warn(`WARNING: ${name} is not set — using a temporary random value. Set it in the host's environment variables.`);
+    return crypto.randomBytes(32).toString('hex');
+}
 const sessionMiddleware = session({
-    secret: process.env.SESSION_SECRET || 'birMillat-secret-key',
+    secret: secretFromEnv('SESSION_SECRET'),
     resave: false,
     saveUninitialized: false,
     rolling: true, // refresh the 30-day expiry on every request, so an
@@ -2307,6 +2315,18 @@ app.use(sessionMiddleware);
 // logged-in visitor landing on "/" always saw the logged-out page instead of
 // being redirected to /home. The route below is what does that redirect;
 // this line is what lets it actually run.
+// The whole project folder is served as static files, so source code, config
+// and database files must be blocked explicitly or anyone could download them.
+app.use((req, res, next) => {
+    let p;
+    try { p = decodeURIComponent(req.path).toLowerCase(); } catch (e) { return res.status(400).send('Bad request'); }
+    const blocked =
+        /(^|\/)\./.test(p) ||                                          // .env, .git, .github, any dotfile
+        /^\/(server\.js|package(-lock)?\.json|node_modules(\/|$))/.test(p) ||
+        /\.(sqlite3?|db|env|log|md)$/.test(p);
+    if (blocked) return res.status(404).sendFile(path.join(__dirname, '404.html'));
+    next();
+});
 app.use(express.static(path.join(__dirname), { index: false }));
 
 // ---------- Language preference (uz / qq / ru / en) ----------
@@ -5180,7 +5200,7 @@ function escapeHtmlForTelegram(str) {
 //  2. Telegram's X-Telegram-Bot-Api-Secret-Token header is checked against our own secret.
 //  3. Even if both of those were somehow bypassed, commands are only honored if they
 //     come from your specific Telegram chat ID — nobody else's /block command does anything.
-const TELEGRAM_WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET || 'change-me-webhook-secret';
+const TELEGRAM_WEBHOOK_SECRET = secretFromEnv('TELEGRAM_WEBHOOK_SECRET');
 
 // Tells Telegram where to send bot messages. Runs on every server start, so
 // after changing TELEGRAM_BOT_TOKEN (new bot) a restart is all that is needed.
@@ -5800,7 +5820,7 @@ app.post('/api/articles/:id/report', async (req, res) => {
 });
 
 // ---------- Events ----------
-const ADMIN_SECRET = process.env.ADMIN_SECRET || 'change-me-admin-secret';
+const ADMIN_SECRET = secretFromEnv('ADMIN_SECRET');
 const SITE_URL = process.env.SITE_URL || 'https://birmillat.uz';
 
 app.get('/api/events', async (req, res) => {
