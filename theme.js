@@ -492,3 +492,16 @@ window.formatUzDate = function (ts, opts) {
     s.setAttribute('data-bm-consent', '1');
     (document.head || document.documentElement).appendChild(s);
 })();
+
+// Menu link to /birmillaters, added after "Volontyorlik" on every page that has
+// the standard menu, so new pages don't require editing each page's markup.
+document.addEventListener('DOMContentLoaded', function () {
+    var links = document.querySelector('.nav-links');
+    if (!links || links.querySelector('a[href="/birmillaters"]')) return;
+    var a = document.createElement('a');
+    a.href = '/birmillaters';
+    a.innerHTML = '<i class="fas fa-users"></i> <span>BirMillaters</span>';
+    if (location.pathname.indexOf('/birmillaters') === 0) a.className = 'active';
+    var vol = links.querySelector('a[href="/volunteer"]');
+    if (vol) vol.insertAdjacentElement('afterend', a); else links.appendChild(a);
+});
