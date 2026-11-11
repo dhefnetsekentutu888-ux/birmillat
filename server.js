@@ -3109,6 +3109,8 @@ const adminBmPhotoDrafts = new Map(); // admin chat id -> username waiting for a
 
 function birmillaterAdminHelp() {
     return `<b>BirMillaters boshqaruvi</b>\n\n` +
+        `/addbirmillater — yangi BirMillater qo'shish (bot savollar beradi, hech narsa yozish shart emas)\n\n` +
+        `Alohida o'zgartirish uchun:\n` +
         `/bm_add @username — saytdagi foydalanuvchini BirMillater qilib qo'shish\n` +
         `/bm_photo @username — rasm o'rnatish (keyin rasm yuboring, yoki rasmga shu buyruqni izoh qilib yozing)\n` +
         `/bm_name @username Ism Familiya\n` +
@@ -3126,10 +3128,163 @@ function birmillaterAdminHelp() {
         `Maydonni tozalash uchun qiymat o'rniga <code>-</code> yozing.`;
 }
 
+// ---- Guided "/addbirmillater": the bot asks one question at a time ----
+// Buttons below the chat replace typing "/" or "-": the admin only taps
+// "skip" or "cancel", or answers the question.
+const adminBmWizards = new Map(); // admin chat id -> { step, data }
+const BM_SKIP = "⏭ O'tkazib yuborish";
+const BM_CANCEL = '❌ Bekor qilish';
+const BM_KEYBOARD = { keyboard: [[{ text: BM_SKIP }, { text: BM_CANCEL }]], resize_keyboard: true };
+const BM_KEYBOARD_REQUIRED = { keyboard: [[{ text: BM_CANCEL }]], resize_keyboard: true };
+const BM_WIZARD_STEPS = [
+    { key: 'username', required: true, q: "Kimni BirMillater qilmoqchisiz? Uning saytdagi username'ini yozing (masalan: <code>aziz</code>)." },
+    { key: 'photo', q: "📷 Rasmini yuboring (fayl emas, oddiy rasm sifatida). O'tkazib yuborsangiz, uning profil rasmi ishlatiladi." },
+    { key: 'name', q: "Ism familiyasi qanday ko'rinsin? (masalan: <i>Bexruz Ravshanov</i>)" },
+    { key: 'title', q: "Lavozimi? (masalan: <i>Hududiy koordinator</i>)" },
+    { key: 'region', q: "Qaysi hudud? (masalan: <i>Jizzax viloyati</i>)" },
+    { key: 'about', q: "«Men haqimda» matnini yozing — u kim va qayerdan." },
+    { key: 'way', q: "«Mening yo'lim» matnini yozing — uning yo'li va maqsadi." },
+    { key: 'instagram', q: "Instagram: @nom yoki havola." },
+    { key: 'linkedin', q: "LinkedIn havolasi." },
+    { key: 'telegram', q: "Telegram: @nom." }
+];
+const BM_WIZARD_COLUMNS = {
+    name: 'display_name', title: 'title', region: 'region', about: 'about', way: 'my_way',
+    instagram: 'instagram', linkedin: 'linkedin', telegram: 'telegram', photo: 'photo_url'
+};
+
+async function askBirmillaterWizardStep(chatId, wiz) {
+    const step = BM_WIZARD_STEPS[wiz.step];
+    await sendTelegramMessageTo(chatId, `<b>${wiz.step + 1}/${BM_WIZARD_STEPS.length}</b>  ${step.q}`,
+        step.required ? BM_KEYBOARD_REQUIRED : BM_KEYBOARD);
+}
+
+async function startBirmillaterWizard(chatId) {
+    const wiz = { step: 0, data: {} };
+    adminBmWizards.set(chatId, wiz);
+    await sendTelegramMessageTo(chatId, "👥 <b>Yangi BirMillater qo'shamiz.</b> Savollarga birin-ketin javob bering.");
+    await askBirmillaterWizardStep(chatId, wiz);
+}
+
+async function finishBirmillaterWizard(chatId, wiz) {
+    adminBmWizards.delete(chatId);
+    const d = wiz.data;
+    const existing = await getBirmillaterRow(d.username);
+    const provided = Object.keys(BM_WIZARD_COLUMNS).filter(k => d[k] !== undefined);
+    if (existing) {
+        if (provided.length) {
+            await db.execute({
+                sql: `UPDATE birmillaters SET ${provided.map(k => BM_WIZARD_COLUMNS[k] + ' = ?').join(', ')}, is_active = 1 WHERE id = ?`,
+                args: [...provided.map(k => d[k]), existing.id]
+            });
+        }
+    } else {
+        const next = await db.execute(`SELECT COALESCE(MAX(sort_order), 0) + 1 AS n FROM birmillaters`);
+        const cols = ['username', ...provided.map(k => BM_WIZARD_COLUMNS[k]), 'sort_order', 'is_active', 'created_at'];
+        await db.execute({
+            sql: `INSERT INTO birmillaters (${cols.join(', ')}) VALUES (${cols.map(() => '?').join(', ')})`,
+            args: [d.username, ...provided.map(k => d[k]), Number(next.rows[0].n), 1, Date.now()]
+        });
+    }
+    const e = escapeHtmlForTelegram;
+    const lines = [
+        d.name && `👤 ${e(d.name)}`, d.title && `🏷 ${e(d.title)}`, d.region && `📍 ${e(d.region)}`,
+        d.photo && '📷 rasm o\'rnatildi', d.about && '📝 «Men haqimda» yozildi', d.way && '⭐ «Mening yo\'lim» yozildi',
+        d.instagram && `Instagram: ${e(d.instagram)}`, d.linkedin && `LinkedIn: ${e(d.linkedin)}`, d.telegram && `Telegram: ${e(d.telegram)}`
+    ].filter(Boolean).join('\n');
+    await sendTelegramMessageTo(chatId,
+        `✅ <b>@${e(d.username)}</b> ${existing ? 'yangilandi' : "BirMillater qilib qo'shildi"}!\n\n${lines || ''}\n\n` +
+        `${SITE_URL}/birmillaters/${encodeURIComponent(d.username)}\n\n` +
+        `Keyinroq o'zgartirish: /birmillaters`, { remove_keyboard: true });
+}
+
+// Returns true when the message belonged to the wizard.
+async function handleBirmillaterWizardMessage(chatId, message) {
+    const wiz = adminBmWizards.get(chatId);
+    if (!wiz) return false;
+    const text = (message.text || '').trim();
+    const send = (t) => sendTelegramMessageTo(chatId, t);
+
+    if (text === BM_CANCEL || /^\/(cancel|bekor)(@\w+)?$/i.test(text)) {
+        adminBmWizards.delete(chatId);
+        await sendTelegramMessageTo(chatId, "Bekor qilindi. Hech narsa saqlanmadi.", { remove_keyboard: true });
+        return true;
+    }
+    if (text.startsWith('/')) { // another command: leave the wizard and let that command run
+        adminBmWizards.delete(chatId);
+        await sendTelegramMessageTo(chatId, "Savol-javob to'xtatildi.", { remove_keyboard: true });
+        return false;
+    }
+
+    const step = BM_WIZARD_STEPS[wiz.step];
+    const skipped = text === BM_SKIP || text === '-';
+    if (skipped && step.required) {
+        await send("Bu savolni o'tkazib bo'lmaydi. Username'ni yozing yoki bekor qiling.");
+        return true;
+    }
+
+    if (!skipped) {
+        if (step.key === 'photo') {
+            if (!message.photo) {
+                await send("Iltimos, rasm yuboring (oddiy rasm sifatida) yoki o'tkazib yuboring.");
+                return true;
+            }
+            try {
+                const largest = message.photo[message.photo.length - 1];
+                const uploaded = await uploadImageToFreeimage(await downloadTelegramPhotoBuffer(largest.file_id));
+                if (!uploaded.ok) {
+                    await send(`❌ Rasm yuklanmadi: ${escapeHtmlForTelegram(uploaded.error || 'xatolik')}\nQaytadan yuboring yoki o'tkazib yuboring.`);
+                    return true;
+                }
+                wiz.data.photo = uploaded.url;
+            } catch (err) {
+                console.error('BirMillater wizard photo error:', err);
+                await send("❌ Rasmni saqlab bo'lmadi. Qaytadan yuboring yoki o'tkazib yuboring.");
+                return true;
+            }
+        } else if (!text) {
+            await send("Iltimos, matn yozing yoki o'tkazib yuboring.");
+            return true;
+        } else if (step.key === 'username') {
+            const u = await db.execute({ sql: 'SELECT username FROM users WHERE username = ? COLLATE NOCASE LIMIT 1', args: [text.replace(/^@/, '')] });
+            if (!u.rows[0]) {
+                await send(`❌ «${escapeHtmlForTelegram(text)}» saytda topilmadi. Avval u saytda ro'yxatdan o'tgan bo'lishi kerak. Username'ni qaytadan yozing.`);
+                return true;
+            }
+            wiz.data.username = u.rows[0].username;
+        } else if (['instagram', 'linkedin', 'telegram'].includes(step.key)) {
+            const link = normalizeBirmillaterSocial(step.key, text);
+            if (!link) {
+                await send(`❌ Bu ${step.key} havolasiga o'xshamaydi. @nom yoki to'liq havolani yuboring, yoki o'tkazib yuboring.`);
+                return true;
+            }
+            wiz.data[step.key] = link;
+        } else {
+            const limit = BM_FIELD_LIMITS[step.key];
+            if (text.length > limit) {
+                await send(`❌ Juda uzun: ${text.length} belgi (ko'pi bilan ${limit}). Qisqartirib qaytadan yuboring.`);
+                return true;
+            }
+            wiz.data[step.key] = text;
+        }
+    }
+
+    wiz.step += 1;
+    if (wiz.step >= BM_WIZARD_STEPS.length) await finishBirmillaterWizard(chatId, wiz);
+    else await askBirmillaterWizardStep(chatId, wiz);
+    return true;
+}
+
 async function handleBirmillaterAdminMessage(chatId, message) {
     const text = (message.text || message.caption || '').trim();
     const send = (t) => sendTelegramMessageTo(chatId, t);
     const esc = escapeHtmlForTelegram;
+
+    if (/^\/addbirmillater(@\w+)?$/i.test(text)) {
+        await startBirmillaterWizard(chatId);
+        return true;
+    }
+    if (adminBmWizards.has(chatId) && await handleBirmillaterWizardMessage(chatId, message)) return true;
 
     // A photo sent after "/bm_photo @username" (and no new command in the caption).
     if (message.photo && adminBmPhotoDrafts.has(chatId) && !text.startsWith('/')) {
@@ -5459,6 +5614,7 @@ app.post(`/telegram/webhook/${TELEGRAM_BOT_TOKEN}`, async (req, res) => {
                     `/post_off — joriy e'lonni bosh sahifadan olib tashlash\n` +
                     `/sertifikat_shablon — yangi sertifikat shabloni yaratish (fon rasm + ism joyi)\n` +
                     `/sertifikat — tadbir ishtirokchilariga sertifikat yuborish\n` +
+                    `/addbirmillater — yangi BirMillater qo'shish (savol-javob orqali)\n` +
                     `/birmillaters — BirMillaters (volontyorlar) sahifasini boshqarish\n\n` +
                     `Foydalanuvchiga javob berish uchun, uning xabariga Telegram'ning "Reply" funksiyasidan foydalaning, ` +
                     `yoki shunchaki yozing — xabaringiz sizga oxirgi murojaat qilgan foydalanuvchiga yuboriladi.\n\n` +
