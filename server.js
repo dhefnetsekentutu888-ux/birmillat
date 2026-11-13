@@ -3,6 +3,7 @@ const session = require('express-session');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const path = require('path');
+const fs = require('fs');
 const http = require('http');
 const { Server: SocketIOServer } = require('socket.io');
 const { createClient } = require('@libsql/client');
@@ -225,6 +226,23 @@ async function initDb() {
             created_at INTEGER NOT NULL
         )
     `);
+
+    // SEO additions: a permanent name-based URL (slug), an optional
+    // "achievements" text, and a last-modified time (kept up to date by a trigger).
+    for (const col of ['slug TEXT', 'achievements TEXT', 'updated_at INTEGER']) {
+        try { await db.execute(`ALTER TABLE birmillaters ADD COLUMN ${col}`); } catch (e) { /* already there */ }
+    }
+    await db.execute(`CREATE UNIQUE INDEX IF NOT EXISTS idx_birmillaters_slug ON birmillaters (slug)`);
+    try {
+        await db.execute(`
+            CREATE TRIGGER IF NOT EXISTS trg_birmillaters_updated
+            AFTER UPDATE OF display_name, title, region, about, my_way, achievements, instagram, linkedin, telegram, photo_url, is_active ON birmillaters
+            BEGIN
+                UPDATE birmillaters SET updated_at = CAST(strftime('%s', 'now') AS INTEGER) * 1000 WHERE id = NEW.id;
+            END
+        `);
+    } catch (e) { console.error('birmillaters updated_at trigger not created:', e.message); }
+    try { await backfillBirmillaterSlugs(); } catch (e) { console.error('backfillBirmillaterSlugs failed:', e); }
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_support_chat ON support_messages (telegram_chat_id)`);
 
     // Profile achievements/certificates — title + image always shown, description/date optional and revealed on click
@@ -2325,6 +2343,8 @@ app.use((req, res, next) => {
         /^\/(server\.js|package(-lock)?\.json|node_modules(\/|$))/.test(p) ||
         /\.(sqlite3?|db|env|log|md)$/.test(p);
     if (blocked) return res.status(404).sendFile(path.join(__dirname, '404.html'));
+    // The raw template files must not become duplicate, JavaScript-only copies of the SEO pages.
+    if (p === '/birmillaters.html' || p === '/birmillater-detail.html') return res.redirect(301, '/birmillaters');
     next();
 });
 app.use(express.static(path.join(__dirname), { index: false }));
@@ -3014,7 +3034,52 @@ app.get('/robots.txt', (req, res) => {
 });
 
 // ---------- BirMillaters (volunteers / coordinators) ----------
-const BM_FIELD_LIMITS = { title: 60, region: 60, name: 60, about: 1200, way: 1200 };
+const BM_FIELD_LIMITS = { title: 60, region: 60, name: 60, about: 1200, way: 1200, achievements: 1200 };
+
+// ---- Permanent, name-based URLs: /birmillaters/temurbek-ahmedov ----
+const SLUG_CYRILLIC = {
+    'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo', 'ж': 'j', 'з': 'z', 'и': 'i', 'й': 'y',
+    'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u', 'ф': 'f',
+    'х': 'x', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'sh', 'ъ': '', 'ы': 'i', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya',
+    'қ': 'q', 'ғ': 'g', 'ў': 'o', 'ҳ': 'h'
+};
+function slugifyName(input) {
+    let t = String(input || '').toLowerCase()
+        .replace(/[\u02bb\u02bc\u2018\u2019\u0060\u00b4']/g, '')           // o', g', o‘ -> o, g
+        .replace(/[а-яёқғўҳ]/g, ch => (SLUG_CYRILLIC[ch] !== undefined ? SLUG_CYRILLIC[ch] : ''));
+    t = t.normalize('NFKD').replace(/[\u0300-\u036f]/g, '');
+    t = t.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    return t.slice(0, 60).replace(/-+$/, '');
+}
+// Gives a BirMillater a slug once; it never changes afterwards, so shared links keep working.
+async function ensureBirmillaterSlug(username) {
+    const r = await db.execute({
+        sql: `SELECT b.id, b.slug, b.username, b.display_name, u.name AS user_name
+              FROM birmillaters b LEFT JOIN users u ON u.username = b.username
+              WHERE b.username = ? COLLATE NOCASE LIMIT 1`,
+        args: [username]
+    });
+    const row = r.rows[0];
+    if (!row) return null;
+    if (row.slug) return row.slug;
+    const base = slugifyName(row.display_name || row.user_name || '') || slugifyName(row.username) || 'birmillater';
+    let candidate = base;
+    for (let i = 2; i < 200; i++) {
+        const taken = await db.execute({ sql: 'SELECT 1 FROM birmillaters WHERE slug = ? LIMIT 1', args: [candidate] });
+        if (!taken.rows.length) break;
+        candidate = `${base}-${i}`;
+    }
+    await db.execute({ sql: 'UPDATE birmillaters SET slug = ? WHERE id = ?', args: [candidate, row.id] });
+    return candidate;
+}
+async function backfillBirmillaterSlugs() {
+    const r = await db.execute(`SELECT username FROM birmillaters WHERE slug IS NULL OR slug = ''`);
+    for (const row of r.rows) await ensureBirmillaterSlug(row.username);
+}
+async function birmillaterPageUrl(username) {
+    const slug = await ensureBirmillaterSlug(username);
+    return `${SITE_URL}/birmillaters/${encodeURIComponent(slug || username)}`;
+}
 
 // Accepts "@name", "name" or a full link and returns a clean https link, or
 // null if it is not a link to the expected site. "-" is handled by the caller.
@@ -3052,6 +3117,7 @@ const BM_SELECT = `
 function birmillaterToPublic(row, full) {
     const out = {
         username: row.username,
+        slug: row.slug || row.username,
         name: row.display_name || row.user_name || row.username,
         title: row.title || '',
         region: row.region || '',
@@ -3060,6 +3126,9 @@ function birmillaterToPublic(row, full) {
     if (full) {
         out.about = row.about || '';
         out.myWay = row.my_way || '';
+        out.achievements = row.achievements || '';
+        out.createdAt = row.created_at || null;
+        out.updatedAt = row.updated_at || null;
         out.instagram = row.instagram || '';
         out.linkedin = row.linkedin || '';
         out.telegram = row.telegram || '';
@@ -3075,12 +3144,317 @@ async function getBirmillaterRow(username) {
     const r = await db.execute({ sql: `${BM_SELECT} WHERE b.username = ? COLLATE NOCASE LIMIT 1`, args: [username] });
     return r.rows[0] || null;
 }
+// Public pages are addressed by slug; older username links still resolve (and get redirected).
+async function getBirmillaterBySlugOrUsername(identifier) {
+    const id = String(identifier || '').trim();
+    if (!id) return null;
+    let r = await db.execute({ sql: `${BM_SELECT} WHERE b.slug = ? LIMIT 1`, args: [id.toLowerCase()] });
+    if (r.rows[0]) return r.rows[0];
+    r = await db.execute({ sql: `${BM_SELECT} WHERE b.username = ? COLLATE NOCASE LIMIT 1`, args: [id] });
+    return r.rows[0] || null;
+}
 
-app.get('/birmillaters', (req, res) => {
-    res.sendFile(path.join(__dirname, 'birmillaters.html'));
+// ---------- BirMillaters: search-engine friendly pages ----------
+// The two public pages are rendered on the server, so a crawler receives the
+// real name, text, links and metadata in the HTML itself (no JavaScript needed).
+// Everything shown comes from the admin-managed BirMillaters records and the
+// member's real public activity; nothing is generated or invented.
+const SEO_ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+function seoEsc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, c => SEO_ESC[c]); }
+function seoJson(obj) { return JSON.stringify(obj).replace(/</g, '\\u003c'); }
+function seoAbsUrl(u) {
+    const t = String(u || '').trim();
+    if (!t) return null;
+    if (/^https?:\/\//i.test(t)) return t;
+    if (t.startsWith('//')) return 'https:' + t;
+    if (t.startsWith('/')) return SITE_URL + t;
+    return null;
+}
+function seoCut(text, max) {
+    const t = String(text || '').replace(/\s+/g, ' ').trim();
+    if (t.length <= max) return t;
+    const cut = t.slice(0, max - 1);
+    const sp = cut.lastIndexOf(' ');
+    return (sp > max * 0.6 ? cut.slice(0, sp) : cut).replace(/[\s,.;:\u2013\u2014-]+$/, '') + '\u2026';
+}
+function seoInitials(name) {
+    return String(name || '?').trim().split(/\s+/).slice(0, 2).map(w => w.charAt(0).toUpperCase()).join('') || '?';
+}
+function seoDate(ms) {
+    const d = new Date(Number(ms));
+    return Number.isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
+}
+function seoReadTemplate(file) {
+    return fs.readFileSync(path.join(__dirname, file), 'utf8').replace(/\r\n/g, '\n');
+}
+// Swaps the template's <title> and description and appends canonical / robots /
+// Open Graph / Twitter / JSON-LD to <head>.
+function seoInject(html, { title, description, extraHead }) {
+    return html
+        .replace(/<title>[\s\S]*?<\/title>/, () => `<title>${seoEsc(title)}</title>`)
+        .replace(/<meta name="description"[^>]*>/, () => `<meta name="description" content="${seoEsc(description)}">`)
+        .replace('</head>', () => `${extraHead}\n</head>`);
+}
+function seoHead({ canonical, robots, ogType, title, description, image, imageAlt, twitterCard, jsonLd }) {
+    const lines = [
+        `<link rel="canonical" href="${seoEsc(canonical)}">`,
+        `<meta name="robots" content="${robots}">`,
+        `<meta property="og:type" content="${ogType}">`,
+        `<meta property="og:site_name" content="BirMillat">`,
+        `<meta property="og:locale" content="uz_UZ">`,
+        `<meta property="og:title" content="${seoEsc(title)}">`,
+        `<meta property="og:description" content="${seoEsc(description)}">`,
+        `<meta property="og:url" content="${seoEsc(canonical)}">`,
+        `<meta property="og:image" content="${seoEsc(image)}">`,
+        `<meta property="og:image:alt" content="${seoEsc(imageAlt)}">`,
+        `<meta name="twitter:card" content="${twitterCard}">`,
+        `<meta name="twitter:title" content="${seoEsc(title)}">`,
+        `<meta name="twitter:description" content="${seoEsc(description)}">`,
+        `<meta name="twitter:image" content="${seoEsc(image)}">`,
+        `<meta name="twitter:image:alt" content="${seoEsc(imageAlt)}">`
+    ];
+    for (const block of jsonLd) lines.push(`<script type="application/ld+json">${seoJson(block)}</script>`);
+    return lines.join('\n');
+}
+
+// Real public activity of the member (same account as the BirMillater).
+async function getBirmillaterContributions(username) {
+    const safe = (p) => p.then(r => r.rows).catch(() => []);
+    const [events, articles, volunteer] = await Promise.all([
+        safe(db.execute({
+            sql: `SELECT e.id, e.title, e.event_date FROM events e JOIN users u ON u.id = e.creator_id
+                  WHERE u.username = ? COLLATE NOCASE AND e.status = 'approved' ORDER BY e.event_date DESC LIMIT 6`,
+            args: [username]
+        })),
+        safe(db.execute({
+            sql: `SELECT a.id, a.title, a.created_at FROM articles a JOIN users u ON u.id = a.author_id
+                  WHERE u.username = ? COLLATE NOCASE ORDER BY a.created_at DESC LIMIT 6`,
+            args: [username]
+        })),
+        safe(db.execute({
+            sql: `SELECT v.id, v.title, v.created_at FROM volunteer_opportunities v JOIN users u ON u.id = v.creator_id
+                  WHERE u.username = ? COLLATE NOCASE AND v.status = 'active' ORDER BY v.created_at DESC LIMIT 6`,
+            args: [username]
+        }))
+    ]);
+    return { events, articles, volunteer };
+}
+
+function birmillaterAltText(pub) {
+    return `${pub.name} \u2014 BirMillat${pub.title ? ', ' + pub.title : ''}${pub.region ? ', ' + pub.region : ''}`;
+}
+
+function birmillaterProfileSeo(row) {
+    const pub = birmillaterToPublic(row, true);
+    const url = `${SITE_URL}/birmillaters/${encodeURIComponent(pub.slug)}`;
+    let title = `${pub.name}${pub.title ? ' \u2014 ' + pub.title : ''}${pub.region ? ', ' + pub.region : ''} | BirMillat`;
+    if (title.length > 70) title = `${pub.name}${pub.title ? ' \u2014 ' + pub.title : ''} | BirMillat`;
+    if (title.length > 70) title = `${pub.name} | BirMillat`;
+    const lead = `${pub.name} \u2014 ${pub.title || 'BirMillater'}, BirMillat${pub.region ? ' (' + pub.region + ')' : ''}.`;
+    const description = seoCut(lead + (pub.about ? ' ' + pub.about : " BirMillat \u2014 O'zbekiston yoshlari uchun platforma."), 158);
+    const photo = seoAbsUrl(pub.photo);
+    const image = photo || `${SITE_URL}/logo.png`;
+    const alt = photo ? birmillaterAltText(pub) : 'BirMillat logotipi';
+
+    const person = { '@type': 'Person', '@id': `${url}#person`, name: pub.name, url };
+    if (photo) person.image = photo;
+    if (pub.title) person.jobTitle = pub.title;
+    if (pub.about) person.description = seoCut(pub.about, 300);
+    if (pub.region) person.workLocation = { '@type': 'Place', name: pub.region };
+    person.memberOf = { '@type': 'Organization', name: 'BirMillat', url: SITE_URL };
+    const sameAs = [pub.linkedin, pub.instagram, pub.telegram].filter(Boolean);
+    if (sameAs.length) person.sameAs = sameAs;
+
+    const page = {
+        '@context': 'https://schema.org', '@type': 'ProfilePage', '@id': url, url,
+        name: `${pub.name} \u2014 BirMillat`, inLanguage: 'uz',
+        isPartOf: { '@type': 'WebSite', name: 'BirMillat', url: SITE_URL },
+        mainEntity: person
+    };
+    const created = seoDate(pub.createdAt), modified = seoDate(pub.updatedAt);
+    if (created) page.dateCreated = created;
+    if (modified) page.dateModified = modified;
+
+    const crumbs = {
+        '@context': 'https://schema.org', '@type': 'BreadcrumbList',
+        itemListElement: [
+            { '@type': 'ListItem', position: 1, name: 'BirMillat', item: `${SITE_URL}/` },
+            { '@type': 'ListItem', position: 2, name: 'BirMillaters', item: `${SITE_URL}/birmillaters` },
+            { '@type': 'ListItem', position: 3, name: pub.name, item: url }
+        ]
+    };
+    return {
+        pub, url, title, description,
+        extraHead: seoHead({
+            canonical: url, robots: 'index,follow,max-image-preview:large', ogType: 'profile',
+            title, description, image, imageAlt: alt, twitterCard: photo ? 'summary' : 'summary',
+            jsonLd: [page, crumbs]
+        })
+    };
+}
+
+function renderBirmillaterProfileBody(pub, contrib, others) {
+    const e = seoEsc;
+    const photo = seoAbsUrl(pub.photo);
+    const socials = [
+        ['linkedin', 'fa-brands fa-linkedin-in', 'LinkedIn'],
+        ['instagram', 'fa-brands fa-instagram', 'Instagram'],
+        ['telegram', 'fa-brands fa-telegram', 'Telegram']
+    ].filter(x => pub[x[0]]).map(x =>
+        `<a class="bd-social" href="${e(pub[x[0]])}" target="_blank" rel="me noopener noreferrer" aria-label="${x[2]}: ${e(pub.name)}"><i class="${x[1]}"></i></a>`
+    ).join('');
+
+    const section = (icon, heading, text) => text
+        ? `<section class="bd-section"><h2><i class="fas ${icon}"></i> ${heading}</h2><p>${e(text)}</p></section>` : '';
+    const sections = section('fa-user', 'Men haqimda', pub.about) +
+        section('fa-star', "Mening yo'lim", pub.myWay) +
+        section('fa-trophy', 'Yutuqlari va hissasi', pub.achievements);
+
+    const list = (heading, items, hrefOf, dateOf) => items.length
+        ? `<h3>${heading}</h3><ul class="bd-links">${items.map(it => {
+            const d = dateOf(it);
+            return `<li><a href="${hrefOf(it)}">${e(it.title)}</a>${d ? `<time datetime="${d}">${d}</time>` : ''}</li>`;
+        }).join('')}</ul>` : '';
+    const activity =
+        list('Tashkil qilgan tadbirlar', contrib.events, it => `/events/${it.id}`, it => seoDate(it.event_date)) +
+        list('Maqolalari', contrib.articles, it => `/articles/${it.id}`, it => seoDate(it.created_at)) +
+        list("Volontyorlik e'lonlari", contrib.volunteer, it => `/volunteer/${it.id}`, it => seoDate(it.created_at));
+    const activityBox = activity
+        ? `<section class="bd-section bd-contrib"><h2><i class="fas fa-bolt"></i> BirMillat'dagi faoliyati</h2>${activity}</section>` : '';
+
+    const writeBtn = `
+                <a class="bd-write" data-username="${e(pub.username)}" href="/messages?with=${encodeURIComponent(pub.username)}">
+                    <i class="fas fa-comment-dots"></i> BirMillat'da yozing <i class="fas fa-arrow-right"></i>
+                </a>
+                <p class="bd-write-note">${e(pub.name)} bilan BirMillat ichida to'g'ridan-to'g'ri suhbat boshlanadi</p>`;
+    const cta = `<section class="bd-cta">${writeBtn}${socials ? `<div class="bd-socials">${socials}</div>` : ''}</section>`;
+
+    const othersBox = others.length
+        ? `<nav class="bd-others" aria-label="Boshqa BirMillaterlar"><h2>Boshqa BirMillaterlar</h2><ul class="bd-links">${others.map(o =>
+            `<li><a href="/birmillaters/${encodeURIComponent(o.slug)}">${e(o.name)}</a>${o.title ? ` <span class="bd-muted">\u2014 ${e(o.title)}${o.region ? ', ' + e(o.region) : ''}</span>` : ''}</li>`
+        ).join('')}</ul><p><a href="/birmillaters">Barcha BirMillaterlarni ko'rish</a></p></nav>` : '';
+
+    return `
+                <section class="bd-head">
+                    <div class="bd-photo">
+                        <div class="bd-initials" aria-hidden="true">${e(seoInitials(pub.name))}</div>
+                        ${photo ? `<img src="${e(photo)}" alt="${e(birmillaterAltText(pub))}" width="250" height="312" onerror="this.remove()">` : ''}
+                    </div>
+                    <div class="bd-id">
+                        <h1>${e(pub.name)}</h1>
+                        ${pub.title ? `<p class="bd-role">${e(pub.title)}</p>` : ''}
+                        ${pub.region ? `<p class="bd-region"><i class="fas fa-location-dot"></i> ${e(pub.region)}</p>` : ''}
+                    </div>
+                </section>
+                ${(sections || activityBox) ? `<div class="bd-sections">${sections}${activityBox}</div>` : ''}
+                ${cta}
+                ${othersBox}`;
+}
+
+function renderBirmillaterCard(pub) {
+    const e = seoEsc;
+    const photo = seoAbsUrl(pub.photo);
+    return `
+                <a class="bm-card" href="/birmillaters/${encodeURIComponent(pub.slug)}" aria-label="${e(pub.name)}">
+                    <div class="bm-photo">
+                        <div class="bm-initials" aria-hidden="true">${e(seoInitials(pub.name))}</div>
+                        ${photo ? `<img src="${e(photo)}" alt="${e(birmillaterAltText(pub))}" loading="lazy" onerror="this.remove()">` : ''}
+                        <div class="bm-name-tag">${e(pub.name)}</div>
+                    </div>
+                    <div class="bm-info">
+                        <div class="bm-info-text">
+                            <h2 class="bm-title">${e(pub.title || 'BirMillater')}</h2>
+                            ${pub.region ? `<p class="bm-region"><i class="fas fa-location-dot"></i> ${e(pub.region)}</p>` : ''}
+                        </div>
+                        <span class="bm-go"><i class="fas fa-arrow-right"></i></span>
+                    </div>
+                </a>`;
+}
+
+function sendBirmillaterNotFound(res) {
+    let html = seoReadTemplate('birmillater-detail.html');
+    html = seoInject(html, {
+        title: 'BirMillater topilmadi | BirMillat',
+        description: "Bu BirMillater topilmadi yoki sahifasi yashirilgan.",
+        extraHead: `<meta name="robots" content="noindex,follow">`
+    });
+    html = html.replace('<div id="bdRoot"><div class="bd-skel"></div></div>', () =>
+        `<div id="bdRoot" data-ssr="1"><div class="bd-state"><div style="font-size:2.4rem;margin-bottom:.6rem;">\uD83D\uDD0E</div>
+                 <p>Bu BirMillater topilmadi yoki sahifasi yashirilgan.</p>
+                 <p><a href="/birmillaters">Barcha BirMillaterlarni ko'rish</a></p></div></div>`);
+    res.status(404).type('html').send(html);
+}
+
+app.get('/birmillaters', async (req, res) => {
+    try {
+        const rows = await getActiveBirmillaters();
+        for (const r of rows) if (!r.slug) r.slug = await ensureBirmillaterSlug(r.username);
+        const list = rows.map(r => birmillaterToPublic(r, false));
+        const url = `${SITE_URL}/birmillaters`;
+        const title = 'BirMillaters \u2014 BirMillat koordinatorlari va volontyorlari';
+        const description = "BirMillat koordinatorlari va volontyorlari: har birining ochiq sahifasi \u2014 kim, qayerdan va yo'li. BirMillat'da to'g'ridan-to'g'ri yozing.";
+        const collection = {
+            '@context': 'https://schema.org', '@type': 'CollectionPage', '@id': url, url,
+            name: 'BirMillaters', description, inLanguage: 'uz',
+            isPartOf: { '@type': 'WebSite', name: 'BirMillat', url: SITE_URL },
+            mainEntity: {
+                '@type': 'ItemList', numberOfItems: list.length,
+                itemListElement: list.map((p, i) => ({
+                    '@type': 'ListItem', position: i + 1, name: p.name,
+                    url: `${SITE_URL}/birmillaters/${encodeURIComponent(p.slug)}`
+                }))
+            }
+        };
+        const crumbs = {
+            '@context': 'https://schema.org', '@type': 'BreadcrumbList',
+            itemListElement: [
+                { '@type': 'ListItem', position: 1, name: 'BirMillat', item: `${SITE_URL}/` },
+                { '@type': 'ListItem', position: 2, name: 'BirMillaters', item: url }
+            ]
+        };
+        let html = seoReadTemplate('birmillaters.html');
+        html = seoInject(html, {
+            title, description,
+            extraHead: seoHead({
+                canonical: url, robots: 'index,follow,max-image-preview:large', ogType: 'website', title, description,
+                image: `${SITE_URL}/logo.png`, imageAlt: 'BirMillat logotipi', twitterCard: 'summary', jsonLd: [collection, crumbs]
+            })
+        });
+        const gridRe = /<div class="bm-grid" id="bmGrid">[\s\S]*?<\/div>(?=\s*<section class="bm-join">)/;
+        const grid = list.length
+            ? `<div class="bm-grid" id="bmGrid" data-ssr="1">${list.map(renderBirmillaterCard).join('')}</div>`
+            : `<div class="bm-grid" id="bmGrid" data-ssr="1"><div class="bm-empty">Hozircha BirMillaterlar qo'shilmagan. Tez orada!</div></div>`;
+        html = html.replace(gridRe, () => grid);
+        html = html.replace('<div class="bm-count" id="bmCount" aria-live="polite"></div>', () =>
+            `<div class="bm-count" id="bmCount" aria-live="polite">${list.length ? list.length + ' ta BirMillater' : ''}</div>`);
+        res.set('Cache-Control', 'public, max-age=60').type('html').send(html);
+    } catch (err) {
+        console.error('GET /birmillaters error:', err);
+        res.sendFile(path.join(__dirname, 'birmillaters.html'));
+    }
 });
-app.get('/birmillaters/:username', (req, res) => {
-    res.sendFile(path.join(__dirname, 'birmillater-detail.html'));
+
+app.get('/birmillaters/:slug', async (req, res) => {
+    try {
+        const row = await getBirmillaterBySlugOrUsername(req.params.slug);
+        if (!row || !row.is_active) return sendBirmillaterNotFound(res);
+        if (!row.slug) row.slug = await ensureBirmillaterSlug(row.username);
+        // One permanent address per person: usernames and other spellings redirect to the slug.
+        if (req.params.slug !== row.slug) return res.redirect(301, `/birmillaters/${encodeURIComponent(row.slug)}`);
+
+        const seo = birmillaterProfileSeo(row);
+        const [contrib, all] = await Promise.all([getBirmillaterContributions(row.username), getActiveBirmillaters()]);
+        const others = all.filter(r => r.username !== row.username).slice(0, 4).map(r => birmillaterToPublic({ ...r, slug: r.slug || r.username }, false));
+
+        let html = seoReadTemplate('birmillater-detail.html');
+        html = seoInject(html, { title: seo.title, description: seo.description, extraHead: seo.extraHead });
+        html = html.replace('<div id="bdRoot"><div class="bd-skel"></div></div>', () =>
+            `<div id="bdRoot" data-ssr="1">${renderBirmillaterProfileBody(seo.pub, contrib, others)}</div>`);
+        res.set('Cache-Control', 'public, max-age=60').type('html').send(html);
+    } catch (err) {
+        console.error('GET /birmillaters/:slug error:', err);
+        res.sendFile(path.join(__dirname, 'birmillater-detail.html'));
+    }
 });
 app.get('/api/birmillaters', async (req, res) => {
     try {
@@ -3092,14 +3466,14 @@ app.get('/api/birmillaters', async (req, res) => {
         res.status(500).json({ error: 'Server error' });
     }
 });
-app.get('/api/birmillaters/:username', async (req, res) => {
+app.get('/api/birmillaters/:slug', async (req, res) => {
     try {
-        const row = await getBirmillaterRow(req.params.username);
+        const row = await getBirmillaterBySlugOrUsername(req.params.slug);
         if (!row || !row.is_active) return res.status(404).json({ error: 'Topilmadi' });
         res.set('Cache-Control', 'public, max-age=60');
         res.json(birmillaterToPublic(row, true));
     } catch (err) {
-        console.error('GET /api/birmillaters/:username error:', err);
+        console.error('GET /api/birmillaters/:slug error:', err);
         res.status(500).json({ error: 'Server error' });
     }
 });
@@ -3118,10 +3492,12 @@ function birmillaterAdminHelp() {
         `/bm_region @username Jizzax viloyati\n` +
         `/bm_about @username "Men haqimda" matni\n` +
         `/bm_way @username "Mening yo'lim" matni\n` +
+        `/bm_achievements @username Yutuqlari va hissasi (faqat haqiqiy ma'lumot)\n` +
         `/bm_instagram @username @nom yoki havola\n` +
         `/bm_linkedin @username havola\n` +
         `/bm_telegram @username @nom\n` +
         `/bm_order @username 1 — tartib raqami (kichigi birinchi)\n` +
+        `/bm_slug @username temurbek-ahmedov — sahifa manzilini tuzatish (kamdan-kam kerak)\n` +
         `/bm_hide @username — vaqtincha yashirish, /bm_show — qaytarish\n` +
         `/bm_remove @username — ro'yxatdan butunlay olib tashlash\n` +
         `/birmillaters — hammasini ko'rish\n\n` +
@@ -3144,12 +3520,13 @@ const BM_WIZARD_STEPS = [
     { key: 'region', q: "Qaysi hudud? (masalan: <i>Jizzax viloyati</i>)" },
     { key: 'about', q: "«Men haqimda» matnini yozing — u kim va qayerdan." },
     { key: 'way', q: "«Mening yo'lim» matnini yozing — uning yo'li va maqsadi." },
+    { key: 'achievements', q: "Yutuqlari va BirMillat'dagi hissasi (faqat haqiqiy ma'lumot — masalan: qaysi tadbirlarni uyushtirgan, qanday natijalarga erishgan)." },
     { key: 'instagram', q: "Instagram: @nom yoki havola." },
     { key: 'linkedin', q: "LinkedIn havolasi." },
     { key: 'telegram', q: "Telegram: @nom." }
 ];
 const BM_WIZARD_COLUMNS = {
-    name: 'display_name', title: 'title', region: 'region', about: 'about', way: 'my_way',
+    name: 'display_name', title: 'title', region: 'region', about: 'about', way: 'my_way', achievements: 'achievements',
     instagram: 'instagram', linkedin: 'linkedin', telegram: 'telegram', photo: 'photo_url'
 };
 
@@ -3187,14 +3564,16 @@ async function finishBirmillaterWizard(chatId, wiz) {
         });
     }
     const e = escapeHtmlForTelegram;
+    const pageUrl = await birmillaterPageUrl(d.username);
     const lines = [
         d.name && `👤 ${e(d.name)}`, d.title && `🏷 ${e(d.title)}`, d.region && `📍 ${e(d.region)}`,
         d.photo && '📷 rasm o\'rnatildi', d.about && '📝 «Men haqimda» yozildi', d.way && '⭐ «Mening yo\'lim» yozildi',
+        d.achievements && '🏆 yutuqlari yozildi',
         d.instagram && `Instagram: ${e(d.instagram)}`, d.linkedin && `LinkedIn: ${e(d.linkedin)}`, d.telegram && `Telegram: ${e(d.telegram)}`
     ].filter(Boolean).join('\n');
     await sendTelegramMessageTo(chatId,
         `✅ <b>@${e(d.username)}</b> ${existing ? 'yangilandi' : "BirMillater qilib qo'shildi"}!\n\n${lines || ''}\n\n` +
-        `${SITE_URL}/birmillaters/${encodeURIComponent(d.username)}\n\n` +
+        `${pageUrl}\n\n` +
         `Keyinroq o'zgartirish: /birmillaters`, { remove_keyboard: true });
 }
 
@@ -3311,7 +3690,7 @@ async function handleBirmillaterAdminMessage(chatId, message) {
     const username = m[2];
     const value = (m[3] || '').trim();
     const known = ['add', 'remove', 'hide', 'show', 'photo', 'name', 'title', 'region', 'about', 'way',
-        'instagram', 'linkedin', 'telegram', 'order'];
+        'achievements', 'instagram', 'linkedin', 'telegram', 'order', 'slug'];
     if (!known.includes(action)) return false;
     if (!username) {
         await send(`ℹ️ Foydalanuvchi nomini yozing, masalan: /bm_${action} @username`);
@@ -3335,9 +3714,10 @@ async function handleBirmillaterAdminMessage(chatId, message) {
             sql: `INSERT INTO birmillaters (username, sort_order, is_active, created_at) VALUES (?, ?, 1, ?)`,
             args: [exact, Number(next.rows[0].n), Date.now()]
         });
+        await ensureBirmillaterSlug(exact);
         await send(`✅ @${esc(exact)} BirMillater qilib qo'shildi.\n\nEndi to'ldiring:\n` +
             `/bm_photo @${esc(exact)}\n/bm_title @${esc(exact)} Hududiy koordinator\n/bm_region @${esc(exact)} Jizzax viloyati\n` +
-            `/bm_about @${esc(exact)} ...\n/bm_way @${esc(exact)} ...\n\nSahifa: ${SITE_URL}/birmillaters/${encodeURIComponent(exact)}`);
+            `/bm_about @${esc(exact)} ...\n/bm_way @${esc(exact)} ...\n\nSahifa: ${await birmillaterPageUrl(exact)}`);
         return true;
     }
 
@@ -3347,7 +3727,7 @@ async function handleBirmillaterAdminMessage(chatId, message) {
         return true;
     }
     const exact = row.username;
-    const done = (what) => send(`✅ @${esc(exact)}: ${what}\n${SITE_URL}/birmillaters/${encodeURIComponent(exact)}`);
+    const done = async (what) => send(`✅ @${esc(exact)}: ${what}\n${await birmillaterPageUrl(exact)}`);
 
     if (action === 'remove') {
         await db.execute({ sql: 'DELETE FROM birmillaters WHERE id = ?', args: [row.id] });
@@ -3386,8 +3766,24 @@ async function handleBirmillaterAdminMessage(chatId, message) {
         return true;
     }
 
+    if (action === 'slug') {
+        // Only for fixing a wrong address: the old link stops working, so use it rarely.
+        const wanted = slugifyName(value);
+        if (!wanted) {
+            await send("❌ Manzil faqat lotin harflari va raqamlardan iborat bo'lishi kerak. Masalan: <code>temurbek-ahmedov</code>");
+            return true;
+        }
+        const taken = await db.execute({ sql: 'SELECT username FROM birmillaters WHERE slug = ? AND id != ? LIMIT 1', args: [wanted, row.id] });
+        if (taken.rows.length) {
+            await send(`❌ <code>${esc(wanted)}</code> manzili band (@${esc(taken.rows[0].username)}). Boshqa variant yozing.`);
+            return true;
+        }
+        await db.execute({ sql: 'UPDATE birmillaters SET slug = ? WHERE id = ?', args: [wanted, row.id] });
+        await done("manzil o'zgartirildi (eski havola ishlamay qoladi)");
+        return true;
+    }
     const clear = value === '-';
-    const textColumns = { name: 'display_name', title: 'title', region: 'region', about: 'about', way: 'my_way' };
+    const textColumns = { name: 'display_name', title: 'title', region: 'region', about: 'about', way: 'my_way', achievements: 'achievements' };
     if (textColumns[action]) {
         if (!clear && value.length > BM_FIELD_LIMITS[action]) {
             await send(`❌ Juda uzun: ${value.length} belgi (ko'pi bilan ${BM_FIELD_LIMITS[action]}).`);
@@ -3422,7 +3818,7 @@ async function saveBirmillaterPhoto(chatId, username, photoSizes) {
             return;
         }
         await db.execute({ sql: 'UPDATE birmillaters SET photo_url = ? WHERE username = ? COLLATE NOCASE', args: [uploaded.url, username] });
-        await send(`✅ @${escapeHtmlForTelegram(username)} rasmi yangilandi.\n${SITE_URL}/birmillaters/${encodeURIComponent(username)}`);
+        await send(`✅ @${escapeHtmlForTelegram(username)} rasmi yangilandi.\n${await birmillaterPageUrl(username)}`);
     } catch (err) {
         console.error('saveBirmillaterPhoto error:', err);
         await send('❌ Rasmni saqlab bo\'lmadi. Qaytadan urinib ko\'ring.');
@@ -3466,7 +3862,7 @@ app.get('/sitemap.xml', async (req, res) => {
             ...events.map(e => ({ loc: `${SITE_URL}/events/${e.id}`, lastmod: isoDay(e.created_at) })),
             ...opportunities.map(o => ({ loc: `${SITE_URL}/volunteer/${o.id}`, lastmod: isoDay(o.created_at) })),
             ...articles.map(a => ({ loc: `${SITE_URL}/articles/${a.id}`, lastmod: isoDay(a.created_at) })),
-            ...birmillaters.map(b => ({ loc: `${SITE_URL}/birmillaters/${encodeURIComponent(b.username)}`, lastmod: isoDay(b.created_at) }))
+            ...birmillaters.map(b => ({ loc: `${SITE_URL}/birmillaters/${encodeURIComponent(b.slug || b.username)}`, lastmod: isoDay(b.updated_at || b.created_at) }))
         ];
 
         const xml = `<?xml version="1.0" encoding="UTF-8"?>\n` +
