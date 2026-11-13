@@ -408,7 +408,7 @@ body { font-family: 'Inter', sans-serif; }
         if (!list || !list.length) return;
         var grid = document.getElementById('abBmGrid');
         grid.innerHTML = list.slice(0, 4).map(function (b) {
-            return '<a class="bm-mini" href="/birmillaters/' + encodeURIComponent(b.username) + '" aria-label="' + esc(b.name) + '">' +
+            return '<a class="bm-mini" href="/birmillaters/' + encodeURIComponent(b.slug || b.username) + '" aria-label="' + esc(b.name) + '">' +
                 '<div class="bm-mini-photo"><span aria-hidden="true">' + esc(initials(b.name)) + '</span>' +
                 (b.photo ? '<img src="' + esc(b.photo) + '" alt="' + esc(b.name) + '" loading="lazy" onerror="this.remove()">' : '') + '</div>' +
                 '<b>' + esc(b.title || b.name) + '</b>' +
