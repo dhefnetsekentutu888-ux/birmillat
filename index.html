@@ -206,6 +206,23 @@ footer { background: var(--color-surface); border-top: 1px solid var(--color-bor
   .lp-foot-top > div:first-child { grid-column: 1 / -1; }
 }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .lp-skel { animation: none; } }
+
+/* clearer hero: eyebrow, quick points, "what's inside" panel */
+.lp-eyebrow { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; margin-bottom: 18px; border-radius: 999px; background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.28); color: #fff; font: 600 0.84rem 'Inter', sans-serif; }
+.lp-eyebrow i { color: #FFB4AA; }
+.lp-points { list-style: none; display: flex; flex-wrap: wrap; gap: 10px 22px; margin: 22px 0 0; padding: 0; color: rgba(255,255,255,0.92); font: 600 0.92rem 'Inter', sans-serif; }
+.lp-points li { display: inline-flex; align-items: center; gap: 8px; }
+.lp-points i { color: #FF8A7C; }
+.lp-feat { width: min(440px, 100%); padding: 20px; }
+.lp-feat-title { font: 800 1.05rem 'Sora', sans-serif; margin-bottom: 12px; color: var(--color-text); }
+.lp-feat-row { display: flex; align-items: center; gap: 14px; padding: 12px; border-radius: 16px; text-decoration: none; color: var(--color-text); transition: background .2s ease, transform .2s ease; }
+.lp-feat-row + .lp-feat-row { margin-top: 4px; }
+.lp-feat-row:hover, .lp-feat-row:focus-visible { background: rgba(109, 79, 214, 0.10); transform: translateX(3px); }
+.lp-feat-ic { flex-shrink: 0; width: 46px; height: 46px; display: grid; place-items: center; border-radius: 14px; background: #EFE9FB; color: #4A2F9E; font-size: 1.15rem; }
+.lp-feat-row b { display: block; font: 700 0.98rem/1.3 'Sora', sans-serif; }
+.lp-feat-row small { display: block; margin-top: 2px; font-size: 0.84rem; line-height: 1.45; color: var(--color-text-muted); }
+.lp-feat-arrow { margin-left: auto; color: var(--color-text-muted); font-size: 0.8rem; }
+@media (prefers-reduced-motion: reduce) { .lp-feat-row { transition: none; } }
 </style>
 </head>
 <body>
@@ -223,7 +240,8 @@ footer { background: var(--color-surface); border-top: 1px solid var(--color-bor
     </a>
     <nav class="lp-links" aria-label="Asosiy">
       <a href="/about" data-i18n="nav.about">BirMillat nima?</a>
-      <a href="/founders.html" data-i18n="nav.social">Ijtimoiy tarmoq</a>
+      <a href="/events" data-i18n="nav.events">Tadbirlar</a>
+      <a href="/volunteer" data-i18n="nav.volunteer">Volontyorlik</a>
       <a href="/birmillaters">BirMillaters</a>
     </nav>
     <div class="lp-actions">
@@ -272,11 +290,17 @@ footer { background: var(--color-surface); border-top: 1px solid var(--color-bor
   </div>
   <div class="lp-wrap lp-hero-grid">
     <div>
-      <h1 data-i18n-html="hero.h1">Qiziqishlaringiz asosida <span class="lp-underline">haqiqiy do'stlar</span> toping</h1>
-      <p class="lp-sub" data-i18n="hero.sub">Dasturlash, sun'iy intellekt, o'yinlar, sport yoki sayohat — kim bilan bo'lishishni xohlasangiz, ular shu yerda. Jamoalarga qo'shiling, tadbirlarga boring, birga o'sing.</p>
+      <div class="lp-eyebrow"><i class="fas fa-heart"></i> O'zbekiston yoshlari uchun bepul platforma</div>
+      <h1>Do'st toping, tadbirga boring, <span class="lp-underline">birga o'sing</span></h1>
+      <p class="lp-sub">BirMillat — o'xshash qiziqishdagi yoshlarni birlashtiradigan platforma. Bu yerda siz do'stlar topasiz, jamoalarga qo'shilasiz, tadbirlarga yozilasiz va volontyorlik qilasiz.</p>
+      <ul class="lp-points">
+        <li><i class="fas fa-circle-check"></i> Butunlay bepul</li>
+        <li><i class="fas fa-circle-check"></i> Ro'yxatdan o'tish — 1 daqiqa</li>
+        <li><i class="fas fa-circle-check"></i> Butun O'zbekiston bo'ylab</li>
+      </ul>
       <div class="lp-cta-row">
-        <a href="/register" class="lp-btn primary"><span data-i18n="hero.cta_primary">Bepul boshlash</span> <svg class="lp-i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>
-        <a href="#lpJamoalar" class="lp-btn ghost" data-i18n="hero.cta_ghost">Platformani ko'rish</a>
+        <a href="/register" class="lp-btn primary"><span>Bepul ro'yxatdan o'tish</span> <svg class="lp-i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>
+        <a href="/events" class="lp-btn ghost">Tadbirlarni ko'rish</a>
       </div>
       <div class="lp-stats" id="lpStats" hidden>
         <div><div class="lp-stat-num" id="statMembers">0</div><div class="lp-stat-label" data-i18n="hero.stat_members">a'zo</div></div>
@@ -285,16 +309,14 @@ footer { background: var(--color-surface); border-top: 1px solid var(--color-bor
       </div>
     </div>
 
-    <div class="lp-visual" aria-hidden="true">
-      <div class="lp-pv">
-        <div class="lp-pv-head"><span class="lp-av" style="--h:305">A</span><div><b>Aziza</b><small class="on" data-i18n="mx.online">onlayn</small></div></div>
-        <div class="lp-b in" data-i18n="lp.chat1">Salom! Python bo'yicha jamoa izlayapsizmi?</div>
-        <div class="lp-b out" data-i18n="lp.chat2">Ha, qo'shilaman! 🙌</div>
-      </div>
-      <div class="lp-pv lp-pv-rec">
-        <div class="lp-pv-head"><span class="lp-av" style="--h:172">J</span><div><b>Jasur</b><small>@jasur_dev</small></div></div>
-        <div class="lp-tags"><span class="m">#Python</span><span class="m">#Startup</span><span>#IELTS</span></div>
-        <div class="lp-match"><svg class="lp-i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8.5 12.5 2.5 2.5 4.5-5"/></svg><span>2&nbsp;<span data-i18n="recommend.matches">mos qiziqish</span></span></div>
+    <div class="lp-visual">
+      <div class="lp-pv lp-feat">
+        <div class="lp-feat-title">BirMillat'da nimalar bor?</div>
+        <a class="lp-feat-row" href="/events"><span class="lp-feat-ic"><i class="fas fa-calendar-days"></i></span><span><b>Tadbirlar</b><small>Uchrashuv, seminar va musobaqalarga yoziling va qatnashing</small></span><i class="fas fa-chevron-right lp-feat-arrow"></i></a>
+        <a class="lp-feat-row" href="#lpJamoalar"><span class="lp-feat-ic"><i class="fas fa-user-group"></i></span><span><b>Jamoalar va do'stlar</b><small>Qiziqishingiz bo'yicha jamoalarga qo'shiling, odamlarga yozing</small></span><i class="fas fa-chevron-right lp-feat-arrow"></i></a>
+        <a class="lp-feat-row" href="/volunteer"><span class="lp-feat-ic"><i class="fas fa-hand-holding-heart"></i></span><span><b>Volontyorlik</b><small>Foydali ishlarda qatnashing va tajriba orttiring</small></span><i class="fas fa-chevron-right lp-feat-arrow"></i></a>
+        <a class="lp-feat-row" href="/birmillaters"><span class="lp-feat-ic"><i class="fas fa-users"></i></span><span><b>BirMillaters</b><small>Hududlardagi koordinatorlar — ularga to'g'ridan-to'g'ri yozing</small></span><i class="fas fa-chevron-right lp-feat-arrow"></i></a>
+        <a class="lp-feat-row" href="/articles"><span class="lp-feat-ic"><i class="fas fa-newspaper"></i></span><span><b>Maqolalar</b><small>Yoshlar uchun foydali maqolalar va tajribalar</small></span><i class="fas fa-chevron-right lp-feat-arrow"></i></a>
       </div>
     </div>
   </div>
@@ -304,9 +326,9 @@ footer { background: var(--color-surface); border-top: 1px solid var(--color-bor
   <div class="lp-wrap">
     <div class="lp-head"><h2 data-i18n="steps.title">Qanday ishlaydi</h2><p data-i18n="steps.sub">Uch qadam — shu qadar oddiy</p></div>
     <div class="lp-steps">
-      <div class="lp-step"><div class="lp-step-num">1</div><h3 data-i18n="steps.s1_title">Profil yarating</h3><p data-i18n="steps.s1_body">Ism, rasm, qiziqishlaringizni qo'shing — bir necha daqiqa ichida.</p></div>
-      <div class="lp-step"><div class="lp-step-num">2</div><h3 data-i18n="steps.s2_title">Mos kelganlarni toping</h3><p data-i18n="steps.s2_body">Qiziqishlaringiz asosida tavsiyalar va qidiruv orqali odamlarni kashf eting.</p></div>
-      <div class="lp-step"><div class="lp-step-num">3</div><h3 data-i18n="steps.s3_title">Suhbatlashing, o'sing</h3><p data-i18n="steps.s3_body">Real vaqtda xabar yozing, tadbirlarga qatnashing, do'stlar orttiring.</p></div>
+      <div class="lp-step"><div class="lp-step-num">1</div><h3>Ro'yxatdan o'ting</h3><p>Ism, rasm va qiziqishlaringizni kiriting. Bu bepul va bir daqiqa oladi.</p></div>
+      <div class="lp-step"><div class="lp-step-num">2</div><h3>Imkoniyatlarni toping</h3><p>Tadbirlar, jamoalar va volontyorlik e'lonlarini ko'ring — o'zingizga mosini tanlang.</p></div>
+      <div class="lp-step"><div class="lp-step-num">3</div><h3>Qatnashing va suhbatlashing</h3><p>Tadbirga yoziling, jamoaga qo'shiling, yangi do'stlarga BirMillat'da to'g'ridan-to'g'ri yozing.</p></div>
     </div>
   </div>
 </section>
@@ -325,23 +347,11 @@ footer { background: var(--color-surface); border-top: 1px solid var(--color-bor
   </div>
 </section>
 
-<section class="lp-sec lp-alt">
-  <div class="lp-wrap">
-    <div class="lp-head"><h2 data-i18n="cats.title">Sizga mosini toping</h2><p data-i18n="cats.sub">Har bir yo'nalishda faol jamoalar va do'stlar bor</p></div>
-    <div class="lp-cats">
-      <div class="lp-cat"><div class="icon"><img src="/icons/icon-education.svg" alt="" width="26" height="26" loading="lazy"></div><h3 data-i18n="cats.edu_title">Ta'lim</h3><p data-i18n="cats.edu_body">IELTS, matematika, dasturlash</p></div>
-      <div class="lp-cat"><div class="icon"><img src="/icons/icon-startup.svg" alt="" width="26" height="26" loading="lazy"></div><h3 data-i18n="cats.startup_title">Startup</h3><p data-i18n="cats.startup_body">Yangi g'oyalar, jamoa</p></div>
-      <div class="lp-cat"><div class="icon"><img src="/icons/icon-tech.svg" alt="" width="26" height="26" loading="lazy"></div><h3 data-i18n="cats.tech_title">Texnologiya</h3><p data-i18n="cats.tech_body">IT, AI, dizayn</p></div>
-      <div class="lp-cat"><div class="icon"><img src="/icons/icon-trophy.svg" alt="" width="26" height="26" loading="lazy"></div><h3 data-i18n="cats.motiv_title">Motivatsiya</h3><p data-i18n="cats.motiv_body">Maqsadli hamjamiyat</p></div>
-    </div>
-  </div>
-</section>
-
 <section class="lp-sec">
   <div class="lp-wrap">
     <div class="lp-cta">
-      <h2 data-i18n="cta.title">Bizning maqsad</h2>
-      <p data-i18n="cta.body">Yoshlarni qiziqishlari bo'yicha birlashtirish va ularga rivojlanish imkoniyatini yaratish.</p>
+      <h2>Bugun BirMillat'ga qo'shiling</h2>
+      <p>Bizning maqsad — yoshlarni qiziqishlari bo'yicha birlashtirish va ularga rivojlanish imkoniyatini yaratish. Ro'yxatdan o'tish bepul.</p>
       <a href="/register" class="lp-btn primary"><span data-i18n="hero.cta_primary">Bepul boshlash</span> <svg class="lp-i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>
       <div class="lp-social">
         <a href="https://t.me/birmillatUZB" aria-label="Telegram" target="_blank" rel="noopener"><i class="fab fa-telegram"></i></a>
