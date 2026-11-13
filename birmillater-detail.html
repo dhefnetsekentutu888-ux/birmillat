@@ -54,6 +54,17 @@
     .bd-photo { flex-basis: auto; width: 100%; max-width: 300px; }
     .bd-wrap { padding-top: 5.6rem; }
 }
+
+.bd-muted { color: var(--color-text-muted); font-size: .9rem; }
+.bd-contrib h3 { font: 700 .95rem 'Sora', sans-serif; color: var(--color-text); margin: 1.1rem 0 .5rem; }
+.bd-links { list-style: none; margin: 0; padding: 0; display: grid; gap: .45rem; }
+.bd-links a { color: var(--color-primary); font-weight: 600; text-decoration: none; }
+.bd-links a:hover { text-decoration: underline; }
+.bd-links time { margin-left: .6rem; font-size: .8rem; color: var(--color-text-muted); }
+.bd-others { position: relative; z-index: 1; margin-top: 2.2rem; padding: 1.3rem 1.5rem; border: 1px solid var(--color-border); border-radius: 22px; background: var(--color-surface); }
+.bd-others h2 { font: 700 1.05rem 'Sora', sans-serif; margin: 0 0 .8rem; color: var(--color-primary); }
+.bd-others p { margin: .9rem 0 0; }
+.bd-others p a { color: var(--color-primary); font-weight: 700; }
 </style>
 </head>
 <body>
@@ -183,6 +194,18 @@
 
         (async () => {
             await loadMe();
+            const root = document.getElementById('bdRoot');
+            if (root.getAttribute('data-ssr') === '1') {
+                // Page was rendered on the server (this is what search engines read).
+                // Only adjust for the viewer: nobody needs a "write to me" button on their own page.
+                const write = root.querySelector('.bd-write');
+                if (write && currentUser && currentUser.username &&
+                    currentUser.username.toLowerCase() === (write.getAttribute('data-username') || '').toLowerCase()) {
+                    write.remove();
+                    const note = root.querySelector('.bd-write-note'); if (note) note.remove();
+                }
+                return;
+            }
             try {
                 const res = await fetch('/api/birmillaters/' + encodeURIComponent(username));
                 if (!res.ok) { notFound(); return; }
