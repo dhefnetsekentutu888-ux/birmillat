@@ -156,7 +156,7 @@
                 ? `<img src="${esc(b.photo)}" alt="${esc(b.name)}" loading="lazy" onerror="this.remove()">`
                 : '';
             return `
-                <a class="bm-card" href="/birmillaters/${encodeURIComponent(b.username)}" aria-label="${esc(b.name)}">
+                <a class="bm-card" href="/birmillaters/${encodeURIComponent(b.slug || b.username)}" aria-label="${esc(b.name)}">
                     <div class="bm-photo">
                         <div class="bm-initials" aria-hidden="true">${esc(initials(b.name))}</div>
                         ${photo}
@@ -164,7 +164,7 @@
                     </div>
                     <div class="bm-info">
                         <div class="bm-info-text">
-                            <h3 class="bm-title">${esc(b.title || 'BirMillater')}</h3>
+                            <h2 class="bm-title">${esc(b.title || 'BirMillater')}</h2>
                             ${b.region ? `<p class="bm-region"><i class="fas fa-location-dot"></i> ${esc(b.region)}</p>` : ''}
                         </div>
                         <span class="bm-go"><i class="fas fa-arrow-right"></i></span>
@@ -188,7 +188,8 @@
                 const res = await fetch('/api/birmillaters');
                 all = res.ok ? await res.json() : [];
             } catch (e) { console.error(e); all = []; }
-            render();
+            // The server already rendered the cards; only re-render when the visitor searches.
+            if (document.getElementById('bmGrid').getAttribute('data-ssr') !== '1') render();
         })();
         let t = null;
         document.getElementById('bmSearch').addEventListener('input', () => { clearTimeout(t); t = setTimeout(render, 150); });
