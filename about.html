@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BirMillat nima? — Platforma haqida</title>
-<meta name="description" content="BirMillat — O'zbekiston yoshlari uchun qiziqishlar asosida do'stlar, jamoalar va tadbirlar topadigan ijtimoiy platforma. Asoschisi — Bekhruz Ravshanov.">
+<meta name="description" content="BirMillat — O'zbekiston yoshlari uchun ijtimoiy platforma. Asosiy yo'nalish — BirMillaters: hududlardagi koordinator va volontyorlar. Do'stlar, jamoalar, tadbirlar va volontyorlik. Asoschisi — Bekhruz Ravshanov.">
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="manifest" href="/manifest.json">
 <link rel="apple-touch-icon" href="/favicon.png">
@@ -24,7 +24,7 @@
   "@type": "Organization",
   "name": "BirMillat",
   "url": "https://birmillat.uz",
-  "description": "O'zbekiston yoshlari uchun qiziqishlar asosida do'stlar, jamoalar va tadbirlar topadigan ijtimoiy platforma.",
+  "description": "O'zbekiston yoshlari uchun ijtimoiy platforma: BirMillaters (hududiy koordinator va volontyorlar), do'stlar, jamoalar, tadbirlar va volontyorlik.",
   "foundingLocation": "Uzbekistan",
   "sameAs": [
     "https://t.me/birmillatUZB",
@@ -158,6 +158,37 @@ body { font-family: 'Inter', sans-serif; }
     .founder-card { flex-direction: column; align-items: center; text-align: center; }
     .founder-socials { justify-content: center; }
 }
+
+/* BirMillaters: the main feature of the platform */
+.about-hero-btn { display: inline-flex; align-items: center; gap: 0.6rem; margin-top: 1.5rem; padding: 0.85rem 1.6rem; border-radius: 999px; background: #FF6B5B; color: #fff; font-weight: 700; text-decoration: none; box-shadow: 0 10px 26px rgba(255,107,91,.4); transition: transform .2s ease, box-shadow .2s ease; }
+.about-hero-btn:hover, .about-hero-btn:focus-visible { transform: translateY(-2px); box-shadow: 0 14px 32px rgba(255,107,91,.5); }
+.bm-feature { position: relative; overflow: hidden; border-radius: 28px; padding: 2.4rem 1.8rem; color: #FAF7F2; text-align: center;
+    background: linear-gradient(150deg, #2D1B69, #4A2F9E 70%, #6D4FD6); box-shadow: 0 22px 54px rgba(45,27,105,.28); }
+.bm-feature::before { content: ''; position: absolute; width: 260px; height: 260px; border-radius: 50%; background: #FF6B5B; opacity: .22; filter: blur(80px); top: -90px; left: -60px; }
+.bm-feature > * { position: relative; z-index: 1; }
+.bm-feature-badge { display: inline-flex; align-items: center; gap: .5rem; padding: .4rem 1rem; border-radius: 999px; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.25); font-size: .78rem; font-weight: 700; margin-bottom: 1rem; }
+.bm-feature-badge i { color: #FFB4AA; }
+.bm-feature h2 { font-family: 'Sora', sans-serif; font-size: clamp(1.6rem, 4.2vw, 2.2rem); line-height: 1.2; margin: 0 0 .9rem; color: #fff; text-align: center; }
+.bm-feature-lead { max-width: 640px; margin: 0 auto 1.8rem; color: #E4DBF7; line-height: 1.75; font-size: 1.02rem; }
+.bm-feature-points { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.8rem; text-align: left; }
+.bm-feature-points > div { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.16); border-radius: 18px; padding: 1.1rem; }
+.bm-feature-points i { display: block; font-size: 1.2rem; color: #FF9A8D; margin-bottom: .55rem; }
+.bm-feature-points b { display: block; font-family: 'Sora', sans-serif; font-size: .98rem; margin-bottom: .3rem; color: #fff; }
+.bm-feature-points span { font-size: .86rem; line-height: 1.5; color: #D9D2EE; }
+.bm-feature-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .9rem; margin-bottom: 1.8rem; text-align: left; }
+.bm-feature-grid[hidden] { display: none; }
+@media (max-width: 760px) { .bm-feature-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .bm-feature { padding: 2rem 1.1rem; } }
+.bm-mini { display: block; text-decoration: none; color: var(--color-text); background: var(--color-surface); border-radius: 18px; padding: .5rem; transition: transform .2s ease, box-shadow .2s ease; }
+.bm-mini:hover, .bm-mini:focus-visible { transform: translateY(-4px); box-shadow: 0 14px 30px rgba(0,0,0,.25); }
+.bm-mini-photo { position: relative; aspect-ratio: 4 / 5; border-radius: 13px; overflow: hidden; background: linear-gradient(145deg, #4A2F9E, #FF6B5B); }
+.bm-mini-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.bm-mini-photo span { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font: 800 2rem 'Sora', sans-serif; color: rgba(255,255,255,.92); }
+.bm-mini b { display: block; margin: .6rem .3rem 0; font: 700 .9rem/1.25 'Sora', sans-serif; color: var(--color-primary); }
+.bm-mini small { display: block; margin: .2rem .3rem .35rem; font-size: .8rem; color: var(--color-text-muted); }
+.bm-feature-btn { display: inline-flex; align-items: center; gap: .7rem; padding: 1rem 2rem; border-radius: 18px; background: #FF6B5B; color: #fff; font: 800 1.05rem 'Sora', sans-serif; text-decoration: none; box-shadow: 0 12px 30px rgba(255,107,91,.45); transition: transform .2s ease, box-shadow .2s ease; }
+.bm-feature-btn:hover, .bm-feature-btn:focus-visible { transform: translateY(-3px); box-shadow: 0 16px 36px rgba(255,107,91,.55); }
+.about-hero-btn:focus-visible, .bm-feature-btn:focus-visible, .bm-mini:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { .about-hero-btn, .bm-feature-btn, .bm-mini { transition: none; } }
 </style>
 </head>
 <body>
@@ -175,6 +206,7 @@ body { font-family: 'Inter', sans-serif; }
             <button class="sidebar-close" id="sidebarClose" aria-label="Yopish"><i class="fas fa-xmark"></i></button>
             <a href="/events">Tadbirlar</a>
             <a href="/volunteer">Volontyorlik</a>
+            <a href="/birmillaters"><i class="fas fa-users"></i> <span>BirMillaters</span></a>
             <a href="/founders.html">Ijtimoiy tarmoq</a>
             <a href="/login">Kirish</a>
             <a href="/register" class="btn btn-primary btn-zoom" style="padding:0.5rem 1.15rem;">Ro'yxatdan o'tish</a>
@@ -195,12 +227,28 @@ body { font-family: 'Inter', sans-serif; }
     <section class="about-hero">
         <span class="eyebrow"><i class="fas fa-circle-info"></i> Platforma haqida</span>
         <h1>BirMillat nima?</h1>
-        <p>BirMillat — O'zbekiston yoshlarini qiziqishlari asosida birlashtiradigan ijtimoiy platforma. Do'stlar toping, jamoalarga qo'shiling, tadbirlarda ishtirok eting, volontyorlik imkoniyatlarini kashf eting va o'z fikringizni maqolalar orqali ulashing.</p>
+        <p>BirMillat — O'zbekiston yoshlarini qiziqishlari asosida birlashtiradigan ijtimoiy platforma. Uning asosiy kuchi — <strong>BirMillaters</strong>: har bir hududdagi koordinator va volontyorlar. Ular bilan tanishing, to'g'ridan-to'g'ri yozing, do'stlar toping, jamoalarga qo'shiling va tadbirlarda ishtirok eting.</p>
+        <a href="/birmillaters" class="about-hero-btn">BirMillaters bilan tanishing <i class="fas fa-arrow-right"></i></a>
     </section>
 
     <div class="about-container">
+        <div class="about-section" id="birmillaters">
+            <div class="bm-feature">
+                <span class="bm-feature-badge"><i class="fas fa-star"></i> Asosiy yo'nalish</span>
+                <h2>BirMillaters — hududlardagi jonli jamoa</h2>
+                <p class="bm-feature-lead">BirMillaters — BirMillat'ning volontyorlari va hududiy koordinatorlari. Ular har bir viloyatda yoshlarga yo'l ko'rsatadi, tadbirlar uyushtiradi va sizga yordam beradi. Har birining o'z sahifasi bor: u kim, qayerdan va qanday yo'l bosib o'tgani.</p>
+                <div class="bm-feature-points">
+                    <div><i class="fas fa-id-card"></i><b>Kim ekanini bilasiz</b><span>Har birining rasmi, hududi va hikoyasi alohida sahifada.</span></div>
+                    <div><i class="fas fa-comment-dots"></i><b>To'g'ridan-to'g'ri yozing</b><span>«BirMillat'da yozing» tugmasi bilan suhbat darhol boshlanadi.</span></div>
+                    <div><i class="fas fa-location-dot"></i><b>Hududingizda</b><span>Har bir viloyatda yoshlarga yo'l ko'rsatadigan koordinatorlar.</span></div>
+                </div>
+                <div class="bm-feature-grid" id="abBmGrid" hidden></div>
+                <a href="/birmillaters" class="bm-feature-btn btn-zoom">Barcha BirMillaterlarni ko'rish <i class="fas fa-arrow-right"></i></a>
+            </div>
+        </div>
+
         <div class="about-section reveal">
-            <span class="section-kicker">Platformada nima bor</span>
+            <span class="section-kicker">Platformada yana nima bor</span>
             <h2>Bir joyda — qiziqish, jamoa, tadbir</h2>
             <p class="lead">Har bir bo'lim bitta aniq muammoni hal qiladi: kim bilan gaplashish, qayerga borish, kimga yordam berish kerakligini topish.</p>
             <div class="feature-grid reveal-stagger reveal">
@@ -352,5 +400,23 @@ body { font-family: 'Inter', sans-serif; }
     </div>
 
     <footer>© 2026 BirMillat · <a href="/about" style="color:inherit;">BirMillat nima?</a> · <a href="/contact" style="color:inherit;">Biz bilan bog'lanish</a> · <a href="/support" style="color:inherit;">Yordam</a> · <a href="/privacy" style="color:inherit;">Maxfiylik siyosati</a><br><span style="opacity:0.8;">Founder — Bekhruz Ravshanov</span></footer>
+<script>
+(function () {
+    function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+    function initials(n) { return String(n || '?').trim().split(/\s+/).slice(0, 2).map(function (w) { return w.charAt(0).toUpperCase(); }).join('') || '?'; }
+    fetch('/api/birmillaters').then(function (r) { return r.ok ? r.json() : []; }).then(function (list) {
+        if (!list || !list.length) return;
+        var grid = document.getElementById('abBmGrid');
+        grid.innerHTML = list.slice(0, 4).map(function (b) {
+            return '<a class="bm-mini" href="/birmillaters/' + encodeURIComponent(b.username) + '" aria-label="' + esc(b.name) + '">' +
+                '<div class="bm-mini-photo"><span aria-hidden="true">' + esc(initials(b.name)) + '</span>' +
+                (b.photo ? '<img src="' + esc(b.photo) + '" alt="' + esc(b.name) + '" loading="lazy" onerror="this.remove()">' : '') + '</div>' +
+                '<b>' + esc(b.title || b.name) + '</b>' +
+                (b.region ? '<small>' + esc(b.region) + '</small>' : '') + '</a>';
+        }).join('');
+        grid.hidden = false;
+    }).catch(function () {});
+})();
+</script>
 </body>
 </html>
