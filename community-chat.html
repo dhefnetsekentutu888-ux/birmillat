@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="uz" class="mx">
 <head>
+<script>if (new URLSearchParams(location.search).get('embed') === '1') document.documentElement.classList.add('bm-embed');</script>
 <script src="/theme.js"></script>
 <meta charset="UTF-8">
 <link rel="icon" type="image/png" href="/favicon.png">
@@ -590,6 +591,18 @@ html.mx .navbar { flex: none; }
   .gc-open-members { display: inline-flex; }
 }
 
+
+/* shown inside the Messages page (iframe): no site navbar, the pane is the whole screen */
+html.bm-embed .navbar, html.bm-embed .sidebar-overlay { display: none !important; }
+html.bm-embed.bm-embed-wide .mx-back { display: none !important; }
+/* read-only look at a community before joining */
+.gc-peek { width: 100%; max-width: 460px; text-align: left; margin-top: 4px; }
+.gc-peek-title { font: 700 12px/1.2 'Inter', sans-serif; letter-spacing: .06em; text-transform: uppercase; color: var(--color-text-muted); margin: 6px 0 10px; text-align: center; }
+.gc-peek-list { display: grid; gap: 8px; max-height: 280px; overflow-y: auto; padding: 12px; border-radius: 16px; background: var(--color-bg); border: 1px solid var(--color-border); }
+.gc-peek-msg { padding: 8px 12px; border-radius: 12px; background: var(--color-surface); }
+.gc-peek-msg b { display: block; font: 600 12.5px/1.3 'Sora', sans-serif; color: var(--color-primary); margin-bottom: 2px; }
+.gc-peek-msg span { display: block; font-size: 14px; line-height: 1.45; color: var(--color-text); overflow-wrap: anywhere; white-space: pre-wrap; }
+.gc-peek-note { margin: 10px 0 0; text-align: center; font-size: 13px; color: var(--color-text-muted); }
 </style>
 <script src="/interactions.js" defer></script>
 <script src="/socket.io/socket.io.js"></script>
@@ -614,6 +627,7 @@ html.mx .navbar { flex: none; }
             <a href="/events"><i class="fas fa-calendar-days"></i> <span data-i18n="nav.events">Tadbirlar</span></a>
             <a href="/communities" class="active"><i class="fas fa-people-group"></i> <span data-i18n="nav.communities">Jamoalar</span></a>
             <a href="/volunteer"><i class="fas fa-hand-holding-heart"></i> <span data-i18n="nav.volunteer">Volontyorlik</span></a>
+            <a href="/birmillaters"><i class="fas fa-users"></i> <span>BirMillaters</span></a>
             <a href="/articles"><i class="fas fa-newspaper"></i> <span data-i18n="nav.articles">Maqolalar</span></a>
             <a href="/search"><i class="fas fa-magnifying-glass"></i> <span data-i18n="nav.search">Qidiruv</span></a>
             <a href="/messages"><i class="fas fa-comment-dots"></i> <span data-i18n="nav.messages">Xabarlar</span></a>
@@ -1079,9 +1093,21 @@ html.mx .navbar { flex: none; }
 
         // The server broadcasts every message back to the sender too. If it matches one of our
         // pending/failed bubbles, adopt it instead of showing it twice.
+        // Tells the server this member has seen everything so far (clears the unread badge in the inbox).
+        let readTimer = null;
+        function markCommunityRead() {
+            clearTimeout(readTimer);
+            readTimer = setTimeout(() => {
+                if (document.visibilityState !== 'visible') return;
+                fetch('/api/communities/' + communityId + '/read', { method: 'POST' }).catch(() => {});
+            }, 400);
+        }
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && S.dom.msgs) markCommunityRead(); });
+
         function onIncoming(p) {
             const x = normalizeMsg(p);
             if (S.byId.has(x.id)) return;
+            markCommunityRead();
             if (x.mine) {
                 const pending = S.msgs.find((m) => m.mine && m.id == null && m.content === x.content && (m.status === 'pending' || m.status === 'failed'));
                 if (pending) { adopt(pending, x); return; }
@@ -1336,7 +1362,7 @@ html.mx .navbar { flex: none; }
             });
             if (!yes) return;
             const res = await fetch('/api/communities/' + cid() + '/leave', { method: 'POST' });
-            if (res.ok) location.href = '/communities'; else toast(T('gc.error', 'Xatolik yuz berdi'));
+            if (res.ok) { if (EMBED) toParent('bm-community-gone'); else location.href = '/communities'; } else toast(T('gc.error', 'Xatolik yuz berdi'));
         }
 
         async function deleteCommunity() {
@@ -1351,7 +1377,7 @@ html.mx .navbar { flex: none; }
                 const res = await fetch('/api/communities/' + cid(), { method: 'DELETE' });
                 const data = await res.json().catch(() => ({}));
                 if (!res.ok) throw new Error(data.error || 'Server');
-                location.href = '/communities';
+                if (EMBED) toParent('bm-community-gone'); else location.href = '/communities';
             } catch (err) { toast(err.message || T('gc.error', 'Xatolik yuz berdi')); }
         }
 
@@ -1398,13 +1424,31 @@ html.mx .navbar { flex: none; }
                 <h2>${esc(c.name)}</h2>
                 <div class="gc-chips"><span class="gc-chip">${esc(c.category || '')}</span><span class="gc-chip">${icon('users')}${esc(String(c.memberCount))}</span></div>
                 ${c.description ? `<p>${esc(c.description)}</p>` : ''}
+                <div class="gc-peek" id="gcPeek" hidden></div>
                 ${action}</div>`;
+            if (kind === 'join') loadPeek();
             const j = $('#gcJoin');
             if (j) j.addEventListener('click', async () => {
                 j.disabled = true;
                 const res = await fetch('/api/communities/' + cid() + '/join', { method: 'POST' });
                 if (res.ok) loadCommunity(); else { j.disabled = false; toast(T('gc.error', 'Xatolik yuz berdi')); }
             });
+        }
+
+        // Latest messages shown read-only to people who have not joined yet.
+        async function loadPeek() {
+            try {
+                const res = await fetch('/api/communities/' + cid() + '/preview');
+                if (!res.ok) return;
+                const list = await res.json();
+                const box = $('#gcPeek');
+                if (!box || !list.length) return;
+                box.innerHTML = `<div class="gc-peek-title">So'nggi xabarlar</div>
+                    <div class="gc-peek-list">${list.map((m) => `<div class="gc-peek-msg"><b>${esc(m.senderName)}</b><span>${esc(m.content)}</span></div>`).join('')}</div>
+                    <p class="gc-peek-note">Bu faqat ko'rish uchun. Yozish uchun jamoaga qo'shiling.</p>`;
+                box.hidden = false;
+                const list_ = box.querySelector('.gc-peek-list'); if (list_) list_.scrollTop = list_.scrollHeight;
+            } catch (e) { /* the preview is optional */ }
         }
 
         function renderChat(c) {
@@ -1518,6 +1562,7 @@ html.mx .navbar { flex: none; }
                 if (!c.isMember) { renderGate(c, 'join'); return; }
                 renderChat(c);
                 await loadMessages();
+                markCommunityRead();
                 if (S.socket && S.socket.connected) S.socket.emit('join_community', { communityId });
             } catch (e) {
                 console.error('Failed to load community:', e);
@@ -1541,7 +1586,7 @@ html.mx .navbar { flex: none; }
             sock.on('community_deleted', (d) => {
                 if (Number(d.communityId) === Number(communityId)) {
                     toast(T('gc.deleted_alert', "Bu jamoa o'chirildi."));
-                    setTimeout(() => { location.href = '/communities'; }, 1600);
+                    setTimeout(() => { if (EMBED) toParent('bm-community-gone'); else location.href = '/communities'; }, 1600);
                 }
             });
         }
@@ -1585,6 +1630,22 @@ html.mx .navbar { flex: none; }
                 if (reply) { const m = keep.find((x) => x.id === reply.id); if (m) startReply(m); }
             } else if (S.community) renderGate(S.community, S.me ? 'join' : 'login');
         }).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
+
+        // Embedded in the Messages page: talk to the parent instead of navigating.
+        const EMBED = document.documentElement.classList.contains('bm-embed');
+        function toParent(type) { try { parent.postMessage({ type }, location.origin); } catch (e) {} }
+        if (EMBED) {
+            const base = document.createElement('base'); base.target = '_top'; document.head.appendChild(base);   // profile links open the full page
+            document.addEventListener('click', (e) => {
+                const back = e.target.closest && e.target.closest('.mx-back');
+                if (back) { e.preventDefault(); toParent('bm-community-back'); }
+            });
+            try {   // the back arrow is only needed when the inbox and the chat are on separate screens (phones)
+                const mq = parent.matchMedia('(max-width: 860px)');
+                const apply = () => document.documentElement.classList.toggle('bm-embed-wide', !mq.matches);
+                apply(); mq.addEventListener('change', apply);
+            } catch (e) {}
+        }
 
         (async function boot() {
             LANG = (window.BirMillatI18n && window.BirMillatI18n.currentLang()) || 'uz';
