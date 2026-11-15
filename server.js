@@ -3121,7 +3121,8 @@ function birmillaterToPublic(row, full) {
         name: row.display_name || row.user_name || row.username,
         title: row.title || '',
         region: row.region || '',
-        photo: row.photo_url || row.user_photo_url || null
+        photo: row.photo_url || row.user_photo_url || null,
+        bio: row.about ? seoCut(row.about, 110) : ''   // short teaser shown when a card is hovered
     };
     if (full) {
         out.about = row.about || '';
@@ -3336,9 +3337,9 @@ function renderBirmillaterProfileBody(pub, contrib, others) {
 
     return `
                 <section class="bd-head">
-                    <div class="bd-photo">
+                    <div class="bd-photo${photo ? '' : ' no-img'}">
                         <div class="bd-initials" aria-hidden="true">${e(seoInitials(pub.name))}</div>
-                        ${photo ? `<img src="${e(photo)}" alt="${e(birmillaterAltText(pub))}" width="250" height="312" onerror="this.remove()">` : ''}
+                        ${photo ? `<img src="${e(photo)}" alt="${e(birmillaterAltText(pub))}" width="250" height="312" onerror="this.parentNode.classList.add('no-img');this.remove()">` : ''}
                     </div>
                     <div class="bd-id">
                         <h1>${e(pub.name)}</h1>
@@ -3356,9 +3357,10 @@ function renderBirmillaterCard(pub) {
     const photo = seoAbsUrl(pub.photo);
     return `
                 <a class="bm-card" href="/birmillaters/${encodeURIComponent(pub.slug)}" aria-label="${e(pub.name)}">
-                    <div class="bm-photo">
+                    <div class="bm-photo${photo ? '' : ' no-img'}">
                         <div class="bm-initials" aria-hidden="true">${e(seoInitials(pub.name))}</div>
-                        ${photo ? `<img src="${e(photo)}" alt="${e(birmillaterAltText(pub))}" loading="lazy" onerror="this.remove()">` : ''}
+                        ${photo ? `<img src="${e(photo)}" alt="${e(birmillaterAltText(pub))}" loading="lazy" onerror="this.parentNode.classList.add('no-img');this.remove()">` : ''}
+                        ${pub.bio ? `<p class="bm-bio">${e(pub.bio)}</p>` : ''}
                         <div class="bm-name-tag">${e(pub.name)}</div>
                     </div>
                     <div class="bm-info">
@@ -3366,7 +3368,7 @@ function renderBirmillaterCard(pub) {
                             <h2 class="bm-title">${e(pub.title || 'BirMillater')}</h2>
                             ${pub.region ? `<p class="bm-region"><i class="fas fa-location-dot"></i> ${e(pub.region)}</p>` : ''}
                         </div>
-                        <span class="bm-go"><i class="fas fa-arrow-right"></i></span>
+                        <span class="bm-go" aria-hidden="true"><i class="fas fa-arrow-right"></i></span>
                     </div>
                 </a>`;
 }
