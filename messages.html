@@ -511,6 +511,17 @@ html.mx .navbar { flex: none; }
   :root:not([data-theme="light"]) .user-badge img { filter: brightness(0) invert(1); opacity: 0.85; }
 }
 :root[data-theme="dark"] .user-badge img { filter: brightness(0) invert(1); opacity: 0.85; }
+
+/* folders (like Telegram): Hammasi / Shaxsiy / Jamoalar */
+.mx-folders { display: flex; gap: 4px; padding: 2px 12px 8px; overflow-x: auto; flex: none; scrollbar-width: none; }
+.mx-folders::-webkit-scrollbar { display: none; }
+.mx-folder { flex: none; display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 14px; border: 0; border-radius: 17px; background: transparent; color: var(--color-text-muted); font: 600 13.5px 'Inter', sans-serif; cursor: pointer; transition: background .15s ease, color .15s ease; }
+.mx-folder:hover { background: var(--mx-hover); }
+.mx-folder.is-active { background: var(--mx-active); color: var(--color-primary); }
+.mx-fbadge { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--color-text-muted); color: #fff; font: 700 11px/18px 'Inter', sans-serif; text-align: center; }
+.mx-folder.is-active .mx-fbadge { background: var(--color-accent); }
+.mx-grp { margin-right: 6px; font-size: .78em; color: var(--color-primary); }
+.mx-embed { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: var(--color-bg); }
 </style>
 <script src="/interactions.js" defer></script>
 <script src="/socket.io/socket.io.js"></script>
@@ -539,6 +550,7 @@ html.mx .navbar { flex: none; }
             <a href="/events"><i class="fas fa-calendar-days"></i> <span data-i18n="nav.events">Tadbirlar</span></a>
             <a href="/communities"><i class="fas fa-people-group"></i> <span data-i18n="nav.communities">Jamoalar</span></a>
             <a href="/volunteer"><i class="fas fa-hand-holding-heart"></i> <span data-i18n="nav.volunteer">Volontyorlik</span></a>
+            <a href="/birmillaters"><i class="fas fa-users"></i> <span>BirMillaters</span></a>
             <a href="/articles"><i class="fas fa-newspaper"></i> <span data-i18n="nav.articles">Maqolalar</span></a>
             <a href="/search"><i class="fas fa-magnifying-glass"></i> <span data-i18n="nav.search">Qidiruv</span></a>
             <a href="/messages" class="active"><i class="fas fa-comment-dots"></i> <span data-i18n="nav.messages">Xabarlar</span></a>
@@ -602,6 +614,7 @@ html.mx .navbar { flex: none; }
                 <input id="mxFilter" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Suhbatlarni qidirish" aria-label="Suhbatlarni qidirish" data-i18n-placeholder="mx.search_ph">
                 <button type="button" class="mx-clear" id="mxClear" aria-label="Tozalash"><svg class="mx-i" aria-hidden="true"><use href="#i-x"/></svg></button>
             </div>
+            <div class="mx-folders" id="mxFolders" role="tablist" aria-label="Papkalar"></div>
             <div class="mx-rows" id="mxRows" role="list"></div>
         </aside>
         <section class="mx-chat" id="mxChat" aria-label="Suhbat"></section>
@@ -711,7 +724,9 @@ html.mx .navbar { flex: none; }
         /* ================= state ================= */
         const S = {
             me: null, socket: null,
-            convs: [], filter: '',
+            convs: [], cconvs: [], filter: '',
+            folder: (function () { try { return localStorage.getItem('bm_msg_folder') || 'all'; } catch (e) { return 'all'; } })(),
+            activeCommunity: null,
             active: null, user: null,
             msgs: [], byId: new Map(), seq: 0,
             token: 0, loading: false, queue: [],
@@ -721,7 +736,7 @@ html.mx .navbar { flex: none; }
             dom: {}
         };
         const els = {
-            shell: $('#mxShell'), chat: $('#mxChat'), rows: $('#mxRows'),
+            shell: $('#mxShell'), chat: $('#mxChat'), rows: $('#mxRows'), folders: $('#mxFolders'),
             filter: $('#mxFilter'), search: $('#mxSearch'), clear: $('#mxClear'),
             banner: $('#mxBanner'), menu: $('#mxMenu'), scrim: $('#mxScrim'),
             modal: $('#mxModal'), toast: $('#mxToast'), newChat: $('#mxNewChat')
@@ -845,14 +860,28 @@ html.mx .navbar { flex: none; }
             };
         }
 
+        function normalizeCC(c) {
+            return {
+                id: Number(c.id), name: c.name || 'Jamoa', photoUrl: c.photoUrl || null, memberCount: c.memberCount || 0,
+                last: c.last || '', lastTime: c.lastTime || 0, lastIsMine: !!c.lastIsMine, lastDeleted: !!c.lastDeleted,
+                lastSender: c.lastSender || '', unread: c.unread || 0
+            };
+        }
+
         async function loadConversations() {
             try {
-                const res = await api('/api/conversations');
+                // Community chats are optional: if that request fails the private chats still load.
+                const [res, cres] = await Promise.all([api('/api/conversations'), api('/api/community-conversations').catch(() => null)]);
                 if (!res.ok) throw new Error('bad status');
                 S.convs = (await res.json()).map(normalizeConv);
+                if (cres && cres.ok) S.cconvs = (await cres.json()).map(normalizeCC);
                 if (S.active && isVisible()) {
                     const c = S.convs.find((x) => x.username === S.active);
                     if (c) c.unread = 0;
+                }
+                if (S.activeCommunity && isVisible()) {
+                    const cc = S.cconvs.find((x) => x.id === S.activeCommunity);
+                    if (cc) cc.unread = 0;
                 }
                 S.listError = false;
             } catch (e) {
@@ -884,7 +913,7 @@ html.mx .navbar { flex: none; }
         }
 
         function updateTitle() {
-            const n = S.convs.reduce((a, c) => a + (c.unread || 0), 0);
+            const n = S.convs.reduce((a, c) => a + (c.unread || 0), 0) + S.cconvs.reduce((a, c) => a + (c.unread || 0), 0);
             document.title = (n ? '(' + (n > 99 ? '99+' : n) + ') ' : '') + BASE_TITLE;
         }
 
@@ -906,24 +935,113 @@ html.mx .navbar { flex: none; }
                 rows.innerHTML = `<div class="mx-listmsg"><div>${esc(T('mx.load_fail', "Yuklab bo'lmadi"))}</div><button type="button" class="mx-btn" id="mxListRetry">${icon('resend')}${esc(T('mx.retry_load', 'Qayta urinish'))}</button></div>`;
                 return;
             }
+            renderFolders();
             const q = S.filter.trim().toLowerCase();
-            const list = q ? S.convs.filter((c) => (c.name + ' ' + c.username + ' ' + c.last).toLowerCase().includes(q)) : S.convs;
-            if (!S.convs.length) {
-                rows.innerHTML = `<div class="mx-listmsg"><div><strong>${esc(T('mx.empty_title', "Hali suhbatlar yo'q"))}</strong>${esc(T('mx.empty_text', "Qiziqishlari o'xshash odamlarni toping va birinchi xabarni yuboring."))}</div><a class="mx-btn primary" href="/search">${icon('search')}${esc(T('mx.find_people', 'Odamlarni topish'))}</a></div>`;
+            const items = folderItems().filter((c) => !q || (c.name + ' ' + (c.username || '') + ' ' + c.last).toLowerCase().includes(q));
+            if (!items.length) {
+                if (q) {
+                    rows.innerHTML = `<div class="mx-listmsg"><div>${esc(T('mx.no_results', '"{q}" bo\'yicha suhbat topilmadi', { q: S.filter.trim() }))}</div><a class="mx-btn" href="/search">${icon('search')}${esc(T('mx.find_people', 'Odamlarni topish'))}</a></div>`;
+                } else if (S.folder === 'communities') {
+                    rows.innerHTML = `<div class="mx-listmsg"><div><strong>Jamoa suhbatlari yo'q</strong>Jamoaga qo'shilsangiz, uning suhbati shu yerda paydo bo'ladi.</div><a class="mx-btn" href="/communities">Jamoalarni ko'rish</a></div>`;
+                } else {
+                    rows.innerHTML = `<div class="mx-listmsg"><div><strong>${esc(T('mx.empty_title', "Hali suhbatlar yo'q"))}</strong>${esc(T('mx.empty_text', "Qiziqishlari o'xshash odamlarni toping va birinchi xabarni yuboring."))}</div><a class="mx-btn primary" href="/search">${icon('search')}${esc(T('mx.find_people', 'Odamlarni topish'))}</a></div>`;
+                }
                 return;
             }
-            if (!list.length) {
-                rows.innerHTML = `<div class="mx-listmsg"><div>${esc(T('mx.no_results', '"{q}" bo\'yicha suhbat topilmadi', { q: S.filter.trim() }))}</div><a class="mx-btn" href="/search">${icon('search')}${esc(T('mx.find_people', 'Odamlarni topish'))}</a></div>`;
-                return;
-            }
-            rows.innerHTML = list.map((c) => `
-                <a class="mx-row${c.unread ? ' is-unread' : ''}" role="listitem" href="/messages?with=${encodeURIComponent(c.username)}" data-u="${esc(c.username)}"${c.username === S.active ? ' aria-current="true"' : ''}>
+            rows.innerHTML = items.map((c) => {
+                const isC = c.kind === 'c';
+                const href = isC ? '/messages?community=' + c.id : '/messages?with=' + encodeURIComponent(c.username);
+                const current = isC ? c.id === S.activeCommunity : c.username === S.active;
+                return `
+                <a class="mx-row${c.unread ? ' is-unread' : ''}${isC ? ' is-community' : ''}" role="listitem" href="${href}" ${isC ? 'data-c="' + c.id + '"' : 'data-u="' + esc(c.username) + '"'}${current ? ' aria-current="true"' : ''}>
                     ${avatar(c, 52)}
                     <span class="mx-row-main">
-                        <span class="mx-row-top"><span class="mx-row-name">${esc(c.name)}</span><time class="mx-row-time">${esc(listTime(c.lastTime))}</time></span>
-                        <span class="mx-row-bot"><span class="mx-row-prev">${previewHtml(c)}</span>${c.unread ? `<span class="mx-badge" aria-label="${c.unread}">${c.unread > 99 ? '99+' : c.unread}</span>` : ''}</span>
+                        <span class="mx-row-top"><span class="mx-row-name">${isC ? '<i class="fas fa-user-group mx-grp" aria-hidden="true"></i>' : ''}${esc(c.name)}</span><time class="mx-row-time">${esc(listTime(c.lastTime))}</time></span>
+                        <span class="mx-row-bot"><span class="mx-row-prev">${isC ? communityPreviewHtml(c) : previewHtml(c)}</span>${c.unread ? `<span class="mx-badge" aria-label="${c.unread}">${c.unread > 99 ? '99+' : c.unread}</span>` : ''}</span>
                     </span>
-                </a>`).join('');
+                </a>`;
+            }).join('');
+        }
+
+        /* ---- folders: Hammasi / Shaxsiy / Jamoalar ---- */
+        function folderItems() {
+            const dm = S.convs.map((c) => Object.assign({}, c, { kind: 'dm' }));
+            const cm = S.cconvs.map((c) => Object.assign({}, c, { kind: 'c', username: 'c' + c.id }));
+            const items = S.folder === 'private' ? dm : S.folder === 'communities' ? cm : dm.concat(cm);
+            return items.sort((a, b) => b.lastTime - a.lastTime);
+        }
+        function renderFolders() {
+            const unreadChats = (list) => list.filter((c) => c.unread).length;
+            const defs = [
+                ['all', 'Hammasi', unreadChats(S.convs) + unreadChats(S.cconvs)],
+                ['private', 'Shaxsiy', unreadChats(S.convs)],
+                ['communities', 'Jamoalar', unreadChats(S.cconvs)]
+            ];
+            els.folders.innerHTML = defs.map((d) =>
+                `<button type="button" class="mx-folder${S.folder === d[0] ? ' is-active' : ''}" role="tab" aria-selected="${S.folder === d[0]}" data-f="${d[0]}">${d[1]}${d[2] ? `<span class="mx-fbadge">${d[2] > 99 ? '99+' : d[2]}</span>` : ''}</button>`
+            ).join('');
+        }
+        function communityPreviewHtml(c) {
+            if (c.lastDeleted) return `<i>${esc(T('mx.deleted', "Xabar o'chirildi"))}</i>`;
+            if (!c.lastTime && !c.last) return `<i>Hali xabar yo'q</i>`;
+            const text = String(c.last || '').replace(/\s+/g, ' ').trim().slice(0, 140);
+            const who = c.lastIsMine ? esc(T('mx.you', 'Siz')) : esc(c.lastSender || '');
+            return (who ? `<span class="you">${who}: </span>` : '') + esc(text);
+        }
+        els.folders.addEventListener('click', (e) => {
+            const b = e.target.closest('.mx-folder');
+            if (!b) return;
+            S.folder = b.dataset.f;
+            try { localStorage.setItem('bm_msg_folder', S.folder); } catch (err) { /* private mode */ }
+            renderList();
+        });
+
+        /* ---- open a community chat inside this page ---- */
+        function openCommunity(id, o) {
+            o = o || {};
+            if (!id) return;
+            closeMenu();
+            if (S.activeCommunity === id && !o.force && els.chat.querySelector('.mx-embed')) { setView('chat'); return; }
+            if (S.active && S.dom.input) S.drafts[S.active] = S.dom.input.value;
+            const wasChat = !!(S.active || S.activeCommunity);
+            S.token++; S.active = null; S.user = null; S.loading = false; S.queue = [];
+            S.msgs = []; S.byId.clear(); S.replyTo = null; S.dom = {};
+            S.activeCommunity = id;
+
+            const url = '/messages?community=' + id;
+            if (o.fromHistory) { /* URL already correct */ }
+            else if (o.initial) { history.replaceState({ community: id }, '', url); S.pushed = false; }
+            else if (wasChat && S.pushed) history.replaceState({ community: id }, '', url);
+            else { history.pushState({ community: id }, '', url); S.pushed = true; }
+
+            const cc = S.cconvs.find((c) => c.id === id);
+            if (cc) cc.unread = 0;
+            setView('chat');
+            els.chat.innerHTML = `<iframe class="mx-embed" title="${esc(cc ? cc.name : 'Jamoa suhbati')}" src="/communities/${id}?embed=1"></iframe>`;
+            renderList(); updateTitle();
+        }
+
+        // Messages from the embedded community page (back arrow, left or deleted community)
+        window.addEventListener('message', (e) => {
+            if (e.origin !== location.origin || !e.data) return;
+            if (e.data.type === 'bm-community-back') goBack();
+            else if (e.data.type === 'bm-community-gone') {
+                closeChatView();
+                history.replaceState(null, '', '/messages'); S.pushed = false;
+                loadConversations();
+            }
+        });
+
+        // A message arrived in one of my communities: update its row and unread badge live
+        function onCommunityActivity(a) {
+            if (!a || !a.communityId) return;
+            const c = S.cconvs.find((x) => x.id === a.communityId);
+            if (!c) { loadConversations(); return; }     // a community I only just joined
+            const mine = !!(S.me && a.senderId === S.me.id);
+            const viewing = S.activeCommunity === c.id && isVisible();
+            Object.assign(c, { last: a.content || '', lastDeleted: false, lastTime: a.createdAt || Date.now(), lastIsMine: mine, lastSender: a.senderName || a.senderUsername || '' });
+            if (!mine && !viewing) c.unread = (c.unread || 0) + 1;
+            renderList(); updateTitle();
         }
 
         els.rows.addEventListener('click', (e) => {
@@ -931,7 +1049,7 @@ html.mx .navbar { flex: none; }
             const a = e.target.closest('a.mx-row');
             if (!a || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button === 1) return;
             e.preventDefault();
-            openChat(a.dataset.u);
+            if (a.dataset.c) openCommunity(Number(a.dataset.c)); else openChat(a.dataset.u);
         });
         els.filter.addEventListener('input', () => {
             S.filter = els.filter.value;
@@ -1224,7 +1342,8 @@ html.mx .navbar { flex: none; }
             if (S.active && S.dom.input) S.drafts[S.active] = S.dom.input.value;
 
             const token = ++S.token;
-            const wasChat = !!S.active;
+            const wasChat = !!(S.active || S.activeCommunity);
+            S.activeCommunity = null;
             S.active = username; S.replyTo = null; S.queue = []; S.loading = true;
             S.msgs = []; S.byId.clear(); S.jump = 0;
             const conv = S.convs.find((c) => c.username === username);
@@ -1272,7 +1391,7 @@ html.mx .navbar { flex: none; }
 
         function closeChatView() {
             if (S.active && S.dom.input) S.drafts[S.active] = S.dom.input.value;
-            S.token++; S.active = null; S.user = null; S.loading = false; S.queue = [];
+            S.token++; S.active = null; S.activeCommunity = null; S.user = null; S.loading = false; S.queue = [];
             S.msgs = []; S.byId.clear(); S.replyTo = null;
             closeMenu();
             renderEmptyPane();
@@ -1286,8 +1405,11 @@ html.mx .navbar { flex: none; }
         }
 
         window.addEventListener('popstate', () => {
-            const w = new URLSearchParams(location.search).get('with');
-            if (w) openChat(w, { fromHistory: true }); else { closeChatView(); S.pushed = false; }
+            const q = new URLSearchParams(location.search);
+            const w = q.get('with'), cm = q.get('community');
+            if (w) openChat(w, { fromHistory: true });
+            else if (cm) openCommunity(Number(cm), { fromHistory: true });
+            else { closeChatView(); S.pushed = false; }
         });
 
         /* ================= sending ================= */
@@ -1576,6 +1698,7 @@ html.mx .navbar { flex: none; }
             sock.on('disconnect', () => { wasDown = true; els.banner.hidden = false; });
             sock.on('connect_error', () => { wasDown = true; els.banner.hidden = false; });
             sock.on('new_message', onNewMessage);
+            sock.on('community_activity', onCommunityActivity);
             sock.on('message_deleted', (d) => markDeleted(d.id));
             sock.on('messages_read', (d) => {
                 if (!d || d.byUsername !== S.active) return;
@@ -1597,7 +1720,7 @@ html.mx .navbar { flex: none; }
             if (!els.menu.hidden) { closeMenu(); return; }
             if (!els.modal.hidden) return;
             if (S.replyTo) { clearReply(); return; }
-            if (S.active && !(e.target && e.target.id === 'mxFilter')) goBack();
+            if ((S.active || S.activeCommunity) && !(e.target && e.target.id === 'mxFilter')) goBack();
         });
         window.addEventListener('wheel', (e) => { if (!els.menu.hidden && !els.menu.contains(e.target)) closeMenu(); }, { passive: true });
         window.addEventListener('resize', closeMenu);
@@ -1651,8 +1774,10 @@ html.mx .navbar { flex: none; }
             } catch (e) { return; }
             setupSocket();
             await loadConversations();
-            const w = new URLSearchParams(location.search).get('with');
+            const qs = new URLSearchParams(location.search);
+            const w = qs.get('with'), cm = qs.get('community');
             if (w) openChat(w, { initial: true });
+            else if (cm) openCommunity(Number(cm), { initial: true });
         })();
     })();
     </script>
