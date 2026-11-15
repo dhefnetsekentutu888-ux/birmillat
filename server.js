@@ -334,6 +334,15 @@ async function initDb() {
     `);
     try { await db.execute(`ALTER TABLE community_messages ADD COLUMN reply_to_id INTEGER`); } catch (e) {}
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_community_messages ON community_messages (community_id, created_at)`);
+    // Last community message each member has seen, so the Messages inbox can show unread badges.
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS community_reads (
+            community_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            last_read_id INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY (community_id, user_id)
+        )
+    `);
 
     // Email verification codes (used at registration and for password reset)
     await db.execute(`
@@ -7399,6 +7408,117 @@ app.get('/api/communities/:id/messages', async (req, res) => {
     }
 });
 
+// ---------- Community chats inside the Messages inbox ----------
+// Set to 0 to stop non-members from seeing a read-only preview of the latest messages.
+const COMMUNITY_PREVIEW_LIMIT = 10;
+
+// Every community the user belongs to, shaped like a conversation: last message + unread count.
+app.get('/api/community-conversations', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const uid = req.session.userId;
+        const communities = await db.execute({
+            sql: `SELECT c.id, c.name, c.image_url,
+                         (SELECT COUNT(*) FROM community_members WHERE community_id = c.id) AS member_count,
+                         (SELECT MAX(id) FROM community_messages WHERE community_id = c.id) AS max_id,
+                         rd.last_read_id AS last_read_id
+                  FROM communities c
+                  JOIN community_members cm ON cm.community_id = c.id AND cm.user_id = ?
+                  LEFT JOIN community_reads rd ON rd.community_id = c.id AND rd.user_id = ?`,
+            args: [uid, uid]
+        });
+        const out = [];
+        for (const c of communities.rows) {
+            const last = await db.execute({
+                sql: `SELECT m.id, m.content, m.created_at, m.sender_id, COALESCE(m.is_deleted, 0) AS is_deleted, u.name, u.username
+                      FROM community_messages m JOIN users u ON u.id = m.sender_id
+                      WHERE m.community_id = ? ORDER BY m.created_at DESC, m.id DESC LIMIT 1`,
+                args: [c.id]
+            });
+            let lastRead = c.last_read_id;
+            if (lastRead === null || lastRead === undefined) {
+                // First time this member is seen: existing history counts as read.
+                lastRead = Number(c.max_id) || 0;
+                await db.execute({
+                    sql: `INSERT OR IGNORE INTO community_reads (community_id, user_id, last_read_id) VALUES (?, ?, ?)`,
+                    args: [c.id, uid, lastRead]
+                });
+            }
+            const unread = await db.execute({
+                sql: `SELECT COUNT(*) AS n FROM community_messages
+                      WHERE community_id = ? AND id > ? AND sender_id != ? AND COALESCE(is_deleted, 0) = 0`,
+                args: [c.id, lastRead, uid]
+            });
+            const m = last.rows[0];
+            out.push({
+                id: Number(c.id),
+                name: c.name,
+                photoUrl: c.image_url || null,
+                memberCount: Number(c.member_count) || 0,
+                last: m ? (m.is_deleted ? '' : String(m.content || '').slice(0, 200)) : '',
+                lastDeleted: !!(m && m.is_deleted),
+                lastTime: m ? Number(m.created_at) : 0,
+                lastIsMine: !!(m && m.sender_id === uid),
+                lastSender: m ? (m.name || m.username) : '',
+                unread: Number(unread.rows[0].n) || 0
+            });
+        }
+        out.sort((a, b) => b.lastTime - a.lastTime);
+        res.json(out);
+    } catch (err) {
+        console.error('api/community-conversations error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// The member has seen everything up to now (called when they open the chat).
+app.post('/api/communities/:id/read', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const uid = req.session.userId;
+        if (!(await isCommunityMember(req.params.id, uid))) return res.status(403).json({ error: "Siz bu jamoaga a'zo emassiz" });
+        const max = await db.execute({ sql: 'SELECT COALESCE(MAX(id), 0) AS n FROM community_messages WHERE community_id = ?', args: [req.params.id] });
+        await db.execute({
+            sql: `INSERT INTO community_reads (community_id, user_id, last_read_id) VALUES (?, ?, ?)
+                  ON CONFLICT(community_id, user_id) DO UPDATE SET last_read_id = MAX(community_reads.last_read_id, excluded.last_read_id)`,
+            args: [req.params.id, uid, Number(max.rows[0].n)]
+        });
+        res.json({ success: true });
+    } catch (err) {
+        console.error('api/communities/:id/read error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Read-only peek at the latest messages, so people can see what a community is like before joining.
+app.get('/api/communities/:id/preview', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        if (COMMUNITY_PREVIEW_LIMIT <= 0) return res.json([]);
+        const community = await getCommunityById(req.params.id);
+        if (!community) return res.status(404).json({ error: 'Jamoa topilmadi' });
+        const r = await db.execute({
+            sql: `SELECT * FROM (
+                      SELECT m.id, m.content, m.created_at, u.name, u.username, u.photo_url
+                      FROM community_messages m JOIN users u ON u.id = m.sender_id
+                      WHERE m.community_id = ? AND COALESCE(m.is_deleted, 0) = 0
+                      ORDER BY m.created_at DESC, m.id DESC LIMIT ?
+                  ) ORDER BY created_at ASC, id ASC`,
+            args: [community.id, COMMUNITY_PREVIEW_LIMIT]
+        });
+        res.json(r.rows.map(m => ({
+            id: m.id,
+            senderName: m.name || m.username,
+            senderPhoto: m.photo_url || null,
+            content: String(m.content || '').slice(0, 300),
+            createdAt: m.created_at
+        })));
+    } catch (err) {
+        console.error('api/communities/:id/preview error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 app.delete('/api/communities/:id', async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
     try {
@@ -7657,6 +7777,20 @@ io.on('connection', (socket) => {
 
             // Broadcast to everyone currently in this community's room, including the sender
             io.to(`community:${communityId}`).emit('new_community_message', payload);
+
+            // Also update the Messages inbox of every member who is online (preview + unread badge).
+            try {
+                const activity = {
+                    communityId: Number(communityId), id: saved.id, senderId: userId,
+                    senderName: sender.name, senderUsername: sender.username,
+                    content: trimmed.slice(0, 200), createdAt: saved.createdAt
+                };
+                const members = await getCommunityMembers(communityId);
+                for (const member of members) {
+                    const sockets = onlineUsers.get(member.id);
+                    if (sockets) for (const sid of sockets) io.to(sid).emit('community_activity', activity);
+                }
+            } catch (e) { console.error('community_activity error:', e); }
 
             if (callback) callback({ success: true, message: payload });
         } catch (err) {
