@@ -2623,6 +2623,18 @@ app.post('/auth/apple/callback', async (req, res) => {
     }
 });
 
+// The BirMillat logo for the sign-in pages. The indigo parts follow the theme colour,
+// so they stay visible on the dark background (a fixed #2D1B69 disappears there).
+const AUTH_LOGO_SVG = `<svg width="140" height="40" viewBox="0 0 320 90" xmlns="http://www.w3.org/2000/svg" class="auth-logo" style="height:40px; width:auto;" role="img" aria-label="BirMillat">
+          <g transform="translate(45,45)">
+            <g transform="rotate(-18)"><ellipse class="lg-s" cx="-10" cy="0" rx="20" ry="36" fill="none" stroke="#2D1B69" stroke-width="10"/></g>
+            <g transform="rotate(18)"><ellipse cx="10" cy="0" rx="20" ry="36" fill="none" stroke="#FF6B5B" stroke-width="10"/></g>
+            <g transform="rotate(-18)"><path class="lg-s" d="M -30 0 A 20 36 0 0 1 11 0" fill="none" stroke="#2D1B69" stroke-width="10" stroke-linecap="round"/></g>
+          </g>
+          <text class="lg-t" x="95" y="53" font-size="34" font-weight="700" fill="#2D1B69" font-family="Sora, -apple-system, sans-serif">Bir<tspan fill="#FF6B5B">Millat</tspan></text>
+        </svg>`;
+const AUTH_LOGO_CSS = `.auth-logo .lg-s { stroke: var(--color-primary); } .auth-logo .lg-t { fill: var(--color-primary); }`;
+
 // The two buttons shown on the login and register pages (empty until a provider is configured).
 const SOCIAL_CSS = `
         .social-sep { display: flex; align-items: center; gap: 0.8rem; margin: 1.1rem 0 0.9rem; color: var(--color-text-muted); font-size: 0.82rem; }
@@ -2669,7 +2681,7 @@ function renderRegisterPage(message, isError = true) {
         }
         .auth-card .pw-toggle:hover { color: var(--color-text); background: none !important; }
         .field-error { color: var(--color-error); font-size: 0.8rem; text-align: left; margin: -0.3rem 0 0.6rem; min-height: 1em; }
-        .auth-logo { height: 40px; margin-bottom: 1rem; }
+        .auth-logo { height: 40px; margin-bottom: 1rem; } ${AUTH_LOGO_CSS}
         .field-hint { font-size: 0.78rem; color: var(--color-text-muted); text-align: left; margin: -0.3rem 0 0.6rem; }
         .consent-note { font-size: 0.78rem; color: var(--color-text-muted); text-align: left; line-height: 1.5; margin: 0.7rem 0 0; }
         .consent-note a { color: var(--color-accent); font-weight: 600; }
@@ -2678,14 +2690,7 @@ function renderRegisterPage(message, isError = true) {
     </head>
     <body class="auth-shell">
     <div class="auth-card">
-        <svg width="140" height="40" viewBox="0 0 320 90" xmlns="http://www.w3.org/2000/svg" class="auth-logo" style="height:40px; width:auto;" role="img" aria-label="BirMillat">
-          <g transform="translate(45,45)">
-            <g transform="rotate(-18)"><ellipse cx="-10" cy="0" rx="20" ry="36" fill="none" stroke="#2D1B69" stroke-width="10"/></g>
-            <g transform="rotate(18)"><ellipse cx="10" cy="0" rx="20" ry="36" fill="none" stroke="#FF6B5B" stroke-width="10"/></g>
-            <g transform="rotate(-18)"><path d="M -30 0 A 20 36 0 0 1 11 0" fill="none" stroke="#2D1B69" stroke-width="10" stroke-linecap="round"/></g>
-          </g>
-          <text x="95" y="53" font-size="34" font-weight="700" fill="#2D1B69" font-family="Sora, -apple-system, sans-serif">Bir<tspan fill="#FF6B5B">Millat</tspan></text>
-        </svg>
+        ${AUTH_LOGO_SVG}
         <h2>Hisob yaratish</h2>
         ${message ? `<div class="message ${msgClass}">${message}</div>` : ''}
         <div class="register-form-wrap" id="registerFormWrap">
@@ -2789,19 +2794,12 @@ function renderLoginPage(message, isError = true, next = '/home') {
             color: var(--color-text-muted); display: flex; align-items: center; justify-content: center;
         }
         .auth-card .pw-toggle:hover { color: var(--color-text); background: none !important; }
-        .auth-logo { height: 40px; margin-bottom: 1rem; }
+        .auth-logo { height: 40px; margin-bottom: 1rem; } ${AUTH_LOGO_CSS}
         ${SOCIAL_CSS}
     </style>
     </head>
     <body class="auth-shell"><div class="auth-card">
-        <svg width="140" height="40" viewBox="0 0 320 90" xmlns="http://www.w3.org/2000/svg" class="auth-logo" style="height:40px; width:auto;">
-          <g transform="translate(45,45)">
-            <g transform="rotate(-18)"><ellipse cx="-10" cy="0" rx="20" ry="36" fill="none" stroke="#2D1B69" stroke-width="10"/></g>
-            <g transform="rotate(18)"><ellipse cx="10" cy="0" rx="20" ry="36" fill="none" stroke="#FF6B5B" stroke-width="10"/></g>
-            <g transform="rotate(-18)"><path d="M -30 0 A 20 36 0 0 1 11 0" fill="none" stroke="#2D1B69" stroke-width="10" stroke-linecap="round"/></g>
-          </g>
-          <text x="95" y="53" font-size="34" font-weight="700" fill="#2D1B69" font-family="Sora, -apple-system, sans-serif">Bir<tspan fill="#FF6B5B">Millat</tspan></text>
-        </svg>
+        ${AUTH_LOGO_SVG}
         <h2>Xush kelibsiz</h2>
         ${message ? `<div class="message ${msgClass}">${message}</div>` : ''}
         <form method=post action=/login>
@@ -3035,7 +3033,7 @@ function renderVerifyPage(identifier, method, message, isError = true, phoneCode
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="/style.css">
     <style>
-        .auth-logo { height: 40px; margin-bottom: 1rem; }
+        .auth-logo { height: 40px; margin-bottom: 1rem; } ${AUTH_LOGO_CSS}
         .code-input {
             font-size: 1.6rem; letter-spacing: 6px; text-align: center;
             font-weight: 700; color: var(--color-primary);
@@ -3056,7 +3054,7 @@ function renderVerifyPage(identifier, method, message, isError = true, phoneCode
     </style>
     </head>
     <body class="auth-shell"><div class="auth-card">
-        <img src="/logo-full.svg" alt="BirMillat" class="auth-logo">
+        ${AUTH_LOGO_SVG}
         <h2>${isPhone ? 'Telefonni tasdiqlash' : 'Emailni tasdiqlash'}</h2>
         ${isPhone ? `
             <p style="color:var(--color-text-muted); font-size:0.9rem; margin-bottom:0.5rem;">
@@ -4248,10 +4246,10 @@ function renderForgotPasswordPage(message, isError = true, method = 'email') {
     <link rel="stylesheet" href="/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="/interactions.js" defer></script>
-    <style>.auth-logo { height: 40px; margin-bottom: 1rem; }</style>
+    <style>.auth-logo { height: 40px; margin-bottom: 1rem; } ${AUTH_LOGO_CSS}</style>
     </head>
     <body class="auth-shell"><div class="auth-card">
-        <img src="/logo-full.svg" alt="BirMillat" class="auth-logo">
+        ${AUTH_LOGO_SVG}
         <h2>Parolni tiklash</h2>
         <p style="color:var(--color-text-muted); font-size:0.9rem; margin-bottom:1rem;">Qaysi usulda ro'yxatdan o'tgansiz?</p>
         <div style="display:flex; gap:0.5rem; margin-bottom:1rem;">
@@ -4305,12 +4303,12 @@ function renderResetPasswordPage(identifier, method, message, isError = true) {
     <link rel="stylesheet" href="/style.css">
     <script src="/interactions.js" defer></script>
     <style>
-        .auth-logo { height: 40px; margin-bottom: 1rem; }
+        .auth-logo { height: 40px; margin-bottom: 1rem; } ${AUTH_LOGO_CSS}
         .code-input { font-size: 1.4rem; letter-spacing: 4px; text-align: center; font-weight: 700; color: var(--color-primary); }
     </style>
     </head>
     <body class="auth-shell"><div class="auth-card">
-        <img src="/logo-full.svg" alt="BirMillat" class="auth-logo">
+        ${AUTH_LOGO_SVG}
         <h2>Yangi parol o'rnatish</h2>
         <p style="color:var(--color-text-muted); font-size:0.9rem; margin-bottom:1rem;">${isPhone ? `<strong>${identifier}</strong> raqamiga bog'langan Telegram orqali yuborilgan kodni kiriting.` : `<strong>${identifier}</strong> manziliga yuborilgan kodni kiriting.`}</p>
         ${message ? `<div class="message ${msgClass}">${message}</div>` : ''}
