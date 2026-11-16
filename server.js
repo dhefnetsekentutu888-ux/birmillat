@@ -72,6 +72,11 @@ async function initDb() {
     // Phone-based registration (verified via the Telegram bot instead of SMS).
     try { await db.execute(`ALTER TABLE users ADD COLUMN phone TEXT`); } catch (e) {}
     await db.execute(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_phone ON users (phone)`);
+    // "Continue with Google / Apple": the provider's stable account id for each user.
+    try { await db.execute(`ALTER TABLE users ADD COLUMN google_id TEXT`); } catch (e) {}
+    try { await db.execute(`ALTER TABLE users ADD COLUMN apple_id TEXT`); } catch (e) {}
+    await db.execute(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_id ON users (google_id)`);
+    await db.execute(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_apple_id ON users (apple_id)`);
     // Opt-in flag: only members who explicitly turn this on (Profil sozlamalari)
     // can appear in the logged-out landing page's public "showcase" preview.
     // Default is off — nobody's photo/bio is public until they choose it.
@@ -2348,7 +2353,7 @@ app.use((req, res, next) => {
     let p;
     try { p = decodeURIComponent(req.path).toLowerCase(); } catch (e) { return res.status(400).send('Bad request'); }
     const blocked =
-        /(^|\/)\./.test(p) ||                                          // .env, .git, .github, any dotfile
+        /(^|\/)\.(?!well-known(\/|$))/.test(p) ||                      // .env, .git, .github, any dotfile (but /.well-known/ is public by design)
         /^\/(server\.js|package(-lock)?\.json|node_modules(\/|$))/.test(p) ||
         /\.(sqlite3?|db|env|log|md)$/.test(p);
     if (blocked) return res.status(404).sendFile(path.join(__dirname, '404.html'));
@@ -2399,6 +2404,251 @@ app.post('/api/lang', express.json(), (req, res) => {
 });
 
 // ---------- Helper: render pages ----------
+// ---------- "Continue with Google / Apple" ----------
+// Buttons only appear when the provider's credentials are set in the environment:
+//   Google: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
+//   Apple : APPLE_CLIENT_ID (Services ID), APPLE_TEAM_ID, APPLE_KEY_ID, APPLE_PRIVATE_KEY (contents of the .p8 file)
+// Redirect addresses to register with the providers:
+//   https://birmillat.uz/auth/google/callback   and   https://birmillat.uz/auth/apple/callback
+const GOOGLE_CLIENT_ID = (process.env.GOOGLE_CLIENT_ID || '').trim();
+const GOOGLE_CLIENT_SECRET = (process.env.GOOGLE_CLIENT_SECRET || '').trim();
+const APPLE_CLIENT_ID = (process.env.APPLE_CLIENT_ID || '').trim();
+const APPLE_TEAM_ID = (process.env.APPLE_TEAM_ID || '').trim();
+const APPLE_KEY_ID = (process.env.APPLE_KEY_ID || '').trim();
+const APPLE_PRIVATE_KEY = (process.env.APPLE_PRIVATE_KEY || '').replace(/\\n/g, '\n').trim();
+const GOOGLE_ENABLED = !!(GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET);
+const APPLE_ENABLED = !!(APPLE_CLIENT_ID && APPLE_TEAM_ID && APPLE_KEY_ID && APPLE_PRIVATE_KEY);
+const OAUTH_STATE_SECRET = secretFromEnv('SESSION_SECRET');
+
+const b64urlEncode = (buf) => Buffer.from(buf).toString('base64url');
+const b64urlJson = (obj) => b64urlEncode(JSON.stringify(obj));
+function jwtPayload(token) {
+    const parts = String(token || '').split('.');
+    if (parts.length !== 3) throw new Error('Bad token');
+    return JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+}
+
+// "state" ties the sign-in to the browser that started it (a signed value + a short-lived cookie),
+// so a forged callback cannot log someone into an attacker's account. It does not rely on the
+// session cookie, because Apple posts back from another site.
+function makeOAuthState(provider, next) {
+    const nonce = crypto.randomBytes(16).toString('hex');
+    const body = b64urlJson({ n: nonce, t: Date.now(), p: provider, next: safeNextPath(next) });
+    const sig = crypto.createHmac('sha256', OAUTH_STATE_SECRET).update(body).digest('base64url');
+    return { state: `${body}.${sig}`, nonce };
+}
+function readOAuthState(state, provider, cookieNonce) {
+    const [body, sig] = String(state || '').split('.');
+    if (!body || !sig) return null;
+    const expected = crypto.createHmac('sha256', OAUTH_STATE_SECRET).update(body).digest();
+    let given;
+    try { given = Buffer.from(sig, 'base64url'); } catch (e) { return null; }
+    if (given.length !== expected.length || !crypto.timingSafeEqual(given, expected)) return null;
+    let data;
+    try { data = JSON.parse(Buffer.from(body, 'base64url').toString('utf8')); } catch (e) { return null; }
+    if (data.p !== provider || !cookieNonce || data.n !== cookieNonce) return null;
+    if (!data.t || Date.now() - data.t > 10 * 60 * 1000) return null;
+    return { next: safeNextPath(data.next) };
+}
+function setOAuthCookie(res, nonce) {
+    res.cookie('bm_oauth', nonce, {
+        maxAge: 10 * 60 * 1000, httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'   // Apple's callback is a cross-site POST
+    });
+}
+function readCookie(req, name) {
+    const m = String(req.headers.cookie || '').match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+    return m ? decodeURIComponent(m[1]) : null;
+}
+
+// Picks a free username from the person's name / email, e.g. "aziz", then "aziz4821".
+async function pickUsername(preferred) {
+    let base = String(preferred || '').toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 16);
+    if (base.length < 3) base = 'user' + base;
+    let candidate = base;
+    for (let i = 0; i < 25; i++) {
+        if (!(await getUserCaseInsensitive(candidate))) return candidate;
+        candidate = base + String(Math.floor(1000 + Math.random() * 9000));
+    }
+    return base + crypto.randomBytes(3).toString('hex');
+}
+
+// Finds the account for a verified provider identity, links it by email, or creates a new one.
+async function findOrCreateSocialUser(provider, profile) {
+    const idCol = provider === 'google' ? 'google_id' : 'apple_id';
+    const byId = await db.execute({ sql: `SELECT * FROM users WHERE ${idCol} = ? LIMIT 1`, args: [profile.sub] });
+    if (byId.rows[0]) return byId.rows[0];
+
+    const email = profile.email ? String(profile.email).toLowerCase() : null;
+    if (email && profile.emailVerified) {
+        const existing = await getUserByEmail(email);
+        if (existing) {
+            // The provider has confirmed this email belongs to the person, so it is safe to link.
+            await db.execute({ sql: `UPDATE users SET ${idCol} = ?, is_verified = 1 WHERE id = ?`, args: [profile.sub, existing.id] });
+            if (!existing.photo_url && profile.picture) await db.execute({ sql: 'UPDATE users SET photo_url = ? WHERE id = ?', args: [profile.picture, existing.id] });
+            return (await db.execute({ sql: 'SELECT * FROM users WHERE id = ?', args: [existing.id] })).rows[0];
+        }
+    }
+
+    const username = await pickUsername((email || '').split('@')[0] || String(profile.name || '').split(' ')[0]);
+    const unusablePassword = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10);   // they sign in through the provider
+    const id = await createUser(username, email && profile.emailVerified ? email : null, null, unusablePassword, 1);
+    await db.execute({
+        sql: `UPDATE users SET ${idCol} = ?, name = ?, photo_url = ? WHERE id = ?`,
+        args: [profile.sub, (profile.name || username).slice(0, 60), profile.picture || null, id]
+    });
+    return (await db.execute({ sql: 'SELECT * FROM users WHERE id = ?', args: [id] })).rows[0];
+}
+
+function finishSocialLogin(req, res, user, next) {
+    if (user.is_blocked) {
+        return res.send(renderLoginPage('🚫 Hisobingiz bloklangan. Savollar bo‘yicha <a href="/support">shu yerdan</a> murojaat qiling.', true, next));
+    }
+    req.session.userId = user.id;
+    req.session.username = user.username;
+    if (user.lang && SUPPORTED_LANGS.includes(user.lang)) {
+        res.cookie('bm_lang', user.lang, {
+            maxAge: 365 * 24 * 60 * 60 * 1000, httpOnly: false, sameSite: 'lax',
+            secure: process.env.NODE_ENV === 'production'
+        });
+    }
+    res.clearCookie('bm_oauth');
+    res.redirect(next);
+}
+const socialFail = (res) => res.send(renderLoginPage("Kirish amalga oshmadi. Qaytadan urinib ko'ring yoki email bilan kiring.", true));
+
+// ---- Google ----
+app.get('/auth/google', (req, res) => {
+    if (!GOOGLE_ENABLED) return res.redirect('/login');
+    const { state, nonce } = makeOAuthState('google', req.query.next);
+    setOAuthCookie(res, nonce);
+    const params = new URLSearchParams({
+        client_id: GOOGLE_CLIENT_ID, redirect_uri: `${SITE_URL}/auth/google/callback`, response_type: 'code',
+        scope: 'openid email profile', state, prompt: 'select_account'
+    });
+    res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params}`);
+});
+app.get('/auth/google/callback', async (req, res) => {
+    try {
+        if (!GOOGLE_ENABLED) return res.redirect('/login');
+        const st = readOAuthState(req.query.state, 'google', readCookie(req, 'bm_oauth'));
+        if (!st || !req.query.code) return socialFail(res);
+        const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                code: String(req.query.code), client_id: GOOGLE_CLIENT_ID, client_secret: GOOGLE_CLIENT_SECRET,
+                redirect_uri: `${SITE_URL}/auth/google/callback`, grant_type: 'authorization_code'
+            })
+        });
+        const tokens = await tokenRes.json();
+        if (!tokenRes.ok || !tokens.id_token) return socialFail(res);
+        // The token came straight from Google over TLS; still confirm it is meant for this app.
+        const g = jwtPayload(tokens.id_token);
+        const okIssuer = g.iss === 'https://accounts.google.com' || g.iss === 'accounts.google.com';
+        if (!okIssuer || g.aud !== GOOGLE_CLIENT_ID || !g.sub || g.exp * 1000 < Date.now()) return socialFail(res);
+        const user = await findOrCreateSocialUser('google', {
+            sub: g.sub, email: g.email, emailVerified: g.email_verified === true || g.email_verified === 'true',
+            name: g.name, picture: g.picture
+        });
+        finishSocialLogin(req, res, user, st.next);
+    } catch (err) {
+        console.error('Google sign-in error:', err);
+        socialFail(res);
+    }
+});
+
+// ---- Apple ----
+function appleClientSecret() {
+    const now = Math.floor(Date.now() / 1000);
+    const unsigned = `${b64urlJson({ alg: 'ES256', kid: APPLE_KEY_ID })}.${b64urlJson({
+        iss: APPLE_TEAM_ID, iat: now, exp: now + 300, aud: 'https://appleid.apple.com', sub: APPLE_CLIENT_ID
+    })}`;
+    const sig = crypto.sign('sha256', Buffer.from(unsigned), { key: APPLE_PRIVATE_KEY, dsaEncoding: 'ieee-p1363' });
+    return `${unsigned}.${b64urlEncode(sig)}`;
+}
+async function verifyAppleIdToken(idToken) {
+    const [h, p, sig] = String(idToken).split('.');
+    const header = JSON.parse(Buffer.from(h, 'base64url').toString('utf8'));
+    const keys = await (await fetch('https://appleid.apple.com/auth/keys')).json();
+    const jwk = (keys.keys || []).find(k => k.kid === header.kid);
+    if (!jwk) throw new Error('Unknown Apple key');
+    const ok = crypto.verify('RSA-SHA256', Buffer.from(`${h}.${p}`), crypto.createPublicKey({ key: jwk, format: 'jwk' }), Buffer.from(sig, 'base64url'));
+    if (!ok) throw new Error('Bad Apple signature');
+    const a = jwtPayload(idToken);
+    if (a.iss !== 'https://appleid.apple.com' || a.aud !== APPLE_CLIENT_ID || !a.sub || a.exp * 1000 < Date.now()) throw new Error('Bad Apple token');
+    return a;
+}
+app.get('/auth/apple', (req, res) => {
+    if (!APPLE_ENABLED) return res.redirect('/login');
+    const { state, nonce } = makeOAuthState('apple', req.query.next);
+    setOAuthCookie(res, nonce);
+    const params = new URLSearchParams({
+        client_id: APPLE_CLIENT_ID, redirect_uri: `${SITE_URL}/auth/apple/callback`, response_type: 'code',
+        response_mode: 'form_post', scope: 'name email', state
+    });
+    res.redirect(`https://appleid.apple.com/auth/authorize?${params}`);
+});
+app.post('/auth/apple/callback', async (req, res) => {
+    try {
+        if (!APPLE_ENABLED) return res.redirect('/login');
+        const st = readOAuthState(req.body.state, 'apple', readCookie(req, 'bm_oauth'));
+        if (!st || !req.body.code) return socialFail(res);
+        const tokenRes = await fetch('https://appleid.apple.com/auth/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                code: String(req.body.code), client_id: APPLE_CLIENT_ID, client_secret: appleClientSecret(),
+                redirect_uri: `${SITE_URL}/auth/apple/callback`, grant_type: 'authorization_code'
+            })
+        });
+        const tokens = await tokenRes.json();
+        if (!tokenRes.ok || !tokens.id_token) return socialFail(res);
+        const a = await verifyAppleIdToken(tokens.id_token);
+        // Apple sends the person's name only the very first time, as a JSON string in "user".
+        let fullName = '';
+        try {
+            const u = req.body.user ? JSON.parse(req.body.user) : null;
+            if (u && u.name) fullName = [u.name.firstName, u.name.lastName].filter(Boolean).join(' ');
+        } catch (e) { /* optional */ }
+        const user = await findOrCreateSocialUser('apple', {
+            sub: a.sub, email: a.email, emailVerified: a.email_verified === true || a.email_verified === 'true',
+            name: fullName, picture: null
+        });
+        finishSocialLogin(req, res, user, st.next);
+    } catch (err) {
+        console.error('Apple sign-in error:', err);
+        socialFail(res);
+    }
+});
+
+// The two buttons shown on the login and register pages (empty until a provider is configured).
+const SOCIAL_CSS = `
+        .social-sep { display: flex; align-items: center; gap: 0.8rem; margin: 1.1rem 0 0.9rem; color: var(--color-text-muted); font-size: 0.82rem; }
+        .social-sep::before, .social-sep::after { content: ''; flex: 1; height: 1px; background: var(--color-border); }
+        .social-btns { display: grid; gap: 0.6rem; }
+        .social-btn { display: flex; align-items: center; justify-content: center; gap: 0.7rem; padding: 0.8rem 1rem; border-radius: 999px;
+            border: 1.5px solid var(--color-border); background: var(--color-surface, #fff); color: var(--color-text); font: 600 0.95rem 'Inter', sans-serif;
+            text-decoration: none; transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease; }
+        .social-btn:hover { border-color: var(--color-primary); box-shadow: 0 6px 18px rgba(45, 27, 105, .12); transform: translateY(-1px); }
+        .social-btn:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+        .social-btn svg { width: 20px; height: 20px; flex: none; }
+        .social-note { font-size: 0.76rem; color: var(--color-text-muted); line-height: 1.5; margin: 0.8rem 0 0; }
+        .social-note a { color: var(--color-accent); font-weight: 600; }`;
+const GOOGLE_ICON = `<svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>`;
+const APPLE_ICON = `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg>`;
+function socialLoginHtml(next, isRegister) {
+    if (!GOOGLE_ENABLED && !APPLE_ENABLED) return '';
+    const q = next && next !== '/home' ? `?next=${encodeURIComponent(next)}` : '';
+    return `<div class="social-sep"><span>yoki</span></div>
+        <div class="social-btns">
+            ${GOOGLE_ENABLED ? `<a class="social-btn" href="/auth/google${q}">${GOOGLE_ICON}<span>Google bilan davom etish</span></a>` : ''}
+            ${APPLE_ENABLED ? `<a class="social-btn" href="/auth/apple${q}">${APPLE_ICON}<span>Apple bilan davom etish</span></a>` : ''}
+        </div>
+        ${isRegister ? `<p class="social-note">Davom etish orqali siz bizning <a href="/privacy" target="_blank">Maxfiylik siyosati</a>miz va foydalanish shartlarimizga rozilik bildirasiz.</p>` : ''}`;
+}
+
 function renderRegisterPage(message, isError = true) {
     const msgClass = isError ? 'error' : 'success';
     return `<!DOCTYPE html><html><head><script src="/theme.js"></script><title>Ro'yxatdan o'tish - BirMillat</title>
@@ -2423,11 +2673,19 @@ function renderRegisterPage(message, isError = true) {
         .field-hint { font-size: 0.78rem; color: var(--color-text-muted); text-align: left; margin: -0.3rem 0 0.6rem; }
         .consent-note { font-size: 0.78rem; color: var(--color-text-muted); text-align: left; line-height: 1.5; margin: 0.7rem 0 0; }
         .consent-note a { color: var(--color-accent); font-weight: 600; }
+        ${SOCIAL_CSS}
     </style>
     </head>
     <body class="auth-shell">
     <div class="auth-card">
-        <img src="/logo-full.svg" alt="BirMillat" class="auth-logo">
+        <svg width="140" height="40" viewBox="0 0 320 90" xmlns="http://www.w3.org/2000/svg" class="auth-logo" style="height:40px; width:auto;" role="img" aria-label="BirMillat">
+          <g transform="translate(45,45)">
+            <g transform="rotate(-18)"><ellipse cx="-10" cy="0" rx="20" ry="36" fill="none" stroke="#2D1B69" stroke-width="10"/></g>
+            <g transform="rotate(18)"><ellipse cx="10" cy="0" rx="20" ry="36" fill="none" stroke="#FF6B5B" stroke-width="10"/></g>
+            <g transform="rotate(-18)"><path d="M -30 0 A 20 36 0 0 1 11 0" fill="none" stroke="#2D1B69" stroke-width="10" stroke-linecap="round"/></g>
+          </g>
+          <text x="95" y="53" font-size="34" font-weight="700" fill="#2D1B69" font-family="Sora, -apple-system, sans-serif">Bir<tspan fill="#FF6B5B">Millat</tspan></text>
+        </svg>
         <h2>Hisob yaratish</h2>
         ${message ? `<div class="message ${msgClass}">${message}</div>` : ''}
         <div class="register-form-wrap" id="registerFormWrap">
@@ -2459,6 +2717,7 @@ function renderRegisterPage(message, isError = true) {
             <button type=submit>Ro'yxatdan o'tish</button>
             <p class="consent-note">Ro'yxatdan o'tish orqali siz bizning <a href="/privacy" target="_blank">Maxfiylik siyosati</a>miz va foydalanish shartlarimizga rozilik bildirasiz.</p>
         </form>
+        ${socialLoginHtml('/home', true)}
         </div>
         <p>Hisobingiz bormi? <a href=/login>Kirish</a></p>
     </div>
@@ -2531,6 +2790,7 @@ function renderLoginPage(message, isError = true, next = '/home') {
         }
         .auth-card .pw-toggle:hover { color: var(--color-text); background: none !important; }
         .auth-logo { height: 40px; margin-bottom: 1rem; }
+        ${SOCIAL_CSS}
     </style>
     </head>
     <body class="auth-shell"><div class="auth-card">
@@ -2553,6 +2813,7 @@ function renderLoginPage(message, isError = true, next = '/home') {
             </div>
             <button type=submit>Kirish</button>
         </form>
+        ${socialLoginHtml(safeNext, false)}
         <p><a href=/forgot-password style="font-size:0.85rem;">Parolni unutdingizmi?</a></p>
         <p>Hisobingiz yo'q? <a href=/register>Ro'yxatdan o'tish</a></p>
     </div>
