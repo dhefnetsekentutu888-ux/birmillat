@@ -145,6 +145,7 @@
             <p><strong>2.5. Ixtiyoriy ulanishlar</strong> — quyidagilar faqat siz o'zingiz yoqqaningizdagina ishlaydi:</p>
             <ul>
                 <li><strong>Brauzer bildirishnomalari (push):</strong> bildirishnoma yuborish uchun brauzeringiz bergan obuna manzili saqlanadi. Uni profil sozlamalaridan istalgan vaqtda o'chirishingiz mumkin;</li>
+                <li><strong>Google yoki Apple orqali kirish:</strong> shu usulni tanlasangiz, Google yoki Apple bizga ismingiz, email manzilingiz (Apple'da yashirin manzil bo'lishi mumkin) va Google'da profil rasmingizni, shuningdek hisobingizning maxsus identifikatorini yuboradi. Parolingiz bizga berilmaydi;</li>
                 <li><strong>Telegram hisobini ulash:</strong> bildirishnomalar olish uchun Telegram hisobingiz identifikatori (chat ID) hisobingizga bog'lanadi. Qo'llab-quvvatlash botiga yozsangiz, xabaringiz va chat ID'ingiz murojaatni ko'rib chiqish uchun saqlanadi;</li>
                 <li><strong>Tadbirlarga qatnashish:</strong> tadbirga ro'yxatdan o'tsangiz, tashkilotchi savollariga bergan javoblaringiz va kirish (check-in) holatingiz tashkilotchiga ko'rinadi.</li>
             </ul>
@@ -158,6 +159,7 @@
                     </thead>
                     <tbody>
                         <tr><td><code>connect.sid</code></td><td>Tizimga kirgan holatingizni (sessiya) saqlash va xavfsizlik</td><td>Zarur</td><td>30 kun (faol bo'lsangiz yangilanib turadi)</td></tr>
+                        <tr><td><code>bm_oauth</code></td><td>Google yoki Apple orqali kirish paytida kirishni xavfsiz yakunlash</td><td>Zarur</td><td>10 daqiqa</td></tr>
                         <tr><td><code>bm_consent</code></td><td>Cookie bo'yicha tanlovingizni eslab qolish</td><td>Zarur</td><td>1 yil</td></tr>
                         <tr><td><code>bm_lang</code></td><td>Tanlagan tilingizni (O'zbek, Qaraqalpaqsha, Русский, English) eslab qolish</td><td>Sozlama</td><td>1 yil</td></tr>
                         <tr><td><code>birmillat-theme</code>, <code>bm_rail</code> (brauzer xotirasi — localStorage)</td><td>Yorug'/qorong'i mavzu va yon menyu holatini eslab qolish</td><td>Sozlama</td><td>Siz o'chirmaguningizcha</td></tr>
@@ -202,6 +204,7 @@
                 <li><strong>Ma'lumotlar bazasi va hosting</strong> (Turso va server hosting provayderi) — hisob va kontent ma'lumotlarini saqlash;</li>
                 <li><strong>Elektron pochta xizmati</strong> (Resend) — tasdiqlash va xabarnoma xatlarini yuborish;</li>
                 <li><strong>Cloudflare Turnstile</strong> — bot va spamdan himoya;</li>
+                <li><strong>Google va Apple</strong> — faqat siz «Google bilan davom etish» yoki «Apple bilan davom etish»ni tanlasangiz;</li>
                 <li><strong>Telegram</strong> — siz ulagan bo'lsangiz, bildirishnomalar va qo'llab-quvvatlash boti;</li>
                 <li><strong>Brauzer push xizmatlari</strong> (Google, Apple, Mozilla) — siz yoqqan bildirishnomalarni yetkazish;</li>
                 <li><strong>Rasm saqlash xizmati</strong> (FreeImage.host) — yuklangan rasmlar (masalan, profil rasmi) uchinchi tomon rasm xostingida saqlanishi mumkin;</li>
