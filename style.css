@@ -866,6 +866,37 @@ footer {
   font-size: 0.85rem;
 }
 
+/* Phones: the panel spans the screen under the navbar. Anchored to the bell it
+   hung 50px off the left edge and cut the text. */
+@media (max-width: 640px) {
+  .notif-bell-wrap {
+    position: static;
+  }
+  .notif-panel {
+    top: calc(100% + 6px);
+    left: 0.6rem;
+    right: 0.6rem;
+    width: auto;
+    max-width: none;
+    max-height: min(68vh, 460px);
+    border-radius: 18px;
+    overscroll-behavior: contain;
+  }
+  .notif-panel-header {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--color-surface);
+  }
+  .notif-item {
+    padding: 0.9rem 1rem;
+  }
+  .notif-text {
+    font-size: 0.9rem;
+    overflow-wrap: anywhere;
+  }
+}
+
 /* ==========================================================
    Shared across the redesigned pages (landing, ijtimoiy tarmoq,
    events, etc.) — scroll-reveal + tactile button motion. Kept
