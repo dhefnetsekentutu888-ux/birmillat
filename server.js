@@ -2361,7 +2361,23 @@ app.use((req, res, next) => {
     if (p === '/birmillaters.html' || p === '/birmillater-detail.html') return res.redirect(301, '/birmillaters');
     next();
 });
-app.use(express.static(path.join(__dirname), { index: false }));
+app.use(express.static(path.join(__dirname), {
+    index: false,
+    // Cache rules so browsers and Cloudflare don't re-ask the server for the same files:
+    //  - images/icons/fonts rarely change -> 30 days
+    //  - css/js change when we deploy (filenames aren't versioned) -> 1 hour, then revalidate
+    //  - html, service worker, manifest, i18n -> always revalidate so updates show immediately
+    setHeaders: (res, filePath) => {
+        const f = filePath.toLowerCase();
+        if (/\.(png|jpe?g|svg|webp|gif|ico|woff2?|ttf)$/.test(f)) {
+            res.setHeader('Cache-Control', 'public, max-age=2592000');
+        } else if (/\.(css|js)$/.test(f) && !/[\\/]sw\.js$/.test(f)) {
+            res.setHeader('Cache-Control', 'public, max-age=3600, must-revalidate');
+        } else {
+            res.setHeader('Cache-Control', 'no-cache');
+        }
+    }
+}));
 
 // ---------- Language preference (uz / qq / ru / en) ----------
 // Pages are static HTML served via res.sendFile — there's no template engine
