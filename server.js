@@ -3896,7 +3896,7 @@ async function handleBirmillaterWizardMessage(chatId, message) {
             }
             try {
                 const largest = message.photo[message.photo.length - 1];
-                const uploaded = await uploadImageToFreeimage(await downloadTelegramPhotoBuffer(largest.file_id));
+                const uploaded = await uploadImage(await downloadTelegramPhotoBuffer(largest.file_id));
                 if (!uploaded.ok) {
                     await send(`❌ Rasm yuklanmadi: ${escapeHtmlForTelegram(uploaded.error || 'xatolik')}\nQaytadan yuboring yoki o'tkazib yuboring.`);
                     return true;
@@ -4098,7 +4098,7 @@ async function saveBirmillaterPhoto(chatId, username, photoSizes) {
     try {
         const largest = photoSizes[photoSizes.length - 1];
         const buffer = await downloadTelegramPhotoBuffer(largest.file_id);
-        const uploaded = await uploadImageToFreeimage(buffer);
+        const uploaded = await uploadImage(buffer);
         if (!uploaded.ok) {
             await send(`❌ Rasm yuklanmadi: ${escapeHtmlForTelegram(uploaded.error || 'xatolik')}`);
             return;
@@ -4676,7 +4676,7 @@ app.post('/api/founders', upload.single('photo'), async (req, res) => {
         if (!instagram.ok || !telegram.ok || !linkedin.ok) {
             return res.status(400).json({ error: 'Ijtimoiy tarmoq havolalari http:// yoki https:// bilan boshlanishi kerak' });
         }
-        const uploadResult = await uploadImageToFreeimage(req.file.buffer);
+        const uploadResult = await uploadImage(req.file.buffer);
         if (!uploadResult.ok) return res.status(500).json({ error: uploadResult.error });
         const id = await createFounder({
             name, position, description, photoUrl: uploadResult.url, sortOrder,
@@ -4707,7 +4707,7 @@ app.put('/api/founders/:id', upload.single('photo'), async (req, res) => {
         }
         let photoUrl = null;
         if (req.file) {
-            const uploadResult = await uploadImageToFreeimage(req.file.buffer);
+            const uploadResult = await uploadImage(req.file.buffer);
             if (!uploadResult.ok) return res.status(500).json({ error: uploadResult.error });
             photoUrl = uploadResult.url;
         }
@@ -4935,9 +4935,66 @@ const UZ_REGIONS = [
     'Sirdaryo', 'Surxondaryo', "Qoraqalpog'iston"
 ];
 
+// ---------- Image storage: Cloudflare R2 (primary) with freeimage.host fallback ----------
+// Set these in Render's Environment tab to turn R2 on. If any is missing, uploads
+// keep going to freeimage.host exactly as before, so nothing breaks.
+//   R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET,
+//   R2_PUBLIC_URL  (e.g. https://img.birmillat.uz  - no trailing slash)
+const R2_ACCOUNT_ID = (process.env.R2_ACCOUNT_ID || '').trim();
+const R2_ACCESS_KEY_ID = (process.env.R2_ACCESS_KEY_ID || '').trim();
+const R2_SECRET_ACCESS_KEY = (process.env.R2_SECRET_ACCESS_KEY || '').trim();
+const R2_BUCKET = (process.env.R2_BUCKET || '').trim();
+const R2_PUBLIC_URL = (process.env.R2_PUBLIC_URL || '').trim().replace(/\/+$/, '');
+const R2_ENABLED = !!(R2_ACCOUNT_ID && R2_ACCESS_KEY_ID && R2_SECRET_ACCESS_KEY && R2_BUCKET && R2_PUBLIC_URL);
+let r2Client = null;
+
+// Identify the real file type from its first bytes (never trust the user's filename).
+function detectImageType(buf) {
+    if (!buf || buf.length < 12) return null;
+    if (buf[0] === 0xFF && buf[1] === 0xD8 && buf[2] === 0xFF) return { ext: 'jpg', mime: 'image/jpeg' };
+    if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47) return { ext: 'png', mime: 'image/png' };
+    if (buf.toString('ascii', 0, 4) === 'GIF8') return { ext: 'gif', mime: 'image/gif' };
+    if (buf.toString('ascii', 0, 4) === 'RIFF' && buf.toString('ascii', 8, 12) === 'WEBP') return { ext: 'webp', mime: 'image/webp' };
+    return null;
+}
+
+async function uploadToR2(buffer) {
+    const type = detectImageType(buffer);
+    if (!type) return { ok: false, error: 'Faqat rasm fayllari qabul qilinadi (JPG, PNG, GIF, WEBP)' };
+    if (!r2Client) {
+        const { AwsClient } = require('aws4fetch'); // loaded only when R2 is actually configured
+        r2Client = new AwsClient({ accessKeyId: R2_ACCESS_KEY_ID, secretAccessKey: R2_SECRET_ACCESS_KEY, service: 's3', region: 'auto' });
+    }
+    const key = `${new Date().toISOString().slice(0, 7)}/${crypto.randomBytes(16).toString('hex')}.${type.ext}`;
+    const res = await r2Client.fetch(`https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${R2_BUCKET}/${key}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': type.mime, 'Cache-Control': 'public, max-age=31536000, immutable' },
+        body: buffer
+    });
+    if (!res.ok) {
+        console.error('R2 upload failed:', res.status, await res.text().catch(() => ''));
+        return { ok: false, error: 'Rasmni yuklab bo\u2018lmadi' };
+    }
+    return { ok: true, url: `${R2_PUBLIC_URL}/${key}` };
+}
+
+// The one function every upload in the app goes through.
+async function uploadImage(buffer) {
+    if (R2_ENABLED) {
+        try {
+            const r = await uploadToR2(buffer);
+            if (r.ok) return r;
+            if (r.error && r.error.startsWith('Faqat rasm')) return r; // invalid file: don't retry elsewhere
+        } catch (err) {
+            console.error('R2 upload error, falling back to freeimage.host:', err);
+        }
+    }
+    return uploadToFreeimageHost(buffer);
+}
+
 const FREEIMAGE_API_KEY = process.env.FREEIMAGE_API_KEY;
 
-async function uploadImageToFreeimage(buffer) {
+async function uploadToFreeimageHost(buffer) {
     if (!FREEIMAGE_API_KEY) {
         console.error('FREEIMAGE_API_KEY is not set');
         return { ok: false, error: 'Server konfiguratsiyasi xato' };
@@ -5043,7 +5100,7 @@ app.post('/api/profile/photo', upload.single('photo'), async (req, res) => {
             return res.status(400).json({ error: 'Rasm tanlanmadi' });
         }
 
-        const uploadResult = await uploadImageToFreeimage(req.file.buffer);
+        const uploadResult = await uploadImage(req.file.buffer);
         if (!uploadResult.ok) {
             return res.status(500).json({ error: uploadResult.error });
         }
@@ -5092,7 +5149,7 @@ app.post('/api/achievements', upload.single('image'), async (req, res) => {
             return res.status(400).json({ error: `Maksimal ${MAX_ACHIEVEMENTS_PER_USER} ta yutuq qo'shish mumkin` });
         }
 
-        const uploadResult = await uploadImageToFreeimage(req.file.buffer);
+        const uploadResult = await uploadImage(req.file.buffer);
         if (!uploadResult.ok) {
             return res.status(500).json({ error: uploadResult.error });
         }
@@ -5616,7 +5673,7 @@ async function handleAdminPostDraftMessage(chatId, message) {
                 const fileUrl = `https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${fileData.result.file_path}`;
                 const imgRes = await fetch(fileUrl);
                 const buffer = Buffer.from(await imgRes.arrayBuffer());
-                const uploadResult = await uploadImageToFreeimage(buffer);
+                const uploadResult = await uploadImage(buffer);
                 if (!uploadResult.ok) throw new Error(uploadResult.error || 'upload failed');
                 draft.imageUrl = uploadResult.url;
                 draft.step = 'awaiting_confirm';
@@ -5702,7 +5759,7 @@ async function handleAdminCertDraftMessage(chatId, message) {
             try {
                 const fileId = message.photo[message.photo.length - 1].file_id;
                 const buffer = await downloadTelegramPhotoBuffer(fileId);
-                const uploadResult = await uploadImageToFreeimage(buffer);
+                const uploadResult = await uploadImage(buffer);
                 if (!uploadResult.ok) throw new Error(uploadResult.error || 'upload failed');
                 draft.imageUrl = uploadResult.url;
                 draft.nameXPct = 50;
@@ -5847,7 +5904,7 @@ async function handleCertCallback(chatId, messageId, data) {
             try {
                 const recipientName = pickCertificateRecipientName(attendee, registrationQuestions);
                 const buffer = await generateCertificateImage(template.image_url, recipientName, template.name_x_pct, template.name_y_pct);
-                const uploadResult = await uploadImageToFreeimage(buffer);
+                const uploadResult = await uploadImage(buffer);
                 if (!uploadResult.ok) throw new Error(uploadResult.error);
 
                 // Respect what the attendee chose on the event page. If they
@@ -6703,7 +6760,7 @@ app.post('/api/events/:id/recap', upload.single('photo'), async (req, res) => {
         const recapNote = (req.body.note || '').trim().slice(0, 1000);
         let recapImageUrl = event.recap_image_url || null;
         if (req.file) {
-            const uploadResult = await uploadImageToFreeimage(req.file.buffer);
+            const uploadResult = await uploadImage(req.file.buffer);
             if (!uploadResult.ok) return res.status(500).json({ error: uploadResult.error });
             recapImageUrl = uploadResult.url;
         }
@@ -7239,7 +7296,7 @@ app.post('/api/events/:id/team-posts', upload.array('photos', 10), async (req, r
         const files = req.files || [];
         const imageUrls = [];
         for (const file of files) {
-            const uploadResult = await uploadImageToFreeimage(file.buffer);
+            const uploadResult = await uploadImage(file.buffer);
             if (!uploadResult.ok) return res.status(500).json({ error: uploadResult.error });
             imageUrls.push(uploadResult.url);
         }
@@ -7297,7 +7354,7 @@ app.post('/api/events/:id/reviews', upload.single('photo'), async (req, res) => 
         const text = (req.body.text || '').trim().slice(0, 1000);
         let imageUrl = null;
         if (req.file) {
-            const uploadResult = await uploadImageToFreeimage(req.file.buffer);
+            const uploadResult = await uploadImage(req.file.buffer);
             if (!uploadResult.ok) return res.status(500).json({ error: uploadResult.error });
             imageUrl = uploadResult.url;
         }
@@ -7494,7 +7551,7 @@ app.post('/api/communities', upload.single('image'), async (req, res) => {
 
         let imageUrl = null;
         if (req.file) {
-            const uploadResult = await uploadImageToFreeimage(req.file.buffer);
+            const uploadResult = await uploadImage(req.file.buffer);
             if (uploadResult.ok) imageUrl = uploadResult.url;
         }
 
@@ -7521,7 +7578,7 @@ app.post('/api/communities/:id/image', upload.single('image'), async (req, res) 
         }
         if (!req.file) return res.status(400).json({ error: 'Rasm tanlanmadi' });
 
-        const uploadResult = await uploadImageToFreeimage(req.file.buffer);
+        const uploadResult = await uploadImage(req.file.buffer);
         if (!uploadResult.ok) return res.status(500).json({ error: uploadResult.error });
 
         await updateCommunityImage(req.params.id, uploadResult.url);
