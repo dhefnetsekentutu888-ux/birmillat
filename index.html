@@ -2,6 +2,7 @@
 <html lang="uz">
 <head>
 <script src="/theme.js"></script>
+<script>(function(){var d=document.documentElement;if('IntersectionObserver' in window&&!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches))d.classList.add('lp-js');})();</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>BirMillat – Qiziqishlar asosida do'stlar toping</title>
@@ -223,6 +224,59 @@ footer { background: var(--color-surface); border-top: 1px solid var(--color-bor
 .lp-feat-row small { display: block; margin-top: 2px; font-size: 0.84rem; line-height: 1.45; color: var(--color-text-muted); }
 .lp-feat-arrow { margin-left: auto; color: var(--color-text-muted); font-size: 0.8rem; }
 @media (prefers-reduced-motion: reduce) { .lp-feat-row { transition: none; } }
+
+/* =========================================================
+   Landing polish: motion, glass "what's inside" card, framed sections
+   ========================================================= */
+:root { --lp-panel-glow: rgba(109, 79, 214, 0.07); --lp-panel-shadow: 0 18px 50px rgba(45, 27, 105, 0.08); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --lp-panel-glow: rgba(167, 139, 250, 0.10); --lp-panel-shadow: 0 18px 50px rgba(0, 0, 0, 0.38); } }
+:root[data-theme="dark"] { --lp-panel-glow: rgba(167, 139, 250, 0.10); --lp-panel-shadow: 0 18px 50px rgba(0, 0, 0, 0.38); }
+:root[data-theme="light"] { --lp-panel-glow: rgba(109, 79, 214, 0.07); --lp-panel-shadow: 0 18px 50px rgba(45, 27, 105, 0.08); }
+
+/* ---- framed sections: a raised "platform" so cards never melt into the page ---- */
+.lp-panel { position: relative; padding: 52px 32px 40px; border-radius: 32px; background: radial-gradient(70% 170px at 50% 0%, var(--lp-panel-glow), transparent 100%), var(--color-surface); border: 1px solid var(--color-border); box-shadow: var(--lp-panel-shadow); }
+.lp-panel .lp-step, .lp-panel .lp-person { background: var(--color-bg); }
+.lp-panel .lp-step-num { background: rgba(109, 79, 214, 0.16); }
+
+/* ---- motion (only when the visitor allows it; see the lp-js flag in <head>) ---- */
+@keyframes lp-rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+@keyframes lp-draw { to { background-size: 100% 100%; } }
+.lp-js .lp-reveal { opacity: 0; }
+.lp-js .lp-reveal.in { opacity: 1; animation: lp-rise 0.65s cubic-bezier(0.2, 0.7, 0.2, 1) var(--d, 0ms) backwards; }
+@media (prefers-reduced-motion: no-preference) {
+  .lp-eyebrow, .lp-hero h1, .lp-sub, .lp-points, .lp-cta-row, .lp-stats { animation: lp-rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) backwards; }
+  .lp-hero h1 { animation-delay: 80ms; }
+  .lp-sub { animation-delay: 160ms; }
+  .lp-points { animation-delay: 240ms; }
+  .lp-cta-row { animation-delay: 320ms; }
+  .lp-stats { animation-delay: 120ms; }
+  .lp-underline { background-repeat: no-repeat; background-size: 0% 100%; animation: lp-draw 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) 0.6s forwards; }
+  .lp-btn { transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.12s ease; }
+  .lp-btn:active { transform: scale(0.98); }
+}
+
+/* ---- phone / small tablet: the "what's inside" card becomes frosted glass that belongs to the hero ---- */
+@media (max-width: 960px) {
+  .lp-visual { max-width: none; }
+  .lp-feat { width: 100%; padding: 18px 12px 12px; color: #fff; background: linear-gradient(180deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.06)); border: 1px solid rgba(255, 255, 255, 0.22); box-shadow: 0 18px 40px rgba(8, 4, 28, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.16); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+  .lp-feat-title { padding: 0 8px; color: #fff; }
+  .lp-feat-row { color: #fff; }
+  .lp-feat-row small { color: rgba(255, 255, 255, 0.78); }
+  .lp-feat-ic { background: rgba(255, 107, 91, 0.22); color: #FFB4AA; }
+  .lp-feat-arrow { color: rgba(255, 255, 255, 0.6); }
+  .lp-feat-row:hover, .lp-feat-row:focus-visible, .lp-feat-row:active { background: rgba(255, 255, 255, 0.11); }
+}
+@media (max-width: 640px) {
+  /* tighter hero so more of the card is already visible on first load */
+  .lp-hero-grid { padding-top: 28px; gap: 24px; }
+  .lp-eyebrow { margin-bottom: 14px; }
+  .lp-sub { margin-top: 14px; }
+  .lp-points { margin-top: 16px; }
+  .lp-cta-row { margin-top: 22px; }
+  .lp-stats { margin-top: 24px; padding-top: 20px; }
+  .lp-panel { padding: 34px 14px 20px; border-radius: 24px; }
+  .lp-panel .lp-head { margin-bottom: 22px; }
+}
 </style>
 </head>
 <body>
@@ -311,12 +365,12 @@ footer { background: var(--color-surface); border-top: 1px solid var(--color-bor
 
     <div class="lp-visual">
       <div class="lp-pv lp-feat">
-        <div class="lp-feat-title">BirMillat'da nimalar bor?</div>
-        <a class="lp-feat-row" href="/events"><span class="lp-feat-ic"><i class="fas fa-calendar-days"></i></span><span><b>Tadbirlar</b><small>Uchrashuv, seminar va musobaqalarga yoziling va qatnashing</small></span><i class="fas fa-chevron-right lp-feat-arrow"></i></a>
-        <a class="lp-feat-row" href="#lpJamoalar"><span class="lp-feat-ic"><i class="fas fa-user-group"></i></span><span><b>Jamoalar va do'stlar</b><small>Qiziqishingiz bo'yicha jamoalarga qo'shiling, odamlarga yozing</small></span><i class="fas fa-chevron-right lp-feat-arrow"></i></a>
-        <a class="lp-feat-row" href="/volunteer"><span class="lp-feat-ic"><i class="fas fa-hand-holding-heart"></i></span><span><b>Volontyorlik</b><small>Foydali ishlarda qatnashing va tajriba orttiring</small></span><i class="fas fa-chevron-right lp-feat-arrow"></i></a>
-        <a class="lp-feat-row" href="/birmillaters"><span class="lp-feat-ic"><i class="fas fa-users"></i></span><span><b>BirMillaters</b><small>Hududlardagi koordinatorlar — ularga to'g'ridan-to'g'ri yozing</small></span><i class="fas fa-chevron-right lp-feat-arrow"></i></a>
-        <a class="lp-feat-row" href="/articles"><span class="lp-feat-ic"><i class="fas fa-newspaper"></i></span><span><b>Maqolalar</b><small>Yoshlar uchun foydali maqolalar va tajribalar</small></span><i class="fas fa-chevron-right lp-feat-arrow"></i></a>
+        <div class="lp-feat-title lp-reveal">BirMillat'da nimalar bor?</div>
+        <a class="lp-feat-row lp-reveal" style="--d:90ms" href="/events"><span class="lp-feat-ic"><i class="fas fa-calendar-days"></i></span><span><b>Tadbirlar</b><small>Uchrashuv, seminar va musobaqalarga yoziling va qatnashing</small></span><i class="fas fa-chevron-right lp-feat-arrow"></i></a>
+        <a class="lp-feat-row lp-reveal" style="--d:180ms" href="#lpJamoalar"><span class="lp-feat-ic"><i class="fas fa-user-group"></i></span><span><b>Jamoalar va do'stlar</b><small>Qiziqishingiz bo'yicha jamoalarga qo'shiling, odamlarga yozing</small></span><i class="fas fa-chevron-right lp-feat-arrow"></i></a>
+        <a class="lp-feat-row lp-reveal" style="--d:270ms" href="/volunteer"><span class="lp-feat-ic"><i class="fas fa-hand-holding-heart"></i></span><span><b>Volontyorlik</b><small>Foydali ishlarda qatnashing va tajriba orttiring</small></span><i class="fas fa-chevron-right lp-feat-arrow"></i></a>
+        <a class="lp-feat-row lp-reveal" style="--d:360ms" href="/birmillaters"><span class="lp-feat-ic"><i class="fas fa-users"></i></span><span><b>BirMillaters</b><small>Hududlardagi koordinatorlar — ularga to'g'ridan-to'g'ri yozing</small></span><i class="fas fa-chevron-right lp-feat-arrow"></i></a>
+        <a class="lp-feat-row lp-reveal" style="--d:450ms" href="/articles"><span class="lp-feat-ic"><i class="fas fa-newspaper"></i></span><span><b>Maqolalar</b><small>Yoshlar uchun foydali maqolalar va tajribalar</small></span><i class="fas fa-chevron-right lp-feat-arrow"></i></a>
       </div>
     </div>
   </div>
@@ -324,32 +378,36 @@ footer { background: var(--color-surface); border-top: 1px solid var(--color-bor
 
 <section class="lp-sec" id="lpQanday">
   <div class="lp-wrap">
+   <div class="lp-panel lp-reveal">
     <div class="lp-head"><h2 data-i18n="steps.title">Qanday ishlaydi</h2><p data-i18n="steps.sub">Uch qadam — shu qadar oddiy</p></div>
     <div class="lp-steps">
-      <div class="lp-step"><div class="lp-step-num">1</div><h3>Ro'yxatdan o'ting</h3><p>Ism, rasm va qiziqishlaringizni kiriting. Bu bepul va bir daqiqa oladi.</p></div>
-      <div class="lp-step"><div class="lp-step-num">2</div><h3>Imkoniyatlarni toping</h3><p>Tadbirlar, jamoalar va volontyorlik e'lonlarini ko'ring — o'zingizga mosini tanlang.</p></div>
-      <div class="lp-step"><div class="lp-step-num">3</div><h3>Qatnashing va suhbatlashing</h3><p>Tadbirga yoziling, jamoaga qo'shiling, yangi do'stlarga BirMillat'da to'g'ridan-to'g'ri yozing.</p></div>
+      <div class="lp-step lp-reveal" style="--d:0ms"><div class="lp-step-num">1</div><h3>Ro'yxatdan o'ting</h3><p>Ism, rasm va qiziqishlaringizni kiriting. Bu bepul va bir daqiqa oladi.</p></div>
+      <div class="lp-step lp-reveal" style="--d:100ms"><div class="lp-step-num">2</div><h3>Imkoniyatlarni toping</h3><p>Tadbirlar, jamoalar va volontyorlik e'lonlarini ko'ring — o'zingizga mosini tanlang.</p></div>
+      <div class="lp-step lp-reveal" style="--d:200ms"><div class="lp-step-num">3</div><h3>Qatnashing va suhbatlashing</h3><p>Tadbirga yoziling, jamoaga qo'shiling, yangi do'stlarga BirMillat'da to'g'ridan-to'g'ri yozing.</p></div>
     </div>
+   </div>
   </div>
 </section>
 
 <section class="lp-sec lp-alt" id="lpJamoalar">
   <div class="lp-wrap">
-    <div class="lp-head"><h2 data-i18n="comm.title">Jamoalar</h2><p data-i18n="comm.sub">BirMillat'dagi haqiqiy jamoalar — birortasiga qo'shilish uchun ro'yxatdan o'ting.</p></div>
+    <div class="lp-head lp-reveal"><h2 data-i18n="comm.title">Jamoalar</h2><p data-i18n="comm.sub">BirMillat'dagi haqiqiy jamoalar — birortasiga qo'shilish uchun ro'yxatdan o'ting.</p></div>
     <div class="lp-grid" id="lpCommunityGrid"><div class="lp-skel"></div><div class="lp-skel"></div><div class="lp-skel"></div></div>
   </div>
 </section>
 
 <section class="lp-sec">
   <div class="lp-wrap">
+   <div class="lp-panel lp-reveal">
     <div class="lp-head"><h2 data-i18n="people.title">A'zolarimiz</h2><p data-i18n="people.sub">Turli qiziqish va viloyatlardan bo'lgan a'zolar. To'liq profillarni ko'rish uchun ro'yxatdan o'ting.</p></div>
     <div class="lp-people" id="lpPeopleGrid"></div>
+   </div>
   </div>
 </section>
 
 <section class="lp-sec">
   <div class="lp-wrap">
-    <div class="lp-cta">
+    <div class="lp-cta lp-reveal">
       <h2>Bugun BirMillat'ga qo'shiling</h2>
       <p>Bizning maqsad — yoshlarni qiziqishlari bo'yicha birlashtirish va ularga rivojlanish imkoniyatini yaratish. Ro'yxatdan o'tish bepul.</p>
       <a href="/register" class="lp-btn primary"><span data-i18n="hero.cta_primary">Bepul boshlash</span> <svg class="lp-i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>
@@ -378,7 +436,7 @@ footer { background: var(--color-surface); border-top: 1px solid var(--color-bor
     </div>
     <div class="lp-foot-col"><h4 data-i18n="foot.col_platform">Platforma</h4><a href="/about" data-i18n="nav.about">BirMillat nima?</a><a href="#lpJamoalar" data-i18n="comm.title">Jamoalar</a><a href="/founders.html" data-i18n="foot.members">A'zolar</a><a href="/birmillaters">BirMillaters</a></div>
     <div class="lp-foot-col"><h4 data-i18n="foot.col_company">Kompaniya</h4><a href="/contact" data-i18n="foot.contact">Biz bilan bog'lanish</a><a href="/support" data-i18n="foot.support">Yordam</a><a href="/privacy" data-i18n="foot.privacy">Maxfiylik siyosati</a></div>
-    <div class="lp-foot-col"><h4 data-i18n="foot.col_social">Ijtimoiy tarmoqlar</h4><a href="https://t.me/birmillatUZB" target="_blank" rel="noopener">Telegram</a><a href="https://instagram.com/birmillat.uz" target="_blank" rel="noopener">Instagram</a><a href="https://t.me/birmillatUZB" target="_blank" rel="noopener" data-i18n="foot.support_bot">Yordam (bot)</a></div>
+    <div class="lp-foot-col"><h4 data-i18n="foot.col_social">Ijtimoiy tarmoqlar</h4><a href="https://t.me/birmillatUZB" target="_blank" rel="noopener">Telegram</a><a href="https://instagram.com/birmillat.uz" target="_blank" rel="noopener">Instagram</a><a href="https://t.me/BirMillat_Support_Bot" target="_blank" rel="noopener" data-i18n="foot.support_bot">Yordam (bot)</a></div>
   </div>
   <div class="lp-foot-bottom">
     <span data-i18n="foot.copyright">© 2026 BirMillat. Barcha huquqlar himoyalangan.</span>
@@ -392,6 +450,44 @@ footer { background: var(--color-surface); border-top: 1px solid var(--color-bor
   var $ = function (id) { return document.getElementById(id); };
   var esc = function (v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
   var safeUrl = function (u) { return (typeof u === 'string' && /^(https?:\/\/|\/(?!\/))/i.test(u)) ? u : ''; };
+  var REDUCE = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+  // Scroll reveal: elements marked .lp-reveal rise in once, the first time they scroll into view
+  var revealIO = ('IntersectionObserver' in window) ? new IntersectionObserver(function (es) {
+    es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); revealIO.unobserve(e.target); } });
+  }, { threshold: 0, rootMargin: '0px 0px -8% 0px' }) : null;
+  function watchReveal(root) {
+    Array.prototype.forEach.call((root || document).querySelectorAll('.lp-reveal:not([data-w])'), function (el) {
+      el.setAttribute('data-w', '');
+      if (revealIO) revealIO.observe(el); else el.classList.add('in');
+    });
+  }
+  var SEEN = {};
+  // cards that load from the API get the same effect, staggered; a language switch re-draws them without replaying it
+  function revealGrid(grid, key) {
+    Array.prototype.forEach.call(grid.children, function (el, i) {
+      el.classList.add('lp-reveal');
+      el.style.setProperty('--d', Math.min(i, 8) * 70 + 'ms');
+      if (SEEN[key]) el.classList.add('in');
+    });
+    SEEN[key] = true;
+    watchReveal(grid);
+  }
+  // Numbers count up once (not again after a language switch)
+  var COUNTED = {};
+  function countTo(el, n) {
+    var fmt = function (v) { return v.toLocaleString('en-US'); };
+    if (COUNTED[el.id] || REDUCE || !window.requestAnimationFrame || n < 2) { COUNTED[el.id] = true; el.textContent = fmt(n); return; }
+    COUNTED[el.id] = true;
+    var dur = n < 20 ? 900 : 1400, t0 = null;
+    (function step(ts) {
+      if (t0 === null) t0 = ts;
+      var p = Math.min((ts - t0) / dur, 1), e = 1 - Math.pow(1 - p, 3);
+      el.textContent = fmt(Math.round(n * e));
+      if (p < 1) requestAnimationFrame(step);
+    })(performance.now());
+  }
+
   var HUES = [255, 278, 305, 335, 8, 28, 172, 200];
   var hueOf = function (s) { var h = 0; String(s).split('').forEach(function (c) { h = (h * 31 + c.charCodeAt(0)) >>> 0; }); return HUES[h % HUES.length]; };
   var initials = function (n) { var p = String(n || '?').trim().split(/\s+/); return (p.length > 1 ? p[0][0] + p[1][0] : p[0].slice(0, 2)).toUpperCase(); };
@@ -419,10 +515,10 @@ footer { background: var(--color-surface); border-top: 1px solid var(--color-bor
 
   function renderStats() {
     var s = D.stats; if (!s) return;
-    $('statMembers').textContent = (s.memberCount || 0).toLocaleString('en-US');
-    $('statComms').textContent = (s.communityCount || 0).toLocaleString('en-US');
-    $('statEvents').textContent = (s.eventCount || 0).toLocaleString('en-US');
     $('lpStats').hidden = false;
+    countTo($('statMembers'), s.memberCount || 0);
+    countTo($('statComms'), s.communityCount || 0);
+    countTo($('statEvents'), s.eventCount || 0);
   }
 
   function renderComms() {
@@ -438,6 +534,7 @@ footer { background: var(--color-surface); border-top: 1px solid var(--color-bor
         '<div class="lp-card-foot"><span class="lp-meta">' + svg(USERS) + esc(T('lp.members_count', "{n} a\u2019zo", { n: c.memberCount || 0 })) + '</span>' +
         '<span class="lp-join">' + esc(T('lp.join', "Qo\u2018shilish")) + svg(ARROW) + '</span></div></div></a>';
     }).join('');
+    revealGrid(grid, 'comms');
   }
 
   function renderPeople() {
@@ -455,6 +552,7 @@ footer { background: var(--color-surface); border-top: 1px solid var(--color-bor
         (p.region ? '<div class="lp-person-region">' + svg(PIN) + esc(p.region) + '</div>' : '') +
         '<div class="lp-person-tags">' + tags + '</div></a>';
     }).join('');
+    revealGrid(grid, 'people');
   }
 
   function renderAll() { renderStats(); renderComms(); renderPeople(); }
@@ -480,6 +578,8 @@ footer { background: var(--color-surface); border-top: 1px solid var(--color-bor
     if (reduce.addEventListener) reduce.addEventListener('change', syncScene);
     syncScene();
   }
+
+  watchReveal();
 
   // Everything is requested at once; each part draws as soon as its data arrives
   LANG = (window.BirMillatI18n && window.BirMillatI18n.currentLang()) || 'uz';
