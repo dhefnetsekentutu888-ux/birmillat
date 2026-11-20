@@ -68,6 +68,44 @@
 
 .bd-initials { display: none; }
 .bd-photo.no-img .bd-initials { display: flex; }
+
+/* ---- Rating (anonymous 1-5 stars) ---- */
+:root { --bd-star: #F5A623; --bd-star-empty: #D9D2E6; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bd-star: #FFC145; --bd-star-empty: #4A3F5E; } }
+:root[data-theme="dark"] { --bd-star: #FFC145; --bd-star-empty: #4A3F5E; }
+:root[data-theme="light"] { --bd-star: #F5A623; --bd-star-empty: #D9D2E6; }
+.bd-rating .bd-muted { margin: 0; }
+.bdr-top { display: flex; gap: 2rem; align-items: center; flex-wrap: wrap; }
+.bdr-score { text-align: center; min-width: 120px; }
+.bdr-num { font: 800 3.4rem/1 'Sora', sans-serif; color: var(--color-text); }
+.bdr-stars { position: relative; display: inline-block; font-size: 1.15rem; letter-spacing: 2px; line-height: 1; margin: .45rem 0 .3rem; }
+.bdr-stars-bg { color: var(--bd-star-empty); }
+.bdr-stars-fill { position: absolute; left: 0; top: 0; overflow: hidden; white-space: nowrap; color: var(--bd-star); }
+.bdr-count { font-size: .85rem; color: var(--color-text-muted); }
+.bdr-bars { flex: 1 1 220px; display: grid; gap: .45rem; }
+.bdr-row { display: grid; grid-template-columns: 14px 1fr 32px; gap: .6rem; align-items: center; font-size: .82rem; color: var(--color-text-muted); }
+.bdr-lab { text-align: right; font-weight: 700; color: var(--color-text); }
+.bdr-track { height: 9px; border-radius: 99px; background: var(--color-border); overflow: hidden; }
+.bdr-fill { display: block; height: 100%; border-radius: 99px; background: var(--bd-star); }
+.bdr-n { text-align: right; font-variant-numeric: tabular-nums; }
+.bdr-empty { margin: 0; color: var(--color-text-muted); line-height: 1.6; }
+.bdr-rate { margin-top: 1.3rem; padding-top: 1.2rem; border-top: 1px solid var(--color-border); }
+.bdr-rate-title { margin: 0 0 .4rem; font-weight: 700; color: var(--color-text); }
+.bdr-pick { display: inline-flex; gap: .15rem; }
+.bdr-star { width: 44px; height: 44px; padding: 0; border: 0; background: none; cursor: pointer; font-size: 2rem; line-height: 1; color: var(--bd-star-empty); transition: transform .12s ease, color .12s ease; }
+.bdr-star.on { color: var(--bd-star); }
+.bdr-star:hover { transform: scale(1.12); }
+.bdr-star:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; border-radius: 10px; }
+.bdr-star[disabled] { cursor: wait; opacity: .7; }
+.bdr-note { min-height: 1.3em; margin: .4rem 0 0; font-size: .88rem; color: var(--color-primary); font-weight: 600; }
+.bdr-note.err { color: #D64545; }
+.bdr-remove { background: none; border: 0; padding: 0; margin-left: .3rem; font: inherit; font-size: .85rem; color: var(--color-text-muted); text-decoration: underline; cursor: pointer; }
+.bdr-remove:hover { color: var(--color-primary); }
+.bdr-links a { display: inline-block; margin: .2rem .9rem 0 0; color: var(--color-primary); font-weight: 700; }
+.bdr-privacy { display: flex; gap: .55rem; align-items: flex-start; margin: 1.1rem 0 0 !important; font-size: .84rem !important; line-height: 1.5 !important; color: var(--color-text-muted) !important; white-space: normal !important; }
+.bdr-privacy i { color: var(--color-primary); margin-top: .2rem; }
+@media (max-width: 520px) { .bdr-top { gap: 1.2rem; } .bdr-score { width: 100%; } }
+@media (prefers-reduced-motion: reduce) { .bdr-star { transition: none; } .bdr-star:hover { transform: none; } }
 </style>
 </head>
 <body>
@@ -191,8 +229,84 @@
                         ${b.region ? `<p class="bd-region"><i class="fas fa-location-dot"></i> ${esc(b.region)}</p>` : ''}
                     </div>
                 </section>
-                ${(about || way) ? `<div class="bd-sections">${about}${way}</div>` : ''}
+                <div class="bd-sections">${about}${way}<section class="bd-section bd-rating" id="bdRating" data-slug="${esc(b.slug || b.username)}" aria-live="polite"><h2><i class="fas fa-star"></i> Reyting</h2><div class="bdr-body"><p class="bd-muted">Yuklanmoqda…</p></div></section></div>
                 ${ctaBox}`;
+        }
+
+        // ---- Anonymous rating box: totals for everyone, a 1-5 star picker for logged-in visitors ----
+        function initRating() {
+            const box = document.getElementById('bdRating');
+            if (!box) return;
+            const body = box.querySelector('.bdr-body');
+            const api = '/api/birmillaters/' + encodeURIComponent(box.getAttribute('data-slug')) + '/rating';
+            let state = null, busy = false, note = '', noteErr = false;
+
+            const starRow = pct => `<span class="bdr-stars" aria-hidden="true"><span class="bdr-stars-bg">★★★★★</span><span class="bdr-stars-fill" style="width:${pct}%">★★★★★</span></span>`;
+
+            function summaryHtml(s) {
+                if (!s) return `<p class="bdr-empty">Hali yetarli baho yo'q. Kamida ${state.minVisible} ta baho to'planganda reyting shu yerda ko'rinadi.</p>`;
+                const bars = [5, 4, 3, 2, 1].map(n => {
+                    const c = s.distribution[n - 1], w = s.count ? Math.round(c / s.count * 100) : 0;
+                    return `<div class="bdr-row"><span class="bdr-lab">${n}</span><span class="bdr-track"><span class="bdr-fill" style="width:${w}%"></span></span><span class="bdr-n">${c}</span></div>`;
+                }).join('');
+                return `<div class="bdr-top">
+                    <div class="bdr-score" role="img" aria-label="Reyting: 5 dan ${s.average.toFixed(1)}, ${s.count} ta baho">
+                        <div class="bdr-num">${s.average.toFixed(1)}</div>${starRow(s.average / 5 * 100)}<div class="bdr-count">${s.count} ta baho</div>
+                    </div>
+                    <div class="bdr-bars">${bars}</div></div>`;
+            }
+
+            function rateHtml() {
+                const next = encodeURIComponent(location.pathname);
+                if (!state.loggedIn) return `<div class="bdr-rate"><p class="bdr-rate-title">Baholash uchun akkauntingizga kiring</p><div class="bdr-links"><a href="/login?next=${next}">Kirish</a><a href="/register">Ro'yxatdan o'tish</a></div></div>`;
+                if (state.reason === 'self') return `<div class="bdr-rate"><p class="bd-muted">Bu sizning sahifangiz — o'zingizni baholay olmaysiz.</p></div>`;
+                if (!state.canRate) return `<div class="bdr-rate"><p class="bd-muted">Hozir baholash mumkin emas.</p></div>`;
+                const mine = state.mine || 0;
+                const stars = [1, 2, 3, 4, 5].map(n =>
+                    `<button type="button" class="bdr-star${n <= mine ? ' on' : ''}" data-n="${n}" role="radio" aria-checked="${n === mine}" aria-label="${n} yulduz"${busy ? ' disabled' : ''}>★</button>`).join('');
+                return `<div class="bdr-rate">
+                    <p class="bdr-rate-title">${mine ? 'Sizning bahoyingiz' : 'Siz ham baholang'}</p>
+                    <div class="bdr-pick" role="radiogroup" aria-label="Baho (1 dan 5 gacha)">${stars}</div>
+                    ${mine ? '<button type="button" class="bdr-remove">Bahoni olib tashlash</button>' : ''}
+                    <p class="bdr-note${noteErr ? ' err' : ''}" role="status">${esc(note)}</p></div>`;
+            }
+
+            function draw() {
+                body.innerHTML = summaryHtml(state.summary) + rateHtml() +
+                    `<p class="bdr-privacy"><i class="fas fa-user-secret" aria-hidden="true"></i><span>Baholar anonim: BirMillater kim qanday baho berganini ko'ra olmaydi. Faqat umumiy natija ko'rinadi.</span></p>`;
+            }
+
+            async function send(method, n) {
+                if (busy) return;
+                busy = true; note = ''; noteErr = false; draw();
+                try {
+                    const res = await fetch(api, {
+                        method, credentials: 'same-origin',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: n ? JSON.stringify({ stars: n }) : undefined
+                    });
+                    const data = await res.json().catch(() => ({}));
+                    if (!res.ok) { note = data.error || 'Xatolik yuz berdi'; noteErr = true; }
+                    else { state = data; note = n ? 'Rahmat! Bahoyingiz saqlandi.' : 'Bahoyingiz olib tashlandi.'; }
+                } catch (e) { note = "Internet bilan muammo. Qayta urinib ko'ring."; noteErr = true; }
+                busy = false; draw();
+            }
+
+            function paint(n) { body.querySelectorAll('.bdr-star').forEach(b => b.classList.toggle('on', Number(b.dataset.n) <= n)); }
+            body.addEventListener('click', e => {
+                const star = e.target.closest('.bdr-star');
+                if (star) return send('PUT', Number(star.dataset.n));
+                if (e.target.closest('.bdr-remove')) send('DELETE');
+            });
+            body.addEventListener('mouseover', e => { const s = e.target.closest('.bdr-star'); if (s && !busy) paint(Number(s.dataset.n)); });
+            body.addEventListener('mouseout', e => { if (e.target.closest('.bdr-star') && !busy) paint(state.mine || 0); });
+            body.addEventListener('focusin', e => { const s = e.target.closest('.bdr-star'); if (s && !busy) paint(Number(s.dataset.n)); });
+            body.addEventListener('focusout', e => { if (e.target.closest('.bdr-star') && !busy) paint(state.mine || 0); });
+
+            fetch(api, { credentials: 'same-origin' })
+                .then(r => r.ok ? r.json() : Promise.reject())
+                .then(d => { state = d; draw(); })
+                .catch(() => { box.style.display = 'none'; });
         }
 
         (async () => {
@@ -207,12 +321,14 @@
                     write.remove();
                     const note = root.querySelector('.bd-write-note'); if (note) note.remove();
                 }
+                initRating();
                 return;
             }
             try {
                 const res = await fetch('/api/birmillaters/' + encodeURIComponent(username));
                 if (!res.ok) { notFound(); return; }
                 render(await res.json());
+                initRating();
             } catch (e) { console.error(e); notFound(); }
         })();
     </script>
