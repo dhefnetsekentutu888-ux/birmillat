@@ -238,6 +238,20 @@ async function initDb() {
         try { await db.execute(`ALTER TABLE birmillaters ADD COLUMN ${col}`); } catch (e) { /* already there */ }
     }
     await db.execute(`CREATE UNIQUE INDEX IF NOT EXISTS idx_birmillaters_slug ON birmillaters (slug)`);
+
+    // Anonymous 1-5 star ratings of BirMillaters. There is deliberately NO user id here:
+    // rater_key is an HMAC(secret, userId:birmillaterId), enough to stop double voting and to
+    // let a person change their own vote, but useless for finding out who voted. No timestamps either.
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS birmillater_ratings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            birmillater_id INTEGER NOT NULL,
+            rater_key TEXT NOT NULL,
+            stars INTEGER NOT NULL CHECK (stars BETWEEN 1 AND 5),
+            UNIQUE (birmillater_id, rater_key)
+        )
+    `);
+    await db.execute(`CREATE INDEX IF NOT EXISTS idx_bm_ratings_target ON birmillater_ratings (birmillater_id)`);
     try {
         await db.execute(`
             CREATE TRIGGER IF NOT EXISTS trg_birmillaters_updated
@@ -3631,7 +3645,7 @@ function renderBirmillaterProfileBody(pub, contrib, others) {
                         ${pub.region ? `<p class="bd-region"><i class="fas fa-location-dot"></i> ${e(pub.region)}</p>` : ''}
                     </div>
                 </section>
-                ${(sections || activityBox) ? `<div class="bd-sections">${sections}${activityBox}</div>` : ''}
+                <div class="bd-sections">${sections}<section class="bd-section bd-rating" id="bdRating" data-slug="${e(pub.slug)}" aria-live="polite"><h2><i class="fas fa-star"></i> Reyting</h2><div class="bdr-body"><p class="bd-muted">Yuklanmoqda…</p></div></section>${activityBox}</div>
                 ${cta}
                 ${othersBox}`;
 }
@@ -3651,10 +3665,98 @@ function renderBirmillaterCard(pub) {
                         <div class="bm-info-text">
                             <h2 class="bm-title">${e(pub.title || 'BirMillater')}</h2>
                             ${pub.region ? `<p class="bm-region"><i class="fas fa-location-dot"></i> ${e(pub.region)}</p>` : ''}
+                            ${renderRatingStarLine(pub)}
                         </div>
                         <span class="bm-go" aria-hidden="true"><i class="fas fa-arrow-right"></i></span>
                     </div>
                 </a>`;
+}
+
+// ---------- BirMillater ratings (anonymous, 1-5 stars) ----------
+// RATING_SECRET: long random value in Render's Environment tab. Never change it afterwards, otherwise
+// people could vote a second time (their old votes can no longer be matched to them).
+const RATING_SECRET = (process.env.RATING_SECRET || '').trim();
+// Averages, counts and the breakdown are shown only from this many votes, so that with one or two
+// voters nobody can guess who gave which score.
+const RATING_MIN_VISIBLE = 3;
+if (!RATING_SECRET) console.warn('WARNING: RATING_SECRET is not set - BirMillater ratings are read-only until it is.');
+
+function ratingKey(userId, birmillaterId) {
+    return crypto.createHmac('sha256', RATING_SECRET).update(`${userId}:${birmillaterId}`).digest('hex');
+}
+
+let ratingCache = { at: 0, map: null };
+function invalidateRatingCache() { ratingCache = { at: 0, map: null }; }
+async function getRatingSummaries() {
+    if (ratingCache.map && Date.now() - ratingCache.at < 30000) return ratingCache.map;
+    const r = await db.execute(`SELECT birmillater_id, stars, COUNT(*) AS n FROM birmillater_ratings GROUP BY birmillater_id, stars`);
+    const map = new Map();
+    for (const row of r.rows) {
+        const id = Number(row.birmillater_id), stars = Number(row.stars), n = Number(row.n);
+        const e = map.get(id) || { count: 0, sum: 0, dist: [0, 0, 0, 0, 0] };
+        e.count += n; e.sum += stars * n; e.dist[stars - 1] += n;
+        map.set(id, e);
+    }
+    ratingCache = { at: Date.now(), map };
+    return map;
+}
+// What the public may see: nothing at all until there are enough votes.
+function publicRating(entry) {
+    if (!entry || entry.count < RATING_MIN_VISIBLE) return null;
+    return { average: Math.round((entry.sum / entry.count) * 10) / 10, count: entry.count, distribution: entry.dist.slice() };
+}
+async function attachRatings(pubs, rows) {
+    try {
+        const map = await getRatingSummaries();
+        pubs.forEach((p, i) => {
+            const s = publicRating(map.get(Number(rows[i].id)));
+            if (s) p.rating = { average: s.average, count: s.count };
+        });
+    } catch (err) { console.error('attachRatings failed:', err.message); }
+}
+
+// Who is looking, and may they vote?
+async function ratingViewerState(req, row) {
+    if (!req.session || !req.session.userId) return { loggedIn: false, canRate: false, reason: 'login' };
+    const me = await getUserById(req.session.userId);
+    if (!me) return { loggedIn: false, canRate: false, reason: 'login' };
+    if (String(me.username || '').toLowerCase() === String(row.username || '').toLowerCase()) return { loggedIn: true, me, canRate: false, reason: 'self' };
+    if (Number(me.is_blocked) === 1) return { loggedIn: true, me, canRate: false, reason: 'blocked' };
+    return { loggedIn: true, me, canRate: true };
+}
+async function ratingResponse(row, viewer) {
+    const map = await getRatingSummaries();
+    let mine = null;
+    if (RATING_SECRET && viewer.canRate) {
+        const r = await db.execute({
+            sql: 'SELECT stars FROM birmillater_ratings WHERE birmillater_id = ? AND rater_key = ?',
+            args: [row.id, ratingKey(viewer.me.id, row.id)]
+        });
+        if (r.rows[0]) mine = Number(r.rows[0].stars);
+    }
+    return {
+        summary: publicRating(map.get(Number(row.id))),
+        minVisible: RATING_MIN_VISIBLE,
+        loggedIn: viewer.loggedIn,
+        canRate: viewer.canRate && !!RATING_SECRET,
+        reason: viewer.canRate && !RATING_SECRET ? 'unavailable' : (viewer.reason || null),
+        mine
+    };
+}
+const ratingHits = new Map(); // userId -> recent write times (in memory is fine for a simple brake)
+function ratingRateLimitOk(userId) {
+    const now = Date.now(), hour = 3600000;
+    const list = (ratingHits.get(userId) || []).filter(t => now - t < hour);
+    if (list.length >= 30) { ratingHits.set(userId, list); return false; }
+    list.push(now); ratingHits.set(userId, list);
+    return true;
+}
+setInterval(() => { const now = Date.now(); for (const [k, v] of ratingHits) if (!v.some(t => now - t < 3600000)) ratingHits.delete(k); }, 3600000).unref();
+
+function renderRatingStarLine(pub) {
+    return pub.rating
+        ? `<p class="bm-rate" aria-label="Reyting ${pub.rating.average.toFixed(1)} / 5, ${pub.rating.count} ta baho"><i class="fas fa-star" aria-hidden="true"></i> <b>${pub.rating.average.toFixed(1)}</b> <span>(${pub.rating.count})</span></p>`
+        : '';
 }
 
 function sendBirmillaterNotFound(res) {
@@ -3676,6 +3778,7 @@ app.get('/birmillaters', async (req, res) => {
         const rows = await getActiveBirmillaters();
         for (const r of rows) if (!r.slug) r.slug = await ensureBirmillaterSlug(r.username);
         const list = rows.map(r => birmillaterToPublic(r, false));
+        await attachRatings(list, rows);
         const url = `${SITE_URL}/birmillaters`;
         const title = 'BirMillaters \u2014 BirMillat koordinatorlari va volontyorlari';
         const description = "BirMillat koordinatorlari va volontyorlari: har birining ochiq sahifasi \u2014 kim, qayerdan va yo'li. BirMillat'da to'g'ridan-to'g'ri yozing.";
@@ -3745,8 +3848,10 @@ app.get('/birmillaters/:slug', async (req, res) => {
 app.get('/api/birmillaters', async (req, res) => {
     try {
         const rows = await getActiveBirmillaters();
+        const list = rows.map(r => birmillaterToPublic(r, false));
+        await attachRatings(list, rows);
         res.set('Cache-Control', 'public, max-age=60');
-        res.json(rows.map(r => birmillaterToPublic(r, false)));
+        res.json(list);
     } catch (err) {
         console.error('GET /api/birmillaters error:', err);
         res.status(500).json({ error: 'Server error' });
@@ -3760,6 +3865,71 @@ app.get('/api/birmillaters/:slug', async (req, res) => {
         res.json(birmillaterToPublic(row, true));
     } catch (err) {
         console.error('GET /api/birmillaters/:slug error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// ---- Anonymous ratings ----
+// Nothing here ever returns who voted. A viewer only gets the totals, plus their OWN vote.
+app.get('/api/birmillaters/:slug/rating', async (req, res) => {
+    res.set('Cache-Control', 'private, no-store');
+    try {
+        const row = await getBirmillaterBySlugOrUsername(req.params.slug);
+        if (!row || !row.is_active) return res.status(404).json({ error: 'Topilmadi' });
+        res.json(await ratingResponse(row, await ratingViewerState(req, row)));
+    } catch (err) {
+        console.error('GET /api/birmillaters/:slug/rating error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.put('/api/birmillaters/:slug/rating', async (req, res) => {
+    res.set('Cache-Control', 'private, no-store');
+    try {
+        if (!req.session.userId) return res.status(401).json({ error: 'Baholash uchun kiring' });
+        if (!RATING_SECRET) return res.status(503).json({ error: 'Baholash hozircha ishlamayapti' });
+        const row = await getBirmillaterBySlugOrUsername(req.params.slug);
+        if (!row || !row.is_active) return res.status(404).json({ error: 'Topilmadi' });
+        const stars = Number(req.body && req.body.stars);
+        if (!Number.isInteger(stars) || stars < 1 || stars > 5) return res.status(400).json({ error: '1 dan 5 gacha baho tanlang' });
+        const viewer = await ratingViewerState(req, row);
+        if (!viewer.canRate) {
+            const msg = viewer.reason === 'self' ? "O'zingizni baholay olmaysiz"
+                : viewer.reason === 'blocked' ? 'Akkauntingiz cheklangan' : 'Baholash uchun kiring';
+            return res.status(viewer.reason === 'login' ? 401 : 403).json({ error: msg });
+        }
+        if (!ratingRateLimitOk(viewer.me.id)) return res.status(429).json({ error: "Juda ko'p urinish. Birozdan so'ng qayta urinib ko'ring" });
+        await db.execute({
+            sql: `INSERT INTO birmillater_ratings (birmillater_id, rater_key, stars) VALUES (?, ?, ?)
+                  ON CONFLICT (birmillater_id, rater_key) DO UPDATE SET stars = excluded.stars`,
+            args: [row.id, ratingKey(viewer.me.id, row.id), stars]
+        });
+        invalidateRatingCache();
+        res.json(await ratingResponse(row, viewer));
+    } catch (err) {
+        console.error('PUT /api/birmillaters/:slug/rating error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.delete('/api/birmillaters/:slug/rating', async (req, res) => {
+    res.set('Cache-Control', 'private, no-store');
+    try {
+        if (!req.session.userId) return res.status(401).json({ error: 'Baholash uchun kiring' });
+        if (!RATING_SECRET) return res.status(503).json({ error: 'Baholash hozircha ishlamayapti' });
+        const row = await getBirmillaterBySlugOrUsername(req.params.slug);
+        if (!row || !row.is_active) return res.status(404).json({ error: 'Topilmadi' });
+        const viewer = await ratingViewerState(req, row);
+        if (!viewer.canRate) return res.status(viewer.reason === 'login' ? 401 : 403).json({ error: 'Mumkin emas' });
+        if (!ratingRateLimitOk(viewer.me.id)) return res.status(429).json({ error: "Juda ko'p urinish. Birozdan so'ng qayta urinib ko'ring" });
+        await db.execute({
+            sql: 'DELETE FROM birmillater_ratings WHERE birmillater_id = ? AND rater_key = ?',
+            args: [row.id, ratingKey(viewer.me.id, row.id)]
+        });
+        invalidateRatingCache();
+        res.json(await ratingResponse(row, viewer));
+    } catch (err) {
+        console.error('DELETE /api/birmillaters/:slug/rating error:', err);
         res.status(500).json({ error: 'Server error' });
     }
 });
