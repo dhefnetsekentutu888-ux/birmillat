@@ -3705,6 +3705,29 @@ function publicRating(entry) {
     if (!entry || entry.count < RATING_MIN_VISIBLE) return null;
     return { average: Math.round((entry.sum / entry.count) * 10) / 10, count: entry.count, distribution: entry.dist.slice() };
 }
+// Best-rated first. Fair ranking: a weighted ("Bayesian") score, so 3 votes of 5.0 do not beat 4.8 from 50 votes.
+// Only people whose rating is already public (enough votes) are ranked; everyone else keeps the admin's
+// order below them, so the order never reveals anything about ratings that are still hidden.
+const RATING_RANK_WEIGHT = 5; // how many "average" votes a newcomer starts with
+async function sortBirmillatersByRating(rows) {
+    try {
+        const map = await getRatingSummaries();
+        const rated = [], rest = [];
+        rows.forEach((r, i) => {
+            const e = map.get(Number(r.id));
+            if (e && e.count >= RATING_MIN_VISIBLE) rated.push({ r, i, n: e.count, avg: e.sum / e.count });
+            else rest.push(r);
+        });
+        if (!rated.length) return rows;
+        const overall = rated.reduce((a, x) => a + x.avg * x.n, 0) / rated.reduce((a, x) => a + x.n, 0);
+        const score = x => (x.n / (x.n + RATING_RANK_WEIGHT)) * x.avg + (RATING_RANK_WEIGHT / (x.n + RATING_RANK_WEIGHT)) * overall;
+        rated.sort((a, b) => (score(b) - score(a)) || (b.n - a.n) || (a.i - b.i));
+        return rated.map(x => x.r).concat(rest);
+    } catch (err) {
+        console.error('sortBirmillatersByRating failed:', err.message);
+        return rows;
+    }
+}
 async function attachRatings(pubs, rows) {
     try {
         const map = await getRatingSummaries();
@@ -3775,7 +3798,7 @@ function sendBirmillaterNotFound(res) {
 
 app.get('/birmillaters', async (req, res) => {
     try {
-        const rows = await getActiveBirmillaters();
+        const rows = await sortBirmillatersByRating(await getActiveBirmillaters());
         for (const r of rows) if (!r.slug) r.slug = await ensureBirmillaterSlug(r.username);
         const list = rows.map(r => birmillaterToPublic(r, false));
         await attachRatings(list, rows);
@@ -3847,7 +3870,7 @@ app.get('/birmillaters/:slug', async (req, res) => {
 });
 app.get('/api/birmillaters', async (req, res) => {
     try {
-        const rows = await getActiveBirmillaters();
+        const rows = await sortBirmillatersByRating(await getActiveBirmillaters());
         const list = rows.map(r => birmillaterToPublic(r, false));
         await attachRatings(list, rows);
         res.set('Cache-Control', 'public, max-age=60');
