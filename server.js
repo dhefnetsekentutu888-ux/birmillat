@@ -5140,6 +5140,12 @@ const R2_BUCKET = (process.env.R2_BUCKET || '').trim();
 const R2_PUBLIC_URL = (process.env.R2_PUBLIC_URL || '').trim().replace(/\/+$/, '');
 const R2_ENABLED = !!(R2_ACCOUNT_ID && R2_ACCESS_KEY_ID && R2_SECRET_ACCESS_KEY && R2_BUCKET && R2_PUBLIC_URL);
 let r2Client = null;
+{
+    const missing = [['R2_ACCOUNT_ID', R2_ACCOUNT_ID], ['R2_ACCESS_KEY_ID', R2_ACCESS_KEY_ID], ['R2_SECRET_ACCESS_KEY', R2_SECRET_ACCESS_KEY], ['R2_BUCKET', R2_BUCKET], ['R2_PUBLIC_URL', R2_PUBLIC_URL]].filter(x => !x[1]).map(x => x[0]);
+    console.log(missing.length
+        ? `Image storage: R2 NOT active, missing: ${missing.join(', ')} (using freeimage.host)`
+        : `Image storage: Cloudflare R2 active (bucket "${R2_BUCKET}", public URL ${R2_PUBLIC_URL})`);
+}
 
 // Identify the real file type from its first bytes (never trust the user's filename).
 function detectImageType(buf) {
@@ -5168,6 +5174,7 @@ async function uploadToR2(buffer) {
         console.error('R2 upload failed:', res.status, await res.text().catch(() => ''));
         return { ok: false, error: 'Rasmni yuklab bo\u2018lmadi' };
     }
+    console.log('Image saved to R2:', key);
     return { ok: true, url: `${R2_PUBLIC_URL}/${key}` };
 }
 
