@@ -192,6 +192,16 @@ body { font-family: 'Inter', sans-serif; }
 
 .bm-mini-photo span { display: none; }
 .bm-mini-photo.no-img span { display: flex; }
+
+/* ---- Networking events ---- */
+.nw-actions { display: flex; flex-wrap: wrap; gap: .8rem; justify-content: center; margin-top: 1.8rem; }
+.nw-btn { display: inline-flex; align-items: center; gap: .55rem; padding: .85rem 1.5rem; border-radius: 16px; font: 700 .95rem 'Sora', sans-serif; text-decoration: none; transition: transform .15s ease, box-shadow .15s ease; }
+.nw-btn:hover { transform: translateY(-2px); }
+.nw-btn.primary { background: #FF6B5B; color: #1A1625; box-shadow: 0 10px 24px rgba(255, 107, 91, .28); }
+.nw-btn.ghost { background: var(--color-surface); color: var(--color-text); border: 1.5px solid var(--color-border); }
+.nw-btn.ghost:hover { border-color: var(--color-primary); }
+.nw-note { text-align: center; max-width: 620px; margin: 1.2rem auto 0; color: var(--color-text-muted); font-size: .9rem; line-height: 1.6; }
+@media (prefers-reduced-motion: reduce) { .nw-btn { transition: none; } .nw-btn:hover { transform: none; } }
 </style>
 </head>
 <body>
@@ -247,6 +257,34 @@ body { font-family: 'Inter', sans-serif; }
                 </div>
                 <div class="bm-feature-grid" id="abBmGrid" hidden></div>
                 <a href="/birmillaters" class="bm-feature-btn btn-zoom">Barcha BirMillaterlarni ko'rish <i class="fas fa-arrow-right"></i></a>
+            </div>
+        </div>
+
+        <div class="about-section reveal" id="networking">
+            <span class="section-kicker">Networking tadbirlari</span>
+            <h2>BirMillat networking — yoshlarni jonli uchrashtiramiz</h2>
+            <p class="lead">BirMillat networking — taxminan ikki soatlik jonli uchrashuv. Notanish yoshlar o'yin, suhbat va jamoaviy topshiriqlar orqali tez orada tanishib, o'z qiziqishlari va g'oyalarini bir-biriga aytib bera boshlaydi. Tadbir yengil qizdiruvchi mashq bilan boshlanadi va umumiy surat hamda sertifikatlar bilan yakunlanadi. Har bir faoliyatni BirMillat koordinatorlari va volontyorlari olib boradi: ular tadbirni tashkil etadi va yoshlarni bir-biri bilan bog'laydi.</p>
+            <div class="feature-grid reveal-stagger reveal">
+                <div class="feature-card card">
+                    <div class="feature-icon"><i class="fas fa-comments"></i></div>
+                    <h3>Tanishuv va suhbat</h3>
+                    <p>Nimani izlayotganingiz, sizni nima birlashtirishi va boshqalarga nima bera olishingiz haqida erkin gaplashasiz. O'yinlar va bingo yordamida tanishish o'zi osonlashadi.</p>
+                </div>
+                <div class="feature-card card">
+                    <div class="feature-icon"><i class="fas fa-lightbulb"></i></div>
+                    <h3>G'oya va munozara</h3>
+                    <p>Networking bo'yicha qisqa taqdimot eshitasiz, g'oya tuzishni mashq qilasiz va munozarada o'z fikringizni ifodalashni o'rganasiz.</p>
+                </div>
+                <div class="feature-card card">
+                    <div class="feature-icon"><i class="fas fa-flag-checkered"></i></div>
+                    <h3>Jamoaviy topshiriqlar</h3>
+                    <p>Actionbound ilovasida jamoa bo'lib topshiriqlarni bajarasiz, so'ng umumiy suratga tushib, sertifikat olasiz.</p>
+                </div>
+            </div>
+            <div class="nw-actions">
+                <a href="/events" class="nw-btn primary"><i class="fas fa-calendar-days"></i> Tadbirlarni ko'rish</a>
+                <a href="/volunteer" class="nw-btn ghost"><i class="fas fa-hand-holding-heart"></i> Volontyor bo'lish</a>
+                <a href="https://instagram.com/birmillat.uz" target="_blank" rel="noopener noreferrer" class="nw-btn ghost"><i class="fab fa-instagram"></i> Instagram'da tadbirlar</a>
             </div>
         </div>
 
